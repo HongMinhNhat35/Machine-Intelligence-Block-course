@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Hybrid Vision System — GUI
 
 Web interface for the AMI drone detection pipeline: browse FRED sequences, run YOLO detection on reconstructed e2vid frames, and inspect results.
@@ -84,3 +85,7 @@ Once frames are written to `RECON_DATA_PATH`, the GUI will show the sequence as 
 | `e2vid` | 8001 (internal) | YOLO inference on e2vid frames. Weights baked into image. |
 | `hypere2vid` | 8002 (internal) | Implemented; no weights or reconstruction data yet |
 | `fusion` | 8003 (internal) | Not yet implemented |
+=======
+# Machine-Intelligence-Block-course
+Hybrid visions for drone detection
+>>>>>>> c4d6698 (Initial commit)
