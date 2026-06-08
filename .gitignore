@@ -1,0 +1,35 @@
+# ── Dataset (large, distributed separately) ───────────────────────────────────
+data/raw/
+data/processed/
+
+# ── Generated pipeline artifacts ──────────────────────────────────────────────
+data/yolo_e2vid/
+data/yolo_runs/
+data/yolo_e2vid.pt
+data/inference_check/
+
+# ── Model weights (distributed via sync_from_drive.sh) ────────────────────────
+services/e2vid/weights/*.pt
+services/hypere2vid/weights/
+services/fusion/weights/
+*.pt
+*.pth
+*.pth.tar
+
+# ── Superseded code ───────────────────────────────────────────────────────────
+outdated/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# ── Local config ─────────────────────────────────────────────────────────────
+.env
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+data/logs/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
