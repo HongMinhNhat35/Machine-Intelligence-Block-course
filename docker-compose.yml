@@ -1,0 +1,66 @@
+# Hybrid vision system — Docker compose
+# Run ./setup.sh first to create the .env file with correct data paths
+
+services:
+
+  # ── Web UI ────────────────────────────────────────────────────────────────
+  web:
+    build: ./services/web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    environment:
+      - E2VID_URL=http://e2vid:8001
+      - HYPERE2VID_URL=http://hypere2vid:8002
+      - FUSION_URL=http://fusion:8003
+    depends_on:
+      e2vid:
+        condition: service_healthy
+      hypere2vid:
+        condition: service_healthy
+      fusion:
+        condition: service_healthy
+
+  # ── e2vid inference service ───────────────────────────────────────────────
+  e2vid:
+    build: ./services/e2vid
+    expose:
+      - "8001"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── HyperE2VID inference service ──────────────────────────────────────────
+  hypere2vid:
+    build: ./services/hypere2vid
+    expose:
+      - "8002"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Early fusion inference service ────────────────────────────────────────
+  fusion:
+    build: ./services/fusion
+    expose:
+      - "8003"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

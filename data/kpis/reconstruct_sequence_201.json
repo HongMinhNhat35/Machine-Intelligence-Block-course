@@ -1,0 +1,17 @@
+{
+  "stage": "reconstruction",
+  "sequence": "sequence_201",
+  "cpu": "x86_64",
+  "gpu": "Tesla T4",
+  "gpu_memory_total_mb": 15637,
+  "n_events": 100094514,
+  "n_frames": 10861,
+  "events_per_frame": 9216,
+  "input_size_mb": 2309.7,
+  "runtime_s": 2732.5,
+  "seconds_per_frame": 0.25,
+  "events_per_second": 36631,
+  "frames_per_second": 3.97,
+  "peak_ram_mb": 590.0,
+  "timestamp": "2026-06-07T09:31:12"
+}
