@@ -37,44 +37,31 @@ The canonical split (`dataset_splits/canonical/`) defines which sequences belong
 
 ### Team-agreed sequences (current)
 
-The group agreed to use sequences 84, 85, 201 (train) and 127 (val). These are shared via the
-team git repo (`HongMinhNhat35/Machine-Intelligence-Block-course`) but must be downloaded directly
-from HuggingFace since the repo's git-lfs upload was incorrect.
+The group agreed to use sequences 84, 85, 201, 124 (train) and 127 (val).
 
 | Sequence | Split | Total events | Burst (<5s) | Kept (>5s) | Burst% | Duration | ~Frames | events.zip |
 |---|---|---|---|---|---|---|---|---|
 | sequence_84 | train | 142.6 M | 32.6 M | 110.0 M | 23% | 109.0 s | 11,935 | 648 MB |
 | sequence_85 | train | 73.6 M | 11.2 M | 62.5 M | 15% | 108.3 s | 6,776 | 374 MB |
 | sequence_201 | train | 123.2 M | 23.1 M | 100.1 M | 19% | 117.3 s | 10,860 | 604 MB |
+| sequence_124 | train | 486.6 M | 182.1 M | 304.6 M | 37% | 108.8 s | ~33,046 | 1.2 GB |
 | sequence_127 | test (val) | 241.1 M | 141.6 M | 99.5 M | 59% | 47.5 s | 10,794 | 555 MB |
 
 All sequences have a noise burst in the first 5 seconds — correctly handled by `start_s = 5.0`.
 
+**sequence_124 notes:**
+- Drone is a **DJI Tello EDU** (large box-shaped quadcopter), different from the Betafpv air75 in the other sequences. This adds scale/appearance diversity to the training set but may also increase label noise if the model struggles to generalise across drone types.
+- 2,744 annotations starting at 19.6 s — drone appears late, which means roughly 14 s of warmup frames with no labels.
+- ~33,046 estimated frames — significantly more than any other single sequence. Ensure the YOLO dataset build does not over-represent this sequence (check class balance in `train.txt`).
+- Reconstruction time on Kaggle T4: ~2.6 h for this sequence alone.
+
 **sequence_127 note:** unusually high burst ratio (59%) and only 47.5 s of usable data after the skip
 (vs 108–117 s for the train sequences). Still produces ~10,800 frames which is sufficient for validation.
 
-**sequence_124 was excluded.** Full analysis (derived from `events.h5` and `coordinates.txt` —
-no events.zip needed or generated):
-
-| | Value |
-|---|---|
-| Total events | 486.6 M |
-| Burst (<5s) | 182.1 M (37%) at 36.4 M ev/s |
-| Kept (>5s) | 304.6 M at 2.8 M ev/s |
-| Duration after skip | 108.8 s |
-| ~Frames | 33,046 |
-| Reconstruction time (T4) | ~2.6 h |
-| Drone | **DJI Tello EDU** (large box-shaped quadcopter) |
-| Annotations | 2,744 lines, starts at 19.6 s |
-
-Reasons for exclusion:
-1. **Scale imbalance** — 33k frames from one sequence matches the combined total of all other sequences, making the model effectively trained on sequence_124 alone.
-2. **Different drone type** — DJI Tello EDU looks fundamentally different from the Betafpv air75 in the other sequences. Including both without careful balancing could confuse the model.
-3. **Reconstruction time** — 2.6 h for this sequence alone exceeds Colab's 90-min limit.
-4. **High event rate** — 2.8 M ev/s after the skip (3× higher than sequence_84) suggests an unusually busy or noisy scene.
-
-**Reconstruction time estimate for the 4 team sequences (Colab T4, 3.5 fps):** ~40,000 frames total
-→ ~3 hours. This exceeds Colab's 90-minute session limit — **use Kaggle (9-hour limit)**.
+**Reconstruction time estimate for the 5 team sequences (Kaggle T4, 3.5 fps):** ~73,000 frames total
+→ ~6 hours reconstruction + ~1 hour training. Fits within Kaggle's 9-hour GPU limit.
+Sequences 84/85/201/127 are already reconstructed — only sequence_124 needs to be run.
+See `notebooks/kaggle_launcher.ipynb` for the restore-previous-recon workflow.
 
 Download:
 
@@ -82,13 +69,14 @@ Download:
 curl -L -o data/raw/zips/84.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/84.zip"
 curl -L -o data/raw/zips/85.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/85.zip"
 curl -L -o data/raw/zips/201.zip "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/201.zip"
+curl -L -o data/raw/zips/124.zip "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/124.zip"
 curl -L -o data/raw/zips/127.zip "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/test/127.zip"
 ```
 
 Then prepare:
 
 ```bash
-bash scripts/prepare_sequences.sh 84 85 201 127
+bash scripts/prepare_sequences.sh 84 85 201 124 127
 ```
 
 ### Reference sequences (initial development, sequences 0–8)
@@ -136,16 +124,19 @@ ami/
     │   ├── sequence_84/coordinates.txt
     │   ├── sequence_85/coordinates.txt
     │   ├── sequence_201/coordinates.txt
+    │   ├── sequence_124/coordinates.txt
     │   ├── sequence_127/coordinates.txt
     │   └── zips/
     │       ├── 84.zip   (1.1 GB)
     │       ├── 85.zip   (879 MB)
     │       ├── 201.zip  (1.1 GB)
+    │       ├── 124.zip  (1.2 GB)
     │       └── 127.zip  (774 MB)
     └── processed/
         ├── sequence_84/events.zip
         ├── sequence_85/events.zip   (357 MB)
         ├── sequence_201/events.zip
+        ├── sequence_124/events.zip  (1.2 GB)
         └── sequence_127/events.zip
 ```
 
