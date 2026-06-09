@@ -113,6 +113,10 @@ What it does for each sequence:
 4. Converts HDF5 → `data/processed/sequence_N/events.zip` using a chunked reader (5M events/batch)
    to avoid OOM on large sequences (84: ~130M events, 127: ~180M events)
 
+> **Warning:** `events.zip` is NOT a plain zip of `events.h5`. It contains a custom `events.txt`
+> binary format that rpg_e2vid reads directly. Always use `prepare_sequences.sh` (or
+> `reconstruct.convert_h5_to_zip`) to create it — never zip `events.h5` manually.
+
 Requires `h5py`: `pip install h5py`
 
 ### Local layout
