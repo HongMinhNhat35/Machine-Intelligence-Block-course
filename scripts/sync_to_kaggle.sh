@@ -24,7 +24,7 @@ echo "=== Staging files ==="
 rm -rf "$STAGING"
 
 # events.zip per sequence
-for SEQ in 84 85 201 127; do
+for SEQ in 84 85 201 127 124; do
     mkdir -p "${STAGING}/data/processed/sequence_${SEQ}"
     ZIP="${ROOT}/data/processed/sequence_${SEQ}/events.zip"
     if [ -f "$ZIP" ]; then
@@ -36,7 +36,7 @@ for SEQ in 84 85 201 127; do
 done
 
 # coordinates.txt per sequence
-for SEQ in 84 85 201 127; do
+for SEQ in 84 85 201 127 124; do
     mkdir -p "${STAGING}/data/raw/sequence_${SEQ}"
     COORD="${ROOT}/data/raw/sequence_${SEQ}/coordinates.txt"
     if [ -f "$COORD" ]; then
