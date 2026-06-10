@@ -117,7 +117,10 @@ What it does for each sequence:
 > binary format that rpg_e2vid reads directly. Always use `prepare_sequences.sh` (or
 > `reconstruct.convert_h5_to_zip`) to create it — never zip `events.h5` manually.
 
-Requires `h5py`: `pip install h5py`
+Requires `h5py` and `hdf5plugin`:
+```bash
+pip install h5py hdf5plugin
+```
 
 ### Local layout
 
@@ -216,10 +219,16 @@ events at a time and streams output directly into the zip.
 **ZIP64** — at ~22 bytes per event line, 110M+ events produce files larger than the 4 GB limit of
 the standard zip32 format. ZIP64 extensions are enabled automatically.
 
-**ECF codec** — the HDF5 files use Prophesee's ECF compression codec. Reading them requires the
-ECF plugin, which `reconstruct.py` locates automatically at
-`/usr/lib/x86_64-linux-gnu/hdf5/plugins/` (installed by the Metavision SDK / OpenEB).
-Install with `pip install h5py` — the plugin itself ships with OpenEB.
+**ECF codec** — the HDF5 files use Prophesee's ECF compression codec. Reading them requires an
+HDF5 filter plugin. Two ways to satisfy this:
+
+- **System plugin** (if OpenEB / Metavision SDK is installed): `reconstruct.py` automatically
+  sets `HDF5_PLUGIN_PATH` to `/usr/lib/x86_64-linux-gnu/hdf5/plugins/`.
+- **Python package** (portable, no system install needed): `pip install hdf5plugin` — bundles
+  Blosc, LZ4, Zstd and other codecs; `reconstruct.py` imports it automatically when available.
+
+On machines without OpenEB, `pip install hdf5plugin` is the fix for the error:
+`OSError: Can't synchronously read data (can't find plugin)`.
 
 ### File sizes (team sequences)
 
