@@ -74,6 +74,11 @@ def convert_h5_to_zip(h5_path: Path, zip_path: Path,
     if Path(plugin_path).exists():
         os.environ.setdefault('HDF5_PLUGIN_PATH', plugin_path)
 
+    try:
+        import hdf5plugin  # registers Blosc/LZ4/Zstd and other HDF5 filter plugins
+    except ImportError:
+        pass  # optional — only needed if events.h5 uses a non-default compression codec
+
     import h5py
     import numpy as np
 
