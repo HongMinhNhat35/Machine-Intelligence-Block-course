@@ -156,25 +156,72 @@ PYEOF
 
 # ── Frames zip shortcut ───────────────────────────────────────────────────────
 if [ "$DOWNLOAD_FRAMES_ZIP" = true ]; then
-    echo "=== Downloading frames_e2vid.zip (single file, ~2.5 GB) ==="
-    ~/.local/bin/kaggle kernels output gennepy/ami-e2vid-pipeline \
-        -p "$TMPDIR" --file-pattern "frames_e2vid.zip"
-    if [ -f "$TMPDIR/frames_e2vid.zip" ]; then
+    echo "=== Downloading frames_e2vid.zip ==="
+    # Use Python paginator to find and download the zip (kernels output --file-pattern
+    # is unreliable for large outputs; we use a direct API download instead).
+    ZIPFILE="$TMPDIR/frames_e2vid.zip"
+    if [ ! -f "$ZIPFILE" ]; then
+        python3 - "$TMPDIR" << 'PYEOF'
+import sys
+from pathlib import Path
+sys.path.insert(0, "/home/bani/.local/share/pipx/venvs/kaggle/lib/python3.12/site-packages")
+from kaggle.api.kaggle_api_extended import KaggleApi
+from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
+import requests
+
+api = KaggleApi(); api.authenticate()
+out_dir = Path(sys.argv[1]); out_dir.mkdir(parents=True, exist_ok=True)
+owner, slug, _ = api.parse_kernel_string("gennepy/ami-e2vid-pipeline")
+
+with api.build_kaggle_client() as kc:
+    token = ""
+    while True:
+        req = ApiListKernelSessionOutputRequest()
+        req.user_name, req.kernel_slug = owner, slug
+        if token: req.page_token = token
+        resp = kc.kernels.kernels_api_client.list_kernel_session_output(req)
+        for item in (resp.files or []):
+            if item.file_name == "frames_e2vid.zip":
+                print(f"Found: {item.file_name}")
+                r = requests.get(item.url, stream=True, timeout=300)
+                r.raise_for_status()
+                dest = out_dir / "frames_e2vid.zip"
+                total = 0
+                with open(dest, "wb") as f:
+                    for chunk in r.iter_content(65536):
+                        f.write(chunk); total += len(chunk)
+                        if total % (256*1024*1024) == 0:
+                            print(f"  {total//1024//1024} MB ...")
+                print(f"Downloaded: {dest}  ({total//1024//1024} MB)")
+                sys.exit(0)
+        token = resp.next_page_token
+        if not token: break
+print("frames_e2vid.zip not found in output"); sys.exit(1)
+PYEOF
+    else
+        echo "frames_e2vid.zip already present, skipping download."
+    fi
+
+    if [ -f "$ZIPFILE" ]; then
         echo "Unzipping frames ..."
-        unzip -q "$TMPDIR/frames_e2vid.zip" -d "$TMPDIR/frames_unzipped"
-        for SEQ in 84 85 201 127; do
-            SRC="$TMPDIR/frames_unzipped/sequence_${SEQ}"
+        unzip -q "$ZIPFILE" -d "$TMPDIR/frames_unzipped"
+        for SEQ in 84 85 201 127 124; do
+            # zip stores: data/processed/sequence_N/reconstruction_e2vid/frame_*.jpg
+            SRC="$TMPDIR/frames_unzipped/data/processed/sequence_${SEQ}/reconstruction_e2vid"
             DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
             if [ -d "$SRC" ]; then
                 mkdir -p "$DST"
                 rsync -a "$SRC/" "$DST/"
-                n=$(find "$DST" -name "frame_*.jpg" | wc -l)
-                echo "  sequence_${SEQ}: ${n} frames"
+                n=$(find "$DST" -maxdepth 1 -name "frame_*.jpg" | wc -l)
+                echo "  sequence_${SEQ}: ${n} frames → $DST"
+            else
+                echo "  sequence_${SEQ}: not found in zip"
             fi
         done
         echo "=== Done ==="
     else
-        echo "frames_e2vid.zip not found — run kaggle_zipper.ipynb on Kaggle first"
+        echo "ERROR: frames_e2vid.zip download failed"
+        exit 1
     fi
     exit 0
 fi
