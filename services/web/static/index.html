@@ -46,7 +46,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;background:#f
 .b-row.selected{background:#e8f0fb;color:#1a3a60;font-weight:500}
 .b-tag{margin-left:auto;font-size:10px;padding:2px 7px;border-radius:20px;background:#f0f0f0;color:#666;border:1px solid #e0e0e0}
 .b-tag.ok{background:#dcfce7;color:#166534;border-color:#bbf7d0}
-.detected-files{border:1px solid #ddd;border-radius:10px;padding:8px 12px;margin-bottom:12px;display:none;flex-direction:column;gap:6px;background:#fff}
+.detected-files{border:1px solid #ddd;border-radius:10px;padding:8px 12px;margin-bottom:12px;display:none;flex-direction:column;gap:6px;background:#fff}.detected-files .file-row{display:flex;align-items:center;gap:8px}
 .file-row{display:flex;align-items:center;gap:8px;font-size:12px}
 .file-tag{font-size:10px;padding:2px 7px;border-radius:20px;background:#f0f0f0;color:#666;border:1px solid #e0e0e0}
 .cb-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
@@ -155,20 +155,23 @@ tr.paper td{color:#888}
       <div class="screen active" id="s-upload">
         <div class="sec-lbl">Select sequence</div>
         <div class="browser">
-          <div class="browser-bar"><i class="ti ti-folder"></i> /data/fred/ <i class="ti ti-chevron-right" style="font-size:10px"></i> <span id="bpath">—</span></div>
-          <div class="browser-body" id="browser-body"></div>
+          <div class="browser-bar"><i class="ti ti-database"></i> Available sequences <span id="seq-count" style="margin-left:auto;font-size:10px;color:#aaa"></span></div>
+          <div class="browser-body" id="browser-body"><div style="padding:14px;color:#aaa;font-size:11px">Loading…</div></div>
         </div>
         <div class="detected-files" id="detected-files">
-          <div class="file-row"><i class="ti ti-file-code" style="color:#1a3a60"></i> <span id="ev-file"></span> <span class="file-tag">event</span></div>
-          <div class="file-row"><i class="ti ti-video" style="color:#1a3a60"></i> <span id="rgb-file"></span> <span class="file-tag">RGB · 30 fps</span></div>
+          <div class="file-row" id="df-events" style="display:none"></div>
+          <div class="file-row" id="df-coords" style="display:none"></div>
+          <div class="file-row" id="df-recon"  style="display:none"></div>
         </div>
         <div class="sec-lbl">Pipeline steps</div>
         <div class="cb-group">
-          <label class="cb-row"><input type="checkbox" checked> e2vid reconstruction</label>
-          <label class="cb-row"><input type="checkbox" checked> HyperE2VID reconstruction</label>
-          <label class="cb-row"><input type="checkbox" checked> Late fusion detection</label>
+          <label class="cb-row" id="cb-recon-e2vid"><input type="checkbox" id="chk-recon-e2vid"> e2vid reconstruction <span style="margin-left:auto;font-size:10px;color:#aaa">via scripts</span></label>
+          <label class="cb-row" id="cb-detect-e2vid"><input type="checkbox" id="chk-detect-e2vid" checked> e2vid detection</label>
+          <label class="cb-row" style="opacity:.4"><input type="checkbox" disabled> HyperE2VID reconstruction <span style="margin-left:auto;font-size:10px;color:#aaa">not yet</span></label>
+          <label class="cb-row" style="opacity:.4"><input type="checkbox" disabled> Late fusion detection <span style="margin-left:auto;font-size:10px;color:#aaa">not yet</span></label>
         </div>
         <button class="run-btn" id="run-btn" disabled><i class="ti ti-player-play"></i> Run pipeline</button>
+        <div id="run-log" style="display:none;margin-top:10px;background:#1a1a2e;border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;color:#aaa;max-height:120px;overflow-y:auto"></div>
       </div>
 
       <!-- RECONSTRUCTION -->
@@ -372,31 +375,146 @@ function go(k){
   }
 }
 document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.s)));
-const seqs={canonical:[{id:'sequence_0',ok:true},{id:'sequence_1',ok:true},{id:'sequence_2',ok:false},{id:'sequence_3',ok:false}],challenging:[{id:'sequence_4',ok:false}]};
-let selSplit=null;
-function initBrowser(){
-  document.getElementById('browser-body').innerHTML=
-    '<div class="b-row" data-level="split" data-val="canonical"><i class="ti ti-folder" style="color:#f59e0b"></i> canonical</div>'+
-    '<div class="b-row" data-level="split" data-val="challenging"><i class="ti ti-folder" style="color:#f59e0b"></i> challenging</div>';
-  document.querySelectorAll('.b-row[data-level="split"]').forEach(el=>el.addEventListener('click',()=>openSplit(el.dataset.val)));
+let allSeqs=[], selSeq=null;
+
+function fileRow(id, icon, text, tag, tagOk){
+  const el=document.getElementById(id);
+  el.innerHTML=`<i class="ti ${icon}" style="color:#1a3a60"></i> <span>${text}</span> <span class="file-tag${tagOk?' ok':''}">${tag}</span>`;
+  el.style.display='flex';
 }
-function openSplit(split){
-  selSplit=split;
-  document.getElementById('bpath').textContent=split+'/';
-  const rows=seqs[split].map(s=>`<div class="b-row" data-level="seq" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}<span class="b-tag${s.ok?' ok':''}">${s.ok?'reconstructed':'not reconstructed'}</span></div>`);
-  document.getElementById('browser-body').innerHTML='<div class="b-row" data-level="back"><i class="ti ti-arrow-left"></i> back</div>'+rows.join('');
-  document.querySelector('.b-row[data-level="back"]').addEventListener('click',()=>{document.getElementById('bpath').textContent='—';document.getElementById('detected-files').style.display='none';document.getElementById('run-btn').disabled=true;initBrowser();});
-  document.querySelectorAll('.b-row[data-level="seq"]').forEach(el=>el.addEventListener('click',()=>selectSeq(el.dataset.val)));
-}
+
 function selectSeq(seq){
-  document.querySelectorAll('#browser-body .b-row').forEach(r=>r.classList.toggle('selected',r.dataset.val===seq));
-  document.getElementById('bpath').textContent=selSplit+'/'+seq+'/';
-  document.getElementById('ev-file').textContent=seq+'_events.hdf5';
-  document.getElementById('rgb-file').textContent=seq+'_rgb.mp4';
+  selSeq=seq;
+  document.querySelectorAll('#browser-body .b-row').forEach(r=>r.classList.toggle('selected',r.dataset.val===seq.id));
+  document.getElementById('tb').textContent=seq.id;
+
+  // events file
+  if(seq.has_events_zip){
+    fileRow('df-events','ti-file-zip','events.zip','events',true);
+  } else if(seq.has_events_h5){
+    fileRow('df-events','ti-file-code','events.h5','events (raw)',true);
+  } else if(seq.has_raw_events){
+    fileRow('df-events','ti-file-code','Event/ (FRED raw)','events',true);
+  } else {
+    fileRow('df-events','ti-alert-triangle','no events file found','missing',false);
+  }
+
+  // coordinates
+  if(seq.has_coordinates){
+    fileRow('df-coords','ti-map-pin','coordinates.txt','annotations',true);
+  } else {
+    document.getElementById('df-coords').style.display='none';
+  }
+
+  // reconstruction status
+  if(seq.e2vid_done){
+    fileRow('df-recon','ti-check','e2vid reconstruction ready',seq.frame_count+' frames',true);
+  } else {
+    fileRow('df-recon','ti-clock','e2vid reconstruction not done','run scripts/reconstruct.py',false);
+  }
+
   document.getElementById('detected-files').style.display='flex';
-  document.getElementById('run-btn').disabled=false;
-  document.getElementById('tb').textContent=selSplit+' · '+seq;
+
+  // enable run button only if detection is useful (frames exist)
+  document.getElementById('chk-detect-e2vid').disabled=!seq.e2vid_done;
+  if(!seq.e2vid_done) document.getElementById('chk-detect-e2vid').checked=false;
+  updateRunBtn();
 }
+
+function updateRunBtn(){
+  const anyChecked = document.getElementById('chk-detect-e2vid').checked;
+  document.getElementById('run-btn').disabled = !selSeq || !anyChecked;
+}
+
+document.getElementById('chk-detect-e2vid').addEventListener('change', updateRunBtn);
+
+async function initBrowser(){
+  try{
+    const resp = await fetch('/api/sequences');
+    allSeqs = await resp.json();
+  } catch(e){
+    document.getElementById('browser-body').innerHTML='<div style="padding:14px;color:#d00;font-size:11px">Failed to load sequences — is the backend running?</div>';
+    return;
+  }
+  document.getElementById('seq-count').textContent=allSeqs.length+' sequences';
+  if(allSeqs.length===0){
+    document.getElementById('browser-body').innerHTML='<div style="padding:14px;color:#aaa;font-size:11px">No sequences found in data directory.</div>';
+    return;
+  }
+  document.getElementById('browser-body').innerHTML=allSeqs.map(s=>{
+    const tag = s.e2vid_done
+      ? `<span class="b-tag ok">${s.frame_count} frames</span>`
+      : `<span class="b-tag">not reconstructed</span>`;
+    return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${tag}</div>`;
+  }).join('');
+  document.querySelectorAll('#browser-body .b-row').forEach(el=>{
+    el.addEventListener('click',()=>selectSeq(allSeqs.find(s=>s.id===el.dataset.val)));
+  });
+}
+
+// ── Run pipeline ──────────────────────────────────────────────────────────────
+document.getElementById('run-btn').addEventListener('click', async()=>{
+  if(!selSeq) return;
+  const steps=[];
+  if(document.getElementById('chk-detect-e2vid').checked) steps.push('detect_e2vid');
+
+  const log=document.getElementById('run-log');
+  log.style.display='block';
+  log.innerHTML='';
+  document.getElementById('run-btn').disabled=true;
+  document.getElementById('run-btn').innerHTML='<i class="ti ti-loader"></i> Running…';
+
+  const appendLog=(msg,cls='')=>{
+    const line=document.createElement('div');
+    if(cls) line.style.color=cls;
+    line.textContent=msg;
+    log.appendChild(line);
+    log.scrollTop=log.scrollHeight;
+  };
+
+  try{
+    const resp = await fetch('/api/run',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sequence_id:selSeq.id, steps})
+    });
+    const reader=resp.body.getReader();
+    const dec=new TextDecoder();
+    let buf='';
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const parts=buf.split('\n\n');
+      buf=parts.pop();
+      for(const part of parts){
+        const evLine=part.match(/^event: (.+)/m);
+        const dataLine=part.match(/^data: (.+)/m);
+        if(!evLine||!dataLine) continue;
+        const ev=evLine[1].trim(), data=dataLine[1].trim();
+        if(ev==='log')   appendLog('› '+data);
+        if(ev==='error') appendLog('✗ '+data,'#f87171');
+        if(ev==='done'){
+          if(data==='ok'){
+            appendLog('✓ Done','#4ade80');
+            // refresh sequence list to pick up new detection cache
+            await initBrowser();
+            const updated=allSeqs.find(s=>s.id===selSeq.id);
+            if(updated) selectSeq(updated);
+          } else {
+            appendLog('Pipeline failed','#f87171');
+          }
+        }
+      }
+    }
+  } catch(e){
+    appendLog('Request failed: '+e,'#f87171');
+  }
+
+  document.getElementById('run-btn').disabled=false;
+  document.getElementById('run-btn').innerHTML='<i class="ti ti-player-play"></i> Run pipeline';
+});
+
 initBrowser();
 const sl=document.getElementById('pb-sl'),lbl=document.getElementById('pb-lbl'),pill=document.getElementById('r-pill');
 sl.addEventListener('input',()=>{lbl.textContent='Frame '+sl.value;pill.textContent='frame '+sl.value+' / 871';});

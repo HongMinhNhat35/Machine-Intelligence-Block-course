@@ -1,11 +1,13 @@
-# Hybrid vision system — Docker compose
-# Run ./setup.sh first to create the .env file with correct data paths
+# Hybrid Vision System
+#
+# Setup:
+#   cp .env.example .env        # then fill in your two paths
+#   docker compose up -d
 
 services:
 
-  # ── Web UI ────────────────────────────────────────────────────────────────
   web:
-    build: ./services/web
+    image: ghcr.io/gennepy/ami-web:latest
     ports:
       - "8080:8080"
     volumes:
@@ -18,14 +20,9 @@ services:
     depends_on:
       e2vid:
         condition: service_healthy
-      hypere2vid:
-        condition: service_healthy
-      fusion:
-        condition: service_healthy
 
-  # ── e2vid inference service ───────────────────────────────────────────────
   e2vid:
-    build: ./services/e2vid
+    image: ghcr.io/gennepy/ami-e2vid:latest   # weights baked in
     expose:
       - "8001"
     volumes:
@@ -37,9 +34,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── HyperE2VID inference service ──────────────────────────────────────────
   hypere2vid:
-    build: ./services/hypere2vid
+    image: ghcr.io/gennepy/ami-hypere2vid:latest
     expose:
       - "8002"
     volumes:
@@ -51,9 +47,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Early fusion inference service ────────────────────────────────────────
   fusion:
-    build: ./services/fusion
+    image: ghcr.io/gennepy/ami-fusion:latest
     expose:
       - "8003"
     volumes:
