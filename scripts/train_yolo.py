@@ -10,14 +10,15 @@ Usage (frame-level split, smoke test):
         --weights    data/yolo_e2vid.pt \
         --epochs     3
 
-Usage (sequence-level split, full training on Colab):
+Usage (sequence-level split, full training on Kaggle — Run 5):
     python scripts/train_yolo.py \
-        --sequences     sequence_0 sequence_1 sequence_2 sequence_3 sequence_8 \
-        --val_sequences sequence_8 \
+        --sequences     sequence_44 sequence_45 sequence_46 sequence_47 sequence_146 \
+        --val_sequences sequence_146 \
         --raw_root      data/raw \
         --recon_root    data/processed \
         --out_dir       data/yolo_e2vid \
         --weights       data/yolo_e2vid.pt \
+        --model         yolov8s.pt \
         --epochs        100 \
         --batch         16
 
@@ -58,8 +59,8 @@ def parse_args():
                    help='Output path for best.pt (e.g. data/yolo_e2vid.pt)')
     p.add_argument('--runs_dir',    default=None,  type=Path,
                    help='Directory for training run logs (default: out_dir/../yolo_runs)')
-    p.add_argument('--model',       default='yolov8n.pt',
-                   help='Base YOLO model (default: yolov8n.pt)')
+    p.add_argument('--model',       default='yolov8s.pt',
+                   help='Base YOLO model (default: yolov8s.pt)')
     p.add_argument('--epochs',      default=100,   type=int)
     p.add_argument('--batch',       default=8,     type=int)
     p.add_argument('--imgsz',       default=640,   type=int)
@@ -276,6 +277,8 @@ def train(out_dir: Path, weights_out: Path, runs_dir: Path, args):
         lr0       = 0.01,
         verbose   = True,
         resume    = args.resume,
+        mosaic    = 1.0,   # tiles 4 images — helps small object detection
+        mixup     = 0.0,   # disabled — blends images and can erase tiny drones
     )
     runtime = time.time() - t0
 
