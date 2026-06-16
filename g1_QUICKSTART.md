@@ -8,91 +8,46 @@ No Python, no Git, no build step — just Docker.
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
-- ~20 GB free disk space for the pre-processed sequences
+- ~20 GB free disk space
 
 ---
 
-## 1. Download the pre-processed sequences
+## Install
 
-The reconstructed frames and detection results are provided as release assets on GitHub. Download and extract them into a single directory (e.g. `/data/recon`):
+Download and run the installer:
 
 ```bash
-RECON=/data/recon   # change to wherever you want the data
-mkdir -p $RECON
-
-# sequence_85 (1.3 GB)
-curl -L -o /tmp/sequence_85.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_85.tar
-tar xf /tmp/sequence_85.tar -C $RECON/sequence_85/ --strip-components=0
-
-# sequence_127 (2.1 GB — two parts)
-curl -L -o /tmp/seq127.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_127.tar.00
-curl -L -o /tmp/seq127.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_127.tar.01
-cat /tmp/seq127.00 /tmp/seq127.01 | tar x -C $RECON/sequence_127/
-
-# sequence_201 (2.1 GB — two parts)
-curl -L -o /tmp/seq201.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_201.tar.00
-curl -L -o /tmp/seq201.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_201.tar.01
-cat /tmp/seq201.00 /tmp/seq201.01 | tar x -C $RECON/sequence_201/
-
-# sequence_84 (2.3 GB — two parts)
-curl -L -o /tmp/seq84.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_84.tar.00
-curl -L -o /tmp/seq84.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_84.tar.01
-cat /tmp/seq84.00 /tmp/seq84.01 | tar x -C $RECON/sequence_84/
-
-# sequence_124 (6.7 GB — four parts)
-for i in 00 01 02 03; do
-  curl -L -o /tmp/seq124.$i https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_124.tar.$i
-done
-cat /tmp/seq124.* | tar x -C $RECON/sequence_124/
+curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/g1-install.sh
+bash g1-install.sh
 ```
 
-Set `RECON` to the same path you'll use in `.env` below.
+The script will:
+1. Ask where to store the data (default: `~/g1-ami-data`)
+2. Ask where the FRED raw dataset is (press Enter if you don't have it — the demo works without it)
+3. Download ~15 GB of pre-processed sequences from GitHub Releases
+4. Download `docker-compose.yml` and write `.env`
+5. Pull the Docker images
 
 ---
 
-## 2. Download the compose file
+## Start
 
 ```bash
-curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.yml
-```
-
----
-
-## 3. Create the `.env` file
-
-Run this in the same shell where you set `$RECON` above — it writes the config automatically:
-
-```bash
-cat > .env <<EOF
-FRED_DATA_PATH=$RECON
-RECON_DATA_PATH=$RECON
-EOF
-```
-
-> **Important:** Use an absolute path for `RECON` (e.g. `/data/recon`, not `~/data/recon`). Docker Compose does not expand `~`.
-
----
-
-## 4. Start
-
-```bash
+cd ~/g1-ami-data          # or whatever path you chose during install
 docker compose up -d
 ```
 
-Docker pulls the pre-built images from GHCR on first run (~1.5 GB total). Once all services are healthy, open:
-
-**http://localhost:8080**
+Open **http://localhost:8080**
 
 ---
 
-## 5. Stop
+## Stop
 
 ```bash
 docker compose down
 ```
 
-Data written to `RECON_DATA_PATH` (reconstructed frames, detection cache) is preserved on your host — it survives container restarts.
+Data in `~/g1-ami-data` is preserved — it survives container restarts.
 
 ---
 
@@ -102,7 +57,7 @@ Data written to `RECON_DATA_PATH` (reconstructed frames, detection cache) is pre
 |---|---|
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
 | **Reconstruction** | Browse reconstructed e2vid frames with playback controls. |
-| **Detection** | View YOLO bounding-box overlay. Adjust confidence threshold with the sidebar slider. Click **Run Detection** to run inference (takes several minutes on CPU; result is cached). |
+| **Detection** | View YOLO bounding-box overlay. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
 | **Comparison** | Side-by-side view of all three pipelines (HyperE2VID and Late Fusion show "not yet available"). |
 | **KPIs** | Detection accuracy and training metrics table. |
 | **Admin** | Live health status of all backend services. |
@@ -111,6 +66,6 @@ Data written to `RECON_DATA_PATH` (reconstructed frames, detection cache) is pre
 
 ## Notes
 
-- Detection is cached in `RECON_DATA_PATH/<sequence_id>/detections_e2vid.json`. Subsequent visits load instantly from cache. Click **Run Detection** to overwrite (e.g. after new model weights).
-- The confidence slider is a display filter only — it does not change what is stored in the cache. The cache always holds all detections at confidence ≥ 0.1.
-- Reconstruction (event → frames) is not triggered from the GUI. Frames are pre-generated on Kaggle and must already be present in `RECON_DATA_PATH`.
+- Detection results are pre-cached in each sequence folder (`detections_e2vid.json`). They load instantly on first visit. Click **Run Detection** only if you want to re-run inference (e.g. after new model weights).
+- The confidence slider is a display filter only — it does not change what is stored in the cache.
+- Reconstruction (event → frames) is not triggered from the GUI. Frames are pre-generated and included in the downloaded data.
