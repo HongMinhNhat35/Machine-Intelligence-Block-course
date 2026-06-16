@@ -28,6 +28,12 @@ echo ""
 download_seq() {
     local seq=$1; shift
     local parts=("$@")
+    local target="$RECON/$seq/reconstruction_e2vid"
+    if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
+        echo "  [skip] $seq — already exists"
+        echo ""
+        return
+    fi
     mkdir -p "$RECON/$seq"
     if [ "${#parts[@]}" -eq 1 ]; then
         echo "  Downloading $seq ..."
