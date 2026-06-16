@@ -8,12 +8,50 @@ No Python, no Git, no build step — just Docker.
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
-- FRED dataset sequences extracted on your machine
-- A writable directory for reconstruction output (can be empty)
+- ~20 GB free disk space for the pre-processed sequences
 
 ---
 
-## 1. Download the two config files
+## 1. Download the pre-processed sequences
+
+The reconstructed frames and detection results are provided as release assets on GitHub. Download and extract them into a single directory (e.g. `/data/recon`):
+
+```bash
+RECON=/data/recon   # change to wherever you want the data
+mkdir -p $RECON
+
+# sequence_85 (1.3 GB)
+curl -L -o /tmp/sequence_85.tar \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_85.tar
+tar xf /tmp/sequence_85.tar -C $RECON/sequence_85/ --strip-components=0
+
+# sequence_127 (2.1 GB — two parts)
+curl -L -o /tmp/seq127.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_127.tar.00
+curl -L -o /tmp/seq127.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_127.tar.01
+cat /tmp/seq127.00 /tmp/seq127.01 | tar x -C $RECON/sequence_127/
+
+# sequence_201 (2.1 GB — two parts)
+curl -L -o /tmp/seq201.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_201.tar.00
+curl -L -o /tmp/seq201.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_201.tar.01
+cat /tmp/seq201.00 /tmp/seq201.01 | tar x -C $RECON/sequence_201/
+
+# sequence_84 (2.3 GB — two parts)
+curl -L -o /tmp/seq84.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_84.tar.00
+curl -L -o /tmp/seq84.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_84.tar.01
+cat /tmp/seq84.00 /tmp/seq84.01 | tar x -C $RECON/sequence_84/
+
+# sequence_124 (6.7 GB — four parts)
+for i in 00 01 02 03; do
+  curl -L -o /tmp/seq124.$i https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_124.tar.$i
+done
+cat /tmp/seq124.* | tar x -C $RECON/sequence_124/
+```
+
+Set `RECON` to the same path you'll use in `.env` below.
+
+---
+
+## 2. Download the two config files
 
 ```bash
 curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.yml
@@ -22,7 +60,7 @@ curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Bl
 
 ---
 
-## 2. Configure paths
+## 3. Configure paths
 
 ```bash
 cp .env.example .env
@@ -32,21 +70,21 @@ Open `.env` and set the two paths:
 
 | Variable | Description |
 |---|---|
-| `FRED_DATA_PATH` | Directory containing the extracted FRED sequences (`sequence_84/`, `sequence_127/`, …). Each folder must contain `Event/`, `RGB/`, and `coordinates.txt`. |
-| `RECON_DATA_PATH` | Writable directory for reconstructed frames and detection results. Can be empty — the pipeline writes here as it runs. |
+| `FRED_DATA_PATH` | Can be set to the same directory as `RECON_DATA_PATH` — the raw FRED files are not needed for the demo. |
+| `RECON_DATA_PATH` | The directory where you extracted the sequences in step 1 (e.g. `/data/recon`). |
 
 Example:
 
 ```env
-FRED_DATA_PATH=/home/yourname/data/fred/sequences
-RECON_DATA_PATH=/home/yourname/data/recon
+FRED_DATA_PATH=/data/recon
+RECON_DATA_PATH=/data/recon
 ```
 
-> **Important:** Use absolute paths. Docker Compose does not expand `~` or `$HOME`, so `~/data/fred` will not work.
+> **Important:** Use absolute paths. Docker Compose does not expand `~` or `$HOME`, so `~/data/recon` will not work.
 
 ---
 
-## 3. Start
+## 4. Start
 
 ```bash
 docker compose up -d
@@ -58,7 +96,7 @@ Docker pulls the pre-built images from GHCR on first run (~1.5 GB total). Once a
 
 ---
 
-## 4. Stop
+## 5. Stop
 
 ```bash
 docker compose down
