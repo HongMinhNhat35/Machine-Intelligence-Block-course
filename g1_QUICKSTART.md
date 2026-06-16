@@ -38,9 +38,11 @@ Open `.env` and set the two paths:
 Example:
 
 ```env
-FRED_DATA_PATH=/data/fred/sequences
-RECON_DATA_PATH=/data/recon
+FRED_DATA_PATH=/home/yourname/data/fred/sequences
+RECON_DATA_PATH=/home/yourname/data/recon
 ```
+
+> **Important:** Use absolute paths. Docker Compose does not expand `~` or `$HOME`, so `~/data/fred` will not work.
 
 ---
 
