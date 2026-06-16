@@ -51,36 +51,26 @@ Set `RECON` to the same path you'll use in `.env` below.
 
 ---
 
-## 2. Download the two config files
+## 2. Download the compose file
 
 ```bash
 curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.yml
-curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/.env.example
 ```
 
 ---
 
-## 3. Configure paths
+## 3. Create the `.env` file
+
+Run this in the same shell where you set `$RECON` above — it writes the config automatically:
 
 ```bash
-cp .env.example .env
+cat > .env <<EOF
+FRED_DATA_PATH=$RECON
+RECON_DATA_PATH=$RECON
+EOF
 ```
 
-Open `.env` and set the two paths:
-
-| Variable | Description |
-|---|---|
-| `FRED_DATA_PATH` | Can be set to the same directory as `RECON_DATA_PATH` — the raw FRED files are not needed for the demo. |
-| `RECON_DATA_PATH` | The directory where you extracted the sequences in step 1 (e.g. `/data/recon`). |
-
-Example:
-
-```env
-FRED_DATA_PATH=/data/recon
-RECON_DATA_PATH=/data/recon
-```
-
-> **Important:** Use absolute paths. Docker Compose does not expand `~` or `$HOME`, so `~/data/recon` will not work.
+> **Important:** Use an absolute path for `RECON` (e.g. `/data/recon`, not `~/data/recon`). Docker Compose does not expand `~`.
 
 ---
 
