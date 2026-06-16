@@ -169,6 +169,28 @@ scale mismatch that artificially deflates mAP on validation.
 
 ---
 
+## Note on FRED original split vs. our split
+
+The HuggingFace repository organises sequences into `train/` and `test/`
+folders — this is the **original FRED dataset split** defined by the dataset
+authors, not our training/validation split.
+
+Our selection is based purely on statistical properties (annotation count,
+spatial spread, drone size) and deliberately crosses the original split:
+
+| Sequence | FRED folder | Our role |
+|---|---|---|
+| sequence_44 | `train/` | Train |
+| sequence_45 | `train/` | Train |
+| sequence_46 | `test/`  | Train |
+| sequence_47 | `train/` | Train |
+| sequence_146 | `train/` | Val |
+
+This is intentional — sequence_46 scored 0.971 for training and sequence_146
+scored 0.876 for validation regardless of their original designation.
+
+---
+
 ## Practical constraints
 
 The recommended sequences (44–47, 146) are on HuggingFace but not yet
@@ -177,9 +199,9 @@ downloaded. Each zip is ~1 GB (dominated by events.hdf5). To prepare them:
 ```bash
 curl -L -o data/raw/zips/44.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/44.zip"
 curl -L -o data/raw/zips/45.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/45.zip"
-curl -L -o data/raw/zips/46.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/46.zip"
+curl -L -o data/raw/zips/46.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/test/46.zip"
 curl -L -o data/raw/zips/47.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/47.zip"
-curl -L -o data/raw/zips/146.zip "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/test/146.zip"
+curl -L -o data/raw/zips/146.zip "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/146.zip"
 bash scripts/prepare_sequences.sh 44 45 46 47 146
 ```
 
