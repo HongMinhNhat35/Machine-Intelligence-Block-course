@@ -1,13 +1,18 @@
 import asyncio
 import json
 import os
+import re
 from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel  # noqa: F401 (used by DetectRequest)
+
+
+def _nat_key(s: str) -> list:
+    return [int(c) if c.isdigit() else c for c in re.split(r"(\d+)", s)]
 
 app = FastAPI(title="Hybrid Vision System")
 
@@ -17,6 +22,7 @@ FUSION_URL     = os.getenv("FUSION_URL",     "http://fusion:8003")
 FRED_ROOT      = Path(os.getenv("FRED_DATA_PATH",  "/data/fred"))
 RECON_ROOT     = Path(os.getenv("RECON_DATA_PATH", "/data/recon"))
 WEIGHTS_ROOT   = Path(os.getenv("WEIGHTS_PATH",    "/app/weights"))
+KPIS_ROOT      = Path(os.getenv("KPIS_PATH",       "/app/kpis"))
 
 STATIC = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
@@ -38,7 +44,7 @@ def get_sequences():
         seq_ids.update(p.name for p in RECON_ROOT.glob("sequence_*") if p.is_dir())
 
     result = []
-    for seq_id in sorted(seq_ids):
+    for seq_id in sorted(seq_ids, key=_nat_key):
         fred_dir  = FRED_ROOT  / seq_id
         recon_dir = RECON_ROOT / seq_id
         e2vid_dir = recon_dir / "reconstruction_e2vid"
@@ -65,53 +71,92 @@ def get_sequences():
 
 # ── Run pipeline (SSE) ────────────────────────────────────────────────────────
 
-class RunRequest(BaseModel):
-    sequence_id: str
-    steps: list[str]   # e.g. ["detect_e2vid"]
+@app.get("/frames/{seq}/{n}")
+def get_frame(seq: str, n: int):
+    for ext in ("jpg", "png"):
+        p = RECON_ROOT / seq / "reconstruction_e2vid" / f"frame_{n:06d}.{ext}"
+        if p.exists():
+            return FileResponse(str(p), media_type=f"image/{ext}")
+    raise HTTPException(status_code=404, detail=f"Frame {n} not found for {seq}")
+
+
+@app.get("/api/kpis")
+def get_kpis():
+    if not KPIS_ROOT.exists():
+        return []
+    results = []
+    for f in sorted(KPIS_ROOT.glob("*.json"), key=lambda p: _nat_key(p.name)):
+        try:
+            results.append(json.loads(f.read_text()))
+        except Exception:
+            pass
+    return results
+
+
+@app.get("/api/detections/{seq_id}")
+def get_detections(seq_id: str):
+    cache = RECON_ROOT / seq_id / "detections_e2vid.json"
+    if not cache.exists():
+        raise HTTPException(status_code=404, detail="No detections cached for this sequence")
+    data = json.loads(cache.read_text())
+    return {"sequence_id": seq_id, "model": "e2vid", "detections": data.get("detections", [])}
 
 
 def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
-async def _run_stream(sequence_id: str, steps: list[str]):
-    yield _sse("log", f"Starting pipeline for {sequence_id}")
+async def _detect_stream(sequence_id: str, frame_count: int):
+    yield _sse("log", f"Starting detection for {sequence_id} ({frame_count} frames)…")
+    e2vid_dir = RECON_ROOT / sequence_id / "reconstruction_e2vid"
+    if not e2vid_dir.exists() or not any(e2vid_dir.glob("frame_*")):
+        yield _sse("error", "No reconstructed frames found — reconstruction must be run first")
+        yield _sse("done", "failed")
+        return
+    try:
+        async with httpx.AsyncClient(timeout=3600.0) as client:
+            async with client.stream(
+                "POST",
+                f"{E2VID_URL}/detect",
+                json={"sequence_id": sequence_id, "frame_start": 0, "frame_end": frame_count},
+            ) as r:
+                event_type: str | None = None
+                async for line in r.aiter_lines():
+                    if line.startswith("event: "):
+                        event_type = line[7:].strip()
+                    elif line.startswith("data: "):
+                        try:
+                            payload = json.loads(line[6:].strip())
+                        except Exception:
+                            continue
+                        if event_type == "progress":
+                            if payload.get("cached"):
+                                yield _sse("log", "Loading from cache…")
+                            else:
+                                frame = payload.get("frame", 0)
+                                total = payload.get("total", frame_count) or frame_count
+                                pct   = int(frame / total * 100) if total else 0
+                                yield _sse("log", f"Processing… {frame}/{total} frames ({pct}%)")
+                        elif event_type == "done":
+                            n = payload.get("n", 0)
+                            yield _sse("log", f"Done — {n} detections found")
+                            yield _sse("result", json.dumps({"detections": n}))
+                            yield _sse("done", "ok")
+                        event_type = None
+    except Exception as exc:
+        yield _sse("error", f"Could not reach e2vid service: {exc}")
+        yield _sse("done", "failed")
 
-    if "detect_e2vid" in steps:
-        e2vid_dir = RECON_ROOT / sequence_id / "reconstruction_e2vid"
-        if not e2vid_dir.exists() or not any(e2vid_dir.glob("frame_*")):
-            yield _sse("error", "e2vid frames not found — run reconstruction first via scripts/reconstruct.py")
-            yield _sse("done", "failed")
-            return
 
-        yield _sse("log", "Running YOLO detection via e2vid service…")
-        try:
-            async with httpx.AsyncClient(timeout=600.0) as client:
-                r = await client.post(
-                    f"{E2VID_URL}/detect",
-                    json={"sequence_id": sequence_id},
-                )
-            if r.status_code == 200:
-                data = r.json()
-                n = len(data.get("detections", []))
-                yield _sse("log", f"Detection complete — {n} detections across {data.get('frame_end', '?')} frames")
-                yield _sse("result", json.dumps({"detections": n}))
-            else:
-                yield _sse("error", f"e2vid service error {r.status_code}: {r.text[:200]}")
-                yield _sse("done", "failed")
-                return
-        except Exception as exc:
-            yield _sse("error", f"Could not reach e2vid service: {exc}")
-            yield _sse("done", "failed")
-            return
-
-    yield _sse("done", "ok")
+class DetectRequest(BaseModel):
+    sequence_id: str
+    frame_count: int
 
 
-@app.post("/api/run")
-async def run_pipeline(req: RunRequest):
+@app.post("/api/detect")
+async def detect(req: DetectRequest):
     return StreamingResponse(
-        _run_stream(req.sequence_id, req.steps),
+        _detect_stream(req.sequence_id, req.frame_count),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -141,7 +186,7 @@ async def admin():
 
     sequences = []
     if FRED_ROOT.exists():
-        for seq in sorted(FRED_ROOT.glob("sequence_*")):
+        for seq in sorted(FRED_ROOT.glob("sequence_*"), key=lambda p: _nat_key(p.name)):
             e2vid_dir = RECON_ROOT / seq.name / "reconstruction_e2vid"
             hyper_dir = RECON_ROOT / seq.name / "reconstruction_hypere2vid"
             sequences.append({

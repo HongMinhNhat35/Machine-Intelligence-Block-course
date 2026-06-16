@@ -27,6 +27,9 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;background:#f
 .conf-wrap{padding:0 8px;margin-top:4px}
 .conf-top{display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:3px}
 .conf-top span:last-child{font-weight:600;color:#1a3a60}
+.sb-kv{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;font-size:11px}
+.sb-kv-key{color:#888}
+.sb-kv-val{font-weight:600;color:#1a3a60;text-align:right;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sb-push{flex:1}
 .svc-row{display:flex;align-items:center;gap:7px;padding:3px 8px;font-size:11px;color:#666}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -136,6 +139,14 @@ tr.paper td{color:#888}
     <div class="nav-item" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
     <div class="nav-item" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
     <div class="sb-divider"></div>
+    <div id="sb-seq-block" style="display:none">
+      <div class="sb-lbl" style="margin-top:4px">Sequence</div>
+      <div class="sb-kv"><span class="sb-kv-key">ID</span><span class="sb-kv-val" id="sb-seq">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-frames">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">Detections <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val" id="sb-dets">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val">63.4%</span></div>
+      <div class="sb-divider"></div>
+    </div>
     <div id="sb-extra"></div>
     <div class="sb-push"></div>
     <div class="sb-divider"></div>
@@ -163,146 +174,157 @@ tr.paper td{color:#888}
           <div class="file-row" id="df-coords" style="display:none"></div>
           <div class="file-row" id="df-recon"  style="display:none"></div>
         </div>
-        <div class="sec-lbl">Pipeline steps</div>
-        <div class="cb-group">
-          <label class="cb-row" id="cb-recon-e2vid"><input type="checkbox" id="chk-recon-e2vid"> e2vid reconstruction <span style="margin-left:auto;font-size:10px;color:#aaa">via scripts</span></label>
-          <label class="cb-row" id="cb-detect-e2vid"><input type="checkbox" id="chk-detect-e2vid" checked> e2vid detection</label>
-          <label class="cb-row" style="opacity:.4"><input type="checkbox" disabled> HyperE2VID reconstruction <span style="margin-left:auto;font-size:10px;color:#aaa">not yet</span></label>
-          <label class="cb-row" style="opacity:.4"><input type="checkbox" disabled> Late fusion detection <span style="margin-left:auto;font-size:10px;color:#aaa">not yet</span></label>
-        </div>
-        <button class="run-btn" id="run-btn" disabled><i class="ti ti-player-play"></i> Run pipeline</button>
-        <div id="run-log" style="display:none;margin-top:10px;background:#1a1a2e;border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;color:#aaa;max-height:120px;overflow-y:auto"></div>
+        <p id="upload-hint" style="display:none;font-size:11px;color:#888;margin-top:6px">Select a sequence above, then use the tabs to view reconstruction or run detection.</p>
       </div>
 
       <!-- RECONSTRUCTION -->
       <div class="screen" id="s-recon">
-        <div class="row2">
-          <div class="frame-box">
-            <div class="frame-hdr">e2vid <span class="stat-pill" id="r-pill">frame 42 / 871</span></div>
-            <div class="frame-img" style="height:160px"><i class="ti ti-photo"></i><span>reconstructed frame</span></div>
-            <div class="frame-ftr"><span>3.9 fps</span><span>0.26 s/frame</span></div>
+        <div id="recon-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
+        <div id="recon-no-frames" style="display:none;color:#aaa;font-size:12px;padding:20px 0">Reconstruction not available for this sequence — frames have not been generated yet.</div>
+        <div id="recon-player" style="display:none">
+          <div class="row2" style="margin-bottom:10px">
+            <div class="frame-box">
+              <div class="frame-hdr">e2vid <span class="stat-pill" id="r-pill">frame 0</span></div>
+              <img id="recon-img" src="" style="width:100%;display:block;background:#e8ecf0;min-height:180px;object-fit:contain">
+            </div>
+            <div class="frame-box">
+              <div class="frame-hdr">HyperE2VID <span class="stat-pill" id="r-pill-hyper">—</span></div>
+              <div id="hyper-placeholder" class="frame-img" style="height:180px"><i class="ti ti-clock" style="font-size:20px"></i><span>not yet implemented</span></div>
+              <img id="recon-img-hyper" src="" style="width:100%;display:none;background:#e8ecf0;min-height:180px;object-fit:contain">
+            </div>
           </div>
-          <div class="frame-box">
-            <div class="frame-hdr">HyperE2VID <span class="stat-pill">frame 42 / 871</span></div>
-            <div class="frame-img" style="height:160px"><i class="ti ti-photo"></i><span>reconstructed frame</span></div>
-            <div class="frame-ftr"><span>—</span><span>—</span></div>
+          <div class="playback">
+            <div class="pb-row">
+              <button class="pb-btn" id="pb-play"><i class="ti ti-player-play"></i> Play</button>
+              <button class="pb-btn" id="pb-stop"><i class="ti ti-player-stop"></i> Stop</button>
+              <button class="pb-btn" id="pb-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
+              <button class="pb-btn" id="pb-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
+              <input type="number" id="pb-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
+              <span class="pb-frame" id="pb-lbl">Frame 0</span>
+            </div>
+            <input type="range" class="pb-slider" min="0" max="0" value="0" id="pb-sl">
+            <div class="pb-range"><span>0</span><span id="pb-max">0</span></div>
           </div>
-        </div>
-        <div class="playback">
-          <div class="pb-row">
-            <button class="pb-btn" id="pb-play"><i class="ti ti-player-play"></i> Play</button>
-            <button class="pb-btn" id="pb-stop"><i class="ti ti-player-stop"></i> Stop</button>
-            <span class="pb-frame" id="pb-lbl">Frame 42</span>
-          </div>
-          <input type="range" class="pb-slider" min="0" max="871" value="42" id="pb-sl">
-          <div class="pb-range"><span>0</span><span>871</span></div>
-        </div>
-        <div class="metrics-row">
-          <div class="m-card"><div class="m-val">871</div><div class="m-lbl">Frames in sequence</div></div>
-          <div class="m-card"><div class="m-val">3.7 min</div><div class="m-lbl">Reconstruction runtime</div></div>
-          <div class="m-card"><div class="m-val">3.9 fps</div><div class="m-lbl">Throughput</div></div>
         </div>
       </div>
 
       <!-- DETECTION -->
       <div class="screen" id="s-detect">
-        <div class="row2">
-          <div class="frame-box">
-            <div class="frame-hdr" id="det-left-lbl">Reconstruction (e2vid)</div>
-            <div class="frame-img" style="height:220px"><i class="ti ti-photo"></i><span id="det-left-sub">event recon. frame</span></div>
-          </div>
-          <div class="frame-box">
-            <div class="frame-hdr">Detection overlay</div>
-            <div class="det-img" style="height:220px">
-              <div class="bbox" style="left:32%;top:20%;width:17%;height:30%"><span class="bbox-lbl">drone 0.91</span></div>
-              <span class="res-info">1280×720</span>
+        <div id="det-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
+        <div id="det-no-frames" style="display:none;color:#aaa;font-size:12px;padding:20px 0">Reconstruction not available for this sequence — frames have not been generated yet.</div>
+        <div id="det-panel" style="display:none">
+          <div class="row2" style="margin-bottom:10px">
+            <div class="frame-box">
+              <div class="frame-hdr" id="det-left-lbl">e2vid <span class="stat-pill" id="det-pill">frame 0</span></div>
+              <img id="det-img" src="" style="width:100%;display:block;background:#e8ecf0;min-height:180px;object-fit:contain">
+            </div>
+            <div class="frame-box">
+              <div class="frame-hdr">Detection overlay <span class="stat-pill" id="det-count">—</span></div>
+              <div class="det-img" id="det-overlay-wrap">
+                <img id="det-img2" src="" style="width:100%;display:block;min-height:180px">
+                <div id="det-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="playback">
-          <div class="pb-row">
-            <button class="pb-btn"><i class="ti ti-player-play"></i> Play</button>
-            <button class="pb-btn"><i class="ti ti-player-stop"></i> Stop</button>
-            <span class="pb-frame">Frame 42</span>
+          <div class="playback">
+            <div class="pb-row">
+              <button class="pb-btn" id="det-play"><i class="ti ti-player-play"></i> Play</button>
+              <button class="pb-btn" id="det-stop"><i class="ti ti-player-stop"></i> Stop</button>
+              <button class="pb-btn" id="det-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
+              <button class="pb-btn" id="det-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
+              <input type="number" id="det-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
+              <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="det-max">0</span></span>
+            </div>
+            <input type="range" class="pb-slider" min="0" max="0" value="0" id="det-sl">
+            <div class="pb-range"><span>0</span><span id="det-max2">0</span></div>
           </div>
-          <input type="range" class="pb-slider" min="0" max="871" value="42">
-          <div class="pb-range"><span>0</span><span>871</span></div>
-        </div>
-        <div class="metrics-row">
-          <div class="m-card"><div class="m-val">87.4</div><div class="m-lbl">mAP@0.5 (val set)</div></div>
-          <div class="m-card"><div class="m-val">87.8</div><div class="m-lbl">Precision</div></div>
-          <div class="m-card"><div class="m-val">83.2</div><div class="m-lbl">Recall</div></div>
+          <div class="sb-divider" style="margin:12px 0"></div>
+          <div class="sb-lbl">Model</div>
+          <div class="radio-group" style="flex-direction:row;flex-wrap:wrap;gap:2px 6px;margin-bottom:10px">
+            <label class="radio-row"><input type="radio" name="dm" checked data-m="e2vid"> e2vid + YOLO</label>
+            <label class="radio-row"><input type="radio" name="dm" data-m="hyper"> HyperE2VID + YOLO</label>
+            <label class="radio-row"><input type="radio" name="dm" data-m="fusion"> Late fusion</label>
+          </div>
+          <button class="run-btn" id="det-run-btn"><i class="ti ti-radar"></i> Run Detection</button>
+          <div id="det-status" style="font-size:11px;color:#888;margin-top:6px"></div>
         </div>
       </div>
 
       <!-- COMPARISON -->
       <div class="screen" id="s-compare">
-        <div class="row3">
-          <div class="comp-card">
-            <div class="comp-hdr">e2vid + YOLO</div>
-            <div class="frame-img" style="height:120px"><i class="ti ti-photo"></i><span>frame + detections</span></div>
-            <div class="comp-metric">
-              <div class="c-row"><span class="c-key">mAP@0.5</span><span>87.4</span></div>
-              <div class="c-row"><span class="c-key">Precision</span><span>87.8</span></div>
-              <div class="c-row"><span class="c-key">Recall</span><span>83.2</span></div>
-              <div class="c-row"><span class="c-key">fps</span><span>3.9</span></div>
+        <div id="comp-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
+        <div id="comp-panel" style="display:none">
+          <div class="row3" style="margin-bottom:10px">
+            <div class="comp-card">
+              <div class="comp-hdr">e2vid + YOLO</div>
+              <div class="det-img" id="cp-e2vid-wrap">
+                <img id="cp-e2vid-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
+                <div id="cp-e2vid-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+              </div>
+              <div class="comp-metric">
+                <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-map50">—</span></div>
+                <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp-map5095">—</span></div>
+                <div class="c-row"><span class="c-key">Precision</span><span id="cp-prec">—</span></div>
+                <div class="c-row"><span class="c-key">Recall</span><span id="cp-rec">—</span></div>
+              </div>
+            </div>
+            <div class="comp-card">
+              <div class="comp-hdr">HyperE2VID + YOLO</div>
+              <div class="frame-img" style="min-height:160px"><i class="ti ti-clock" style="font-size:22px"></i><span>not yet available</span></div>
+              <div class="comp-metric">
+                <div class="c-row"><span class="c-key">mAP@0.5</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">mAP@0.5:95</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">Precision</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">Recall</span><span>—</span></div>
+              </div>
+            </div>
+            <div class="comp-card">
+              <div class="comp-hdr">Late fusion</div>
+              <div class="frame-img" style="min-height:160px"><i class="ti ti-clock" style="font-size:22px"></i><span>not yet available</span></div>
+              <div class="comp-metric">
+                <div class="c-row"><span class="c-key">mAP@0.5</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">mAP@0.5:95</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">Precision</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">Recall</span><span>—</span></div>
+              </div>
             </div>
           </div>
-          <div class="comp-card">
-            <div class="comp-hdr">HyperE2VID + YOLO</div>
-            <div class="frame-img" style="height:120px"><i class="ti ti-photo"></i><span>frame + detections</span></div>
-            <div class="comp-metric">
-              <div class="c-row"><span class="c-key">mAP@0.5</span><span>—</span></div>
-              <div class="c-row"><span class="c-key">Precision</span><span>—</span></div>
-              <div class="c-row"><span class="c-key">Recall</span><span>—</span></div>
-              <div class="c-row"><span class="c-key">fps</span><span>—</span></div>
+          <div class="playback">
+            <div class="pb-row">
+              <button class="pb-btn" id="cp-play"><i class="ti ti-player-play"></i> Play</button>
+              <button class="pb-btn" id="cp-stop"><i class="ti ti-player-stop"></i> Stop</button>
+              <button class="pb-btn" id="cp-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
+              <button class="pb-btn" id="cp-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
+              <input type="number" id="cp-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
+              <span class="pb-note">All views synced</span>
+              <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="cp-max">0</span></span>
             </div>
+            <input type="range" class="pb-slider" min="0" max="0" value="0" id="cp-sl">
+            <div class="pb-range"><span>0</span><span id="cp-max2">0</span></div>
           </div>
-          <div class="comp-card">
-            <div class="comp-hdr">Late fusion</div>
-            <div class="frame-img" style="height:120px"><i class="ti ti-photo"></i><span>frame + detections</span></div>
-            <div class="comp-metric">
-              <div class="c-row"><span class="c-key">mAP@0.5</span><span>—</span></div>
-              <div class="c-row"><span class="c-key">Precision</span><span>—</span></div>
-              <div class="c-row"><span class="c-key">Recall</span><span>—</span></div>
-              <div class="c-row"><span class="c-key">fps</span><span>—</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="playback">
-          <div class="pb-row">
-            <button class="pb-btn"><i class="ti ti-player-play"></i> Play</button>
-            <button class="pb-btn"><i class="ti ti-player-stop"></i> Stop</button>
-            <span class="pb-note">All views synched</span>
-            <span class="pb-frame">Frame 42</span>
-          </div>
-          <input type="range" class="pb-slider" min="0" max="871" value="42">
-          <div class="pb-range"><span>0</span><span>871</span></div>
         </div>
       </div>
 
       <!-- KPIs -->
       <div class="screen" id="s-kpis">
-        <div class="tbl-title" style="margin-top:0">Detection accuracy — validation set</div>
+        <div class="tbl-title" style="margin-top:0">Detection accuracy — validation set (sequence_127)</div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>Model</th><th>Modality</th><th>Can. mAP@0.5</th><th>Can. mAP@0.5:95</th><th>Chall. mAP@0.5</th><th>Chall. mAP@0.5:95</th></tr></thead>
+          <thead><tr><th>Model</th><th>Run</th><th>Dataset</th><th>Can. mAP@0.5</th><th>Can. mAP@0.5:95</th><th>Precision</th><th>Recall</th><th>Chall. mAP@0.5</th><th>Chall. mAP@0.5:95</th></tr></thead>
+          <tbody id="kpi-det-body"><tr><td colspan="9" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
           <tbody>
-            <tr class="ours"><td>e2vid + YOLOv8n</td><td>Event (recon.)</td><td>87.4</td><td>45.5</td><td>—</td><td>—</td></tr>
-            <tr class="ours"><td>HyperE2VID + YOLO</td><td>Event (recon.)</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr class="ours"><td>Late fusion</td><td>Event + RGB</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr class="paper"><td>YOLOv11 (FRED paper)</td><td>Event only</td><td>87.7</td><td>49.3</td><td>79.6</td><td>41.6</td></tr>
-            <tr class="paper"><td>ER-DETR (FRED paper)</td><td>Event + RGB</td><td>78.6</td><td>32.2</td><td>75.7</td><td>27.9</td></tr>
+            <tr class="paper"><td>YOLOv11 (FRED paper)</td><td>—</td><td>—</td><td>87.7%</td><td>49.3%</td><td>—</td><td>—</td><td>79.6%</td><td>41.6%</td></tr>
+            <tr class="paper"><td>ER-DETR (FRED paper)</td><td>—</td><td>—</td><td>78.6%</td><td>32.2%</td><td>—</td><td>—</td><td>75.7%</td><td>27.9%</td></tr>
           </tbody>
         </table></div>
-        <div class="tbl-title">Compute KPIs</div>
+        <div class="tbl-title">Reconstruction</div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>Step</th><th>Model</th><th>Frames</th><th>Reconstruction runtime</th><th>Throughput</th><th>Training epochs</th></tr></thead>
-          <tbody>
-            <tr class="ours"><td>Reconstruction</td><td>e2vid</td><td>1 426</td><td>6.2 min</td><td>3.9 fps</td><td>—</td></tr>
-            <tr class="ours"><td>Reconstruction</td><td>HyperE2VID</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr class="ours"><td>Training</td><td>YOLOv8n</td><td>1 426</td><td>49 min</td><td>35.6 s/epoch</td><td>83 (best @80)</td></tr>
-            <tr class="ours"><td>Training</td><td>Late fusion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-          </tbody>
+          <thead><tr><th>Model</th><th>Run</th><th>Dataset</th><th>Total Frames</th><th>Runtime</th><th>Avg FPS</th><th>GPU</th></tr></thead>
+          <tbody id="kpi-rec-body"><tr><td colspan="7" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
+        </table></div>
+        <div class="tbl-title">Training</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Model</th><th>Run</th><th>Dataset</th><th>Train images</th><th>Runtime</th><th>Epochs</th><th>Best epoch</th><th>LR</th><th>Eff. batch</th><th>GPU</th></tr></thead>
+          <tbody id="kpi-tr-body"><tr><td colspan="10" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
         </table></div>
       </div>
 
@@ -346,9 +368,9 @@ const detModels={
 };
 const cfg={
   upload:{title:'Upload sequence',badge:'no sequence selected',extra:''},
-  recon:{title:'Reconstruction viewer',badge:'seq_0 · 871 frames',extra:`<div class="sb-lbl">Show</div><div class="radio-group"><label class="radio-row"><input type="radio" name="rv" checked> Both</label><label class="radio-row"><input type="radio" name="rv"> e2vid only</label><label class="radio-row"><input type="radio" name="rv"> HyperE2VID only</label></div>`},
-  detect:{title:'Detection',badge:'e2vid + YOLO',extra:`<div class="sb-lbl">Model</div><div class="radio-group"><label class="radio-row"><input type="radio" name="dm" checked data-m="e2vid"> e2vid + YOLO</label><label class="radio-row"><input type="radio" name="dm" data-m="hyper"> HyperE2VID + YOLO</label><label class="radio-row"><input type="radio" name="dm" data-m="fusion"> Late fusion</label></div><div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval">0.50</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="50" id="csl"></div>`},
-  compare:{title:'Comparison',badge:'Canonical split',extra:`<div class="sb-lbl">Split</div><div class="radio-group"><label class="radio-row"><input type="radio" name="sp" checked> Canonical</label><label class="radio-row"><input type="radio" name="sp"> Challenging</label></div><div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval2">0.50</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="50" id="csl2"></div>`},
+  recon:{title:'Reconstruction viewer',badge:'seq_0 · 871 frames',extra:''},
+  detect:{title:'Detection',badge:'e2vid + YOLO',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl"></div>`},
+  compare:{title:'Comparison',badge:'Canonical split',extra:`<div class="sb-lbl">Split</div><div class="radio-group"><label class="radio-row"><input type="radio" name="sp" value="canonical" checked> Canonical</label><label class="radio-row"><input type="radio" name="sp" value="challenging"> Challenging</label></div><div class="sb-divider"></div><div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval2">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl2"></div>`},
   kpis:{title:'KPIs',badge:'Canonical split',extra:''},
   admin:{title:'Admin',badge:'system',extra:''}
 };
@@ -360,22 +382,83 @@ function go(k){
   document.getElementById('tb').textContent=cfg[k].badge;
   document.getElementById('sb-extra').innerHTML=cfg[k].extra;
   if(k==='detect'){
-    document.querySelectorAll('[name="dm"]').forEach(r=>r.addEventListener('change',function(){
-      const m=this.dataset.m;
-      document.getElementById('det-left-lbl').textContent=detModels[m].lbl;
-      document.getElementById('det-left-sub').textContent=detModels[m].sub;
-      document.getElementById('tb').textContent=this.closest('label').textContent.trim();
-    }));
     const cs=document.getElementById('csl'),cv=document.getElementById('cval');
-    if(cs)cs.addEventListener('input',()=>{cv.textContent=(cs.value/100).toFixed(2);});
+    if(cs){
+      cs.value=sharedConfPct;
+      if(cv) cv.textContent=(sharedConfPct/100).toFixed(2);
+      cs.addEventListener('input',()=>{
+        sharedConfPct=+cs.value;
+        if(cv) cv.textContent=(sharedConfPct/100).toFixed(2);
+        dtRenderBboxes();
+      });
+    }
+    const checked=document.querySelector('[name="dm"]:checked');
+    if(checked) document.getElementById('tb').textContent=checked.closest('label').textContent.trim();
   }
   if(k==='compare'){
     const cs2=document.getElementById('csl2'),cv2=document.getElementById('cval2');
-    if(cs2)cs2.addEventListener('input',()=>{cv2.textContent=(cs2.value/100).toFixed(2);});
+    if(cs2){
+      cs2.value=sharedConfPct;
+      if(cv2) cv2.textContent=(sharedConfPct/100).toFixed(2);
+      cs2.addEventListener('input',()=>{
+        sharedConfPct=+cs2.value;
+        if(cv2) cv2.textContent=(sharedConfPct/100).toFixed(2);
+        cpRenderBboxes();
+      });
+    }
+    document.querySelectorAll('[name="sp"]').forEach(r=>r.addEventListener('change',function(){
+      cpUpdateMetrics(this.value);
+      document.getElementById('tb').textContent=this.value==='challenging'?'Challenging split':'Canonical split';
+    }));
   }
 }
 document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.s)));
+document.querySelectorAll('[name="dm"]').forEach(r=>r.addEventListener('change',function(){
+  document.getElementById('tb').textContent=this.closest('label').textContent.trim();
+}));
 let allSeqs=[], selSeq=null;
+let sharedConfPct=20, kpiCache=null;
+
+async function getKpis(){
+  if(!kpiCache){
+    try{ kpiCache=await fetch('/api/kpis').then(r=>r.json()); }
+    catch(e){ kpiCache=[]; }
+  }
+  return kpiCache;
+}
+
+// ── Shared sequence state ─────────────────────────────────────────────────────
+function onSeqSelected(seq){
+  selSeq=seq;
+  document.getElementById('tb').textContent=seq ? seq.id : 'no sequence selected';
+  // permanent sidebar info
+  const block=document.getElementById('sb-seq-block');
+  if(block) block.style.display=seq ? '' : 'none';
+  if(seq){
+    const es=document.getElementById('sb-seq'); if(es) es.textContent=seq.id;
+    const ef=document.getElementById('sb-frames'); if(ef) ef.textContent=seq.frame_count;
+    const ed=document.getElementById('sb-dets'); if(ed) ed.textContent='—';
+  }
+  // update upload file status
+  if(seq){
+    fileRow('df-events',
+      seq.has_events_zip ? 'ti-file-zip' : seq.has_events_h5 ? 'ti-file-code' : seq.has_raw_events ? 'ti-file-code' : 'ti-alert-triangle',
+      seq.has_events_zip ? 'events.zip' : seq.has_events_h5 ? 'events.h5' : seq.has_raw_events ? 'Event/ (FRED raw)' : 'no events file found',
+      seq.has_events_zip||seq.has_events_h5||seq.has_raw_events ? 'events' : 'missing',
+      seq.has_events_zip||seq.has_events_h5||seq.has_raw_events);
+    if(seq.has_coordinates) fileRow('df-coords','ti-map-pin','coordinates.txt','annotations',true);
+    else document.getElementById('df-coords').style.display='none';
+    fileRow('df-recon',
+      seq.e2vid_done ? 'ti-check' : 'ti-clock',
+      seq.e2vid_done ? 'e2vid reconstruction ready' : 'not yet reconstructed',
+      seq.e2vid_done ? seq.frame_count+' frames' : 'run scripts/reconstruct.py',
+      seq.e2vid_done);
+    document.getElementById('detected-files').style.display='flex';
+    document.getElementById('upload-hint').style.display='block';
+  }
+  // update reconstruction screen
+  reconLoad();
+}
 
 function fileRow(id, icon, text, tag, tagOk){
   const el=document.getElementById(id);
@@ -383,148 +466,409 @@ function fileRow(id, icon, text, tag, tagOk){
   el.style.display='flex';
 }
 
-function selectSeq(seq){
-  selSeq=seq;
-  document.querySelectorAll('#browser-body .b-row').forEach(r=>r.classList.toggle('selected',r.dataset.val===seq.id));
-  document.getElementById('tb').textContent=seq.id;
-
-  // events file
-  if(seq.has_events_zip){
-    fileRow('df-events','ti-file-zip','events.zip','events',true);
-  } else if(seq.has_events_h5){
-    fileRow('df-events','ti-file-code','events.h5','events (raw)',true);
-  } else if(seq.has_raw_events){
-    fileRow('df-events','ti-file-code','Event/ (FRED raw)','events',true);
-  } else {
-    fileRow('df-events','ti-alert-triangle','no events file found','missing',false);
-  }
-
-  // coordinates
-  if(seq.has_coordinates){
-    fileRow('df-coords','ti-map-pin','coordinates.txt','annotations',true);
-  } else {
-    document.getElementById('df-coords').style.display='none';
-  }
-
-  // reconstruction status
-  if(seq.e2vid_done){
-    fileRow('df-recon','ti-check','e2vid reconstruction ready',seq.frame_count+' frames',true);
-  } else {
-    fileRow('df-recon','ti-clock','e2vid reconstruction not done','run scripts/reconstruct.py',false);
-  }
-
-  document.getElementById('detected-files').style.display='flex';
-
-  // enable run button only if detection is useful (frames exist)
-  document.getElementById('chk-detect-e2vid').disabled=!seq.e2vid_done;
-  if(!seq.e2vid_done) document.getElementById('chk-detect-e2vid').checked=false;
-  updateRunBtn();
-}
-
-function updateRunBtn(){
-  const anyChecked = document.getElementById('chk-detect-e2vid').checked;
-  document.getElementById('run-btn').disabled = !selSeq || !anyChecked;
-}
-
-document.getElementById('chk-detect-e2vid').addEventListener('change', updateRunBtn);
-
+// ── Upload browser ────────────────────────────────────────────────────────────
 async function initBrowser(){
   try{
-    const resp = await fetch('/api/sequences');
-    allSeqs = await resp.json();
+    const resp=await fetch('/api/sequences');
+    allSeqs=await resp.json();
   } catch(e){
-    document.getElementById('browser-body').innerHTML='<div style="padding:14px;color:#d00;font-size:11px">Failed to load sequences — is the backend running?</div>';
+    document.getElementById('browser-body').innerHTML='<div style="padding:14px;color:#d00;font-size:11px">Failed to load sequences.</div>';
     return;
   }
   document.getElementById('seq-count').textContent=allSeqs.length+' sequences';
-  if(allSeqs.length===0){
-    document.getElementById('browser-body').innerHTML='<div style="padding:14px;color:#aaa;font-size:11px">No sequences found in data directory.</div>';
-    return;
-  }
-  document.getElementById('browser-body').innerHTML=allSeqs.map(s=>{
-    const tag = s.e2vid_done
-      ? `<span class="b-tag ok">${s.frame_count} frames</span>`
-      : `<span class="b-tag">not reconstructed</span>`;
-    return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${tag}</div>`;
-  }).join('');
+  document.getElementById('browser-body').innerHTML=allSeqs.length===0
+    ? '<div style="padding:14px;color:#aaa;font-size:11px">No sequences found.</div>'
+    : allSeqs.map(s=>{
+        const tag=s.e2vid_done
+          ? `<span class="b-tag ok">${s.frame_count} frames</span>`
+          : `<span class="b-tag">not reconstructed</span>`;
+        return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${tag}</div>`;
+      }).join('');
   document.querySelectorAll('#browser-body .b-row').forEach(el=>{
-    el.addEventListener('click',()=>selectSeq(allSeqs.find(s=>s.id===el.dataset.val)));
+    el.addEventListener('click',()=>{
+      document.querySelectorAll('#browser-body .b-row').forEach(r=>r.classList.remove('selected'));
+      el.classList.add('selected');
+      onSeqSelected(allSeqs.find(s=>s.id===el.dataset.val));
+    });
   });
 }
 
-// ── Run pipeline ──────────────────────────────────────────────────────────────
-document.getElementById('run-btn').addEventListener('click', async()=>{
-  if(!selSeq) return;
-  const steps=[];
-  if(document.getElementById('chk-detect-e2vid').checked) steps.push('detect_e2vid');
+// ── Reconstruction player ─────────────────────────────────────────────────────
+let pbPlaying=false, pbTimer=null, pbFrame=0, pbMax=0, pbLoadedSeq=null, pbDragging=false;
+let pbImgDebounce=null;
 
-  const log=document.getElementById('run-log');
-  log.style.display='block';
-  log.innerHTML='';
-  document.getElementById('run-btn').disabled=true;
-  document.getElementById('run-btn').innerHTML='<i class="ti ti-loader"></i> Running…';
+function pbLoadImage(){
+  clearTimeout(pbImgDebounce);
+  const seq=selSeq.id, n=pbFrame;
+  pbImgDebounce=setTimeout(()=>{
+    if(pbFrame===n){
+      document.getElementById('recon-img').src='/frames/'+seq+'/'+n;
+      const hyperImg=document.getElementById('recon-img-hyper');
+      if(hyperImg.dataset.active==='1') hyperImg.src='/frames-hyper/'+seq+'/'+n;
+    }
+  }, 60);
+}
 
-  const appendLog=(msg,cls='')=>{
-    const line=document.createElement('div');
-    if(cls) line.style.color=cls;
-    line.textContent=msg;
-    log.appendChild(line);
-    log.scrollTop=log.scrollHeight;
-  };
+function pbSetFrame(n){
+  pbFrame=Math.max(0,Math.min(n,pbMax));
+  document.getElementById('pb-lbl').textContent='Frame '+pbFrame;
+  document.getElementById('r-pill').textContent='frame '+pbFrame+' / '+pbMax;
+  const gi=document.getElementById('pb-goto'); if(gi) gi.value=pbFrame;
+  if(!pbDragging){
+    document.getElementById('pb-sl').value=pbFrame;
+    pbLoadImage();
+  }
+}
 
+function pbStop(){
+  pbPlaying=false;
+  clearInterval(pbTimer);
+  pbTimer=null;
+  document.getElementById('pb-play').innerHTML='<i class="ti ti-player-play"></i> Play';
+}
+
+function reconLoad(){
+  document.getElementById('recon-no-seq').style.display='none';
+  document.getElementById('recon-no-frames').style.display='none';
+  document.getElementById('recon-player').style.display='none';
+
+  if(!selSeq){ document.getElementById('recon-no-seq').style.display='block'; return; }
+  if(!selSeq.e2vid_done){ pbStop(); document.getElementById('recon-no-frames').style.display='block'; return; }
+
+  const seqChanged = pbLoadedSeq !== selSeq.id;
+  if(seqChanged){
+    pbStop();
+    pbLoadedSeq=selSeq.id;
+    pbMax=selSeq.frame_count-1;
+    document.getElementById('pb-sl').max=pbMax;
+    document.getElementById('pb-max').textContent=pbMax;
+    const gi=document.getElementById('pb-goto'); if(gi){ gi.max=pbMax; gi.value=0; }
+  }
+  document.getElementById('recon-player').style.display='block';
+  if(seqChanged) pbSetFrame(0);
+}
+
+// ── Detection screen ──────────────────────────────────────────────────────────
+let dtPlaying=false, dtTimer=null, dtFrame=0, dtMax=0, dtDragging=false, dtLoadedSeq=null;
+let dtDetections=null, dtImgDebounce=null;
+
+function dtGetConf(){ return sharedConfPct/100; }
+function cpGetConf(){ return sharedConfPct/100; }
+
+function dtRenderBboxes(){
+  const bboxDiv=document.getElementById('det-bboxes');
+  if(!bboxDiv) return;
+  if(!dtDetections){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
+  const img=document.getElementById('det-img2');
+  const imgW=img.naturalWidth||1280, imgH=img.naturalHeight||720;
+  const conf=dtGetConf();
+  const boxes=dtDetections.filter(d=>d.frame===dtFrame && d.confidence>=conf);
+  document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
+  bboxDiv.innerHTML=boxes.map(d=>{
+    const [x,y,w,h]=d.bbox;
+    const px=(x/imgW*100).toFixed(2)+'%', py=(y/imgH*100).toFixed(2)+'%';
+    const pw=(w/imgW*100).toFixed(2)+'%', ph=(h/imgH*100).toFixed(2)+'%';
+    return `<div class="bbox" style="left:${px};top:${py};width:${pw};height:${ph}"><span class="bbox-lbl">${d.class} ${d.confidence.toFixed(2)}</span></div>`;
+  }).join('');
+}
+
+function dtLoadImage(){
+  clearTimeout(dtImgDebounce);
+  const seq=selSeq.id, n=dtFrame;
+  dtImgDebounce=setTimeout(()=>{
+    if(dtFrame!==n) return;
+    document.getElementById('det-img').src='/frames/'+seq+'/'+n;
+    const img2=document.getElementById('det-img2');
+    img2.onload=dtRenderBboxes;
+    img2.src='/frames/'+seq+'/'+n;
+  }, 60);
+}
+
+function dtSetFrame(n){
+  dtFrame=Math.max(0,Math.min(n,dtMax));
+  document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax;
+  const gi=document.getElementById('det-goto'); if(gi) gi.value=dtFrame;
+  if(!dtDragging){
+    document.getElementById('det-sl').value=dtFrame;
+    dtLoadImage();
+  }
+}
+
+function dtStop(){
+  dtPlaying=false;
+  clearInterval(dtTimer);
+  dtTimer=null;
+  const btn=document.getElementById('det-play');
+  if(btn) btn.innerHTML='<i class="ti ti-player-play"></i> Play';
+}
+
+async function dtLoadDetections(seqId){
   try{
-    const resp = await fetch('/api/run',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sequence_id:selSeq.id, steps})
-    });
-    const reader=resp.body.getReader();
-    const dec=new TextDecoder();
-    let buf='';
+    const r=await fetch('/api/detections/'+seqId);
+    if(r.ok){
+      const data=await r.json();
+      dtDetections=data.detections;
+      document.getElementById('det-status').textContent='Cached — '+dtDetections.length+' detections across all frames';
+      const sbD=document.getElementById('sb-dets');
+      if(sbD) sbD.textContent=dtDetections.length;
+      dtRenderBboxes();
+    }
+  } catch(e){}
+}
+
+function detLoad(){
+  const noSeq=document.getElementById('det-no-seq');
+  const noFrames=document.getElementById('det-no-frames');
+  const panel=document.getElementById('det-panel');
+  noSeq.style.display='none'; noFrames.style.display='none'; panel.style.display='none';
+  if(!selSeq){ noSeq.style.display='block'; return; }
+  if(!selSeq.e2vid_done){ dtStop(); noFrames.style.display='block'; return; }
+  const seqChanged=dtLoadedSeq!==selSeq.id;
+  if(seqChanged){
+    dtStop();
+    dtLoadedSeq=selSeq.id;
+    dtMax=selSeq.frame_count-1;
+    dtDetections=null;
+    document.getElementById('det-sl').max=dtMax;
+    document.getElementById('det-max').textContent=dtMax;
+    document.getElementById('det-max2').textContent=dtMax;
+    const gi=document.getElementById('det-goto'); if(gi){ gi.max=dtMax; gi.value=0; }
+    document.getElementById('det-status').textContent='';
+    document.getElementById('det-count').textContent='—';
+    document.getElementById('det-bboxes').innerHTML='';
+    const sbDets=document.getElementById('sb-dets'); if(sbDets) sbDets.textContent='—';
+    dtLoadDetections(selSeq.id);
+  }
+  panel.style.display='block';
+  if(seqChanged) dtSetFrame(0);
+}
+
+// ── Comparison screen ─────────────────────────────────────────────────────────
+let cpPlaying=false, cpTimer=null, cpFrame=0, cpMax=0, cpDragging=false, cpLoadedSeq=null;
+let cpDetections=null, cpImgDebounce=null;
+
+function cpRenderBboxes(){
+  const bboxDiv=document.getElementById('cp-e2vid-bboxes');
+  if(!bboxDiv) return;
+  if(!cpDetections){ bboxDiv.innerHTML=''; return; }
+  const img=document.getElementById('cp-e2vid-img');
+  const imgW=img.naturalWidth||1280, imgH=img.naturalHeight||720;
+  const conf=cpGetConf();
+  const boxes=cpDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
+  bboxDiv.innerHTML=boxes.map(d=>{
+    const [x,y,w,h]=d.bbox;
+    const px=(x/imgW*100).toFixed(2)+'%', py=(y/imgH*100).toFixed(2)+'%';
+    const pw=(w/imgW*100).toFixed(2)+'%', ph=(h/imgH*100).toFixed(2)+'%';
+    return `<div class="bbox" style="left:${px};top:${py};width:${pw};height:${ph}"><span class="bbox-lbl">${d.class} ${d.confidence.toFixed(2)}</span></div>`;
+  }).join('');
+}
+
+function cpLoadImage(){
+  clearTimeout(cpImgDebounce);
+  const seq=selSeq.id, n=cpFrame;
+  cpImgDebounce=setTimeout(()=>{
+    if(cpFrame!==n) return;
+    const img=document.getElementById('cp-e2vid-img');
+    img.onload=cpRenderBboxes;
+    img.src='/frames/'+seq+'/'+n;
+  }, 60);
+}
+
+function cpSetFrame(n){
+  cpFrame=Math.max(0,Math.min(n,cpMax));
+  const gi=document.getElementById('cp-goto'); if(gi) gi.value=cpFrame;
+  if(!cpDragging){
+    document.getElementById('cp-sl').value=cpFrame;
+    cpLoadImage();
+  }
+}
+
+function cpStop(){
+  cpPlaying=false;
+  clearInterval(cpTimer); cpTimer=null;
+  const btn=document.getElementById('cp-play');
+  if(btn) btn.innerHTML='<i class="ti ti-player-play"></i> Play';
+}
+
+function cpUpdateMetrics(split){
+  if(!kpiCache) return;
+  const runs=kpiCache.filter(r=>r.model==='e2vid');
+  if(!runs.length) return;
+  const run=runs[runs.length-1];
+  const m=(split==='challenging')?(run.detection?.challenging||{}):(run.detection?.canonical||{});
+  const pct=v=>(v===null||v===undefined)?'—':(+v*100).toFixed(1)+'%';
+  document.getElementById('cp-map50').textContent=pct(m.map50);
+  document.getElementById('cp-map5095').textContent=pct(m.map50_95);
+  document.getElementById('cp-prec').textContent=pct(m.precision);
+  document.getElementById('cp-rec').textContent=pct(m.recall);
+}
+
+async function compLoad(){
+  const noSeq=document.getElementById('comp-no-seq');
+  const panel=document.getElementById('comp-panel');
+  noSeq.style.display='none'; panel.style.display='none';
+  if(!selSeq){ noSeq.style.display='block'; return; }
+  const seqChanged=cpLoadedSeq!==selSeq.id;
+  if(seqChanged){
+    cpStop();
+    cpLoadedSeq=selSeq.id;
+    cpMax=selSeq.frame_count-1;
+    cpDetections=null;
+    document.getElementById('cp-sl').max=cpMax;
+    document.getElementById('cp-max').textContent=cpMax;
+    document.getElementById('cp-max2').textContent=cpMax;
+    const gi=document.getElementById('cp-goto'); if(gi){ gi.max=cpMax; gi.value=0; }
+    fetch('/api/detections/'+selSeq.id)
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{ if(data){ cpDetections=data.detections; cpRenderBboxes(); } })
+      .catch(()=>{});
+  }
+  panel.style.display='block';
+  if(seqChanged) cpSetFrame(0);
+  await getKpis();
+  const split=document.querySelector('[name="sp"]:checked');
+  cpUpdateMetrics(split?split.value:'canonical');
+}
+
+// Comparison slider drag tracking
+(function(){
+  const sl=document.getElementById('cp-sl');
+  sl.addEventListener('pointerdown',()=>{ cpDragging=true; });
+  document.addEventListener('pointerup',()=>{
+    if(!cpDragging) return;
+    cpDragging=false;
+    cpFrame=Math.max(0,Math.min(+sl.value,cpMax));
+    const gi=document.getElementById('cp-goto'); if(gi) gi.value=cpFrame;
+    cpLoadImage();
+  });
+  sl.addEventListener('input',function(){
+    cpFrame=Math.max(0,Math.min(+this.value,cpMax));
+    const gi=document.getElementById('cp-goto'); if(gi) gi.value=cpFrame;
+  });
+})();
+
+document.getElementById('cp-play').addEventListener('click',function(){
+  if(!selSeq||!selSeq.e2vid_done) return;
+  cpPlaying=!cpPlaying;
+  clearInterval(cpTimer); cpTimer=null;
+  if(cpPlaying){
+    this.innerHTML='<i class="ti ti-player-pause"></i> Pause';
+    cpTimer=setInterval(()=>{ if(!cpDragging) cpSetFrame(cpFrame>=cpMax?0:cpFrame+1); },150);
+  } else {
+    this.innerHTML='<i class="ti ti-player-play"></i> Play';
+  }
+});
+document.getElementById('cp-stop').addEventListener('click',()=>{ cpStop(); cpSetFrame(0); });
+document.getElementById('cp-prev').addEventListener('click',()=>{ cpStop(); cpSetFrame(cpFrame-1); });
+document.getElementById('cp-next').addEventListener('click',()=>{ cpStop(); cpSetFrame(cpFrame+1); });
+document.getElementById('cp-goto').addEventListener('change',function(){ cpStop(); cpSetFrame(parseInt(this.value)||0); });
+
+// Detection slider drag tracking
+(function(){
+  const sl=document.getElementById('det-sl');
+  sl.addEventListener('pointerdown',()=>{ dtDragging=true; });
+  document.addEventListener('pointerup',()=>{
+    if(!dtDragging) return;
+    dtDragging=false;
+    dtFrame=Math.max(0,Math.min(+sl.value,dtMax));
+    document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax;
+    dtLoadImage();
+  });
+  sl.addEventListener('input',function(){
+    dtFrame=Math.max(0,Math.min(+this.value,dtMax));
+    document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax;
+  });
+})();
+
+document.getElementById('det-play').addEventListener('click',function(){
+  if(!selSeq||!selSeq.e2vid_done) return;
+  dtPlaying=!dtPlaying;
+  clearInterval(dtTimer); dtTimer=null;
+  if(dtPlaying){
+    this.innerHTML='<i class="ti ti-player-pause"></i> Pause';
+    dtTimer=setInterval(()=>{ if(!dtDragging) dtSetFrame(dtFrame>=dtMax ? 0 : dtFrame+1); }, 150);
+  } else {
+    this.innerHTML='<i class="ti ti-player-play"></i> Play';
+  }
+});
+
+document.getElementById('det-stop').addEventListener('click',()=>{ dtStop(); dtSetFrame(0); });
+document.getElementById('det-prev').addEventListener('click',()=>{ dtStop(); dtSetFrame(dtFrame-1); });
+document.getElementById('det-next').addEventListener('click',()=>{ dtStop(); dtSetFrame(dtFrame+1); });
+document.getElementById('det-goto').addEventListener('change',function(){ dtStop(); dtSetFrame(parseInt(this.value)||0); });
+
+document.getElementById('det-run-btn').addEventListener('click',async function(){
+  if(!selSeq||!selSeq.e2vid_done) return;
+  this.disabled=true;
+  document.getElementById('det-status').textContent='Running…';
+  dtDetections=null;
+  document.getElementById('det-bboxes').innerHTML='';
+  document.getElementById('det-count').textContent='—';
+  try{
+    const r=await fetch('/api/detect',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sequence_id:selSeq.id,frame_count:selSeq.frame_count})});
+    const reader=r.body.getReader(), dec=new TextDecoder();
+    let buf='', eventType=null;
     while(true){
       const {done,value}=await reader.read();
       if(done) break;
       buf+=dec.decode(value,{stream:true});
-      const parts=buf.split('\n\n');
-      buf=parts.pop();
-      for(const part of parts){
-        const evLine=part.match(/^event: (.+)/m);
-        const dataLine=part.match(/^data: (.+)/m);
-        if(!evLine||!dataLine) continue;
-        const ev=evLine[1].trim(), data=dataLine[1].trim();
-        if(ev==='log')   appendLog('› '+data);
-        if(ev==='error') appendLog('✗ '+data,'#f87171');
-        if(ev==='done'){
-          if(data==='ok'){
-            appendLog('✓ Done','#4ade80');
-            // refresh sequence list to pick up new detection cache
-            await initBrowser();
-            const updated=allSeqs.find(s=>s.id===selSeq.id);
-            if(updated) selectSeq(updated);
-          } else {
-            appendLog('Pipeline failed','#f87171');
-          }
+      const lines=buf.split('\n'); buf=lines.pop();
+      for(const line of lines){
+        if(line.startsWith('event: ')) eventType=line.slice(7).trim();
+        else if(line.startsWith('data: ')){
+          const data=line.slice(6).trim();
+          if(eventType==='log'||eventType==='error') document.getElementById('det-status').textContent=data;
+          if(eventType==='done' && data==='ok') await dtLoadDetections(selSeq.id);
+          eventType=null;
         }
       }
     }
-  } catch(e){
-    appendLog('Request failed: '+e,'#f87171');
-  }
-
-  document.getElementById('run-btn').disabled=false;
-  document.getElementById('run-btn').innerHTML='<i class="ti ti-player-play"></i> Run pipeline';
+  } catch(e){ document.getElementById('det-status').textContent='Failed: '+e.message; }
+  this.disabled=false;
 });
+
+// Reconstruction slider drag tracking — prevents timer from overwriting slider position during drag
+(function(){
+  const sl = document.getElementById('pb-sl');
+  sl.addEventListener('pointerdown', () => { pbDragging = true; });
+  document.addEventListener('pointerup', () => {
+    if(!pbDragging) return;
+    pbDragging = false;
+    pbFrame = Math.max(0, Math.min(+sl.value, pbMax));
+    document.getElementById('pb-lbl').textContent = 'Frame ' + pbFrame;
+    document.getElementById('r-pill').textContent  = 'frame ' + pbFrame + ' / ' + pbMax;
+    pbLoadImage();
+  });
+  sl.addEventListener('input', function(){
+    // update pbFrame and labels instantly while dragging; image loads on pointerup
+    pbFrame = Math.max(0, Math.min(+this.value, pbMax));
+    document.getElementById('pb-lbl').textContent = 'Frame ' + pbFrame;
+    document.getElementById('r-pill').textContent  = 'frame ' + pbFrame + ' / ' + pbMax;
+  });
+})();
+
+document.getElementById('pb-play').addEventListener('click',function(){
+  if(!selSeq||!selSeq.e2vid_done) return;
+  pbPlaying=!pbPlaying;
+  clearInterval(pbTimer);
+  pbTimer=null;
+  if(pbPlaying){
+    this.innerHTML='<i class="ti ti-player-pause"></i> Pause';
+    pbTimer=setInterval(()=>{
+      if(!pbDragging) pbSetFrame(pbFrame>=pbMax ? 0 : pbFrame+1);
+    }, 150);
+  } else {
+    this.innerHTML='<i class="ti ti-player-play"></i> Play';
+  }
+});
+
+document.getElementById('pb-stop').addEventListener('click',()=>{pbStop();pbSetFrame(0);});
+document.getElementById('pb-prev').addEventListener('click',()=>{ pbStop(); pbSetFrame(pbFrame-1); });
+document.getElementById('pb-next').addEventListener('click',()=>{ pbStop(); pbSetFrame(pbFrame+1); });
+document.getElementById('pb-goto').addEventListener('change',function(){ pbStop(); pbSetFrame(parseInt(this.value)||0); });
 
 initBrowser();
-const sl=document.getElementById('pb-sl'),lbl=document.getElementById('pb-lbl'),pill=document.getElementById('r-pill');
-sl.addEventListener('input',()=>{lbl.textContent='Frame '+sl.value;pill.textContent='frame '+sl.value+' / 871';});
-let playing=false,iv=null;
-document.getElementById('pb-play').addEventListener('click',function(){
-  playing=!playing;
-  this.innerHTML=playing?'<i class="ti ti-player-pause"></i> Pause':'<i class="ti ti-player-play"></i> Play';
-  if(playing){iv=setInterval(()=>{let v=+sl.value+1;if(v>871)v=0;sl.value=v;lbl.textContent='Frame '+v;pill.textContent='frame '+v+' / 871';},80);}else clearInterval(iv);
-});
-document.getElementById('pb-stop').addEventListener('click',()=>{playing=false;clearInterval(iv);sl.value=0;lbl.textContent='Frame 0';pill.textContent='frame 0 / 871';document.getElementById('pb-play').innerHTML='<i class="ti ti-player-play"></i> Play';});
 
 async function loadAdmin(){
   try{
@@ -588,10 +932,73 @@ async function loadAdmin(){
   }
 }
 
-// Hook into navigation: load admin data when the admin screen is shown
-const _origGo=go;
-function go(k){_origGo(k);if(k==='admin')loadAdmin();}
-document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.s)));
+// ── KPIs screen ───────────────────────────────────────────────────────────────
+function kpiFmt(v, decimals=1, suffix=''){
+  return (v===null||v===undefined) ? '—' : (+v).toFixed(decimals)+suffix;
+}
+function kpiPct(v){ return (v===null||v===undefined) ? '—' : (+v*100).toFixed(1)+'%'; }
+function kpiHrs(s){ return (s===null||s===undefined) ? '—' : (+s/3600).toFixed(1)+' h'; }
+function kpiNum(v){ return (v===null||v===undefined) ? '—' : (+v).toLocaleString(); }
+function kpiRun(id){ return id ? id.replace(/^run_?/i,'') : '—'; }
+function kpiSeqs(seqs){ return Array.isArray(seqs) && seqs.length ? seqs.map(s=>s.replace('sequence_','')).join(', ') : '—'; }
+
+async function loadKpis(){
+  try{
+    const runs = await fetch('/api/kpis').then(r=>r.json());
+
+    // Detection table
+    document.getElementById('kpi-det-body').innerHTML = runs.length ? runs.map(r=>{
+      const c=r.detection?.canonical||{}, ch=r.detection?.challenging||{};
+      const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
+      const valSeqs=kpiSeqs(r.training?.val_sequences);
+      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${valSeqs}</td>
+        <td>${kpiPct(c.map50)}</td><td>${kpiPct(c.map50_95)}</td>
+        <td>${kpiPct(c.precision)}</td><td>${kpiPct(c.recall)}</td>
+        <td>${kpiPct(ch.map50)}</td><td>${kpiPct(ch.map50_95)}</td></tr>`;
+    }).join('') : '<tr><td colspan="9" style="color:#aaa">No KPI files found.</td></tr>';
+
+    // Reconstruction table
+    document.getElementById('kpi-rec-body').innerHTML = runs.length ? runs.map(r=>{
+      const rc=r.reconstruction||{};
+      const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
+      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${kpiSeqs(rc.sequences)}</td>
+        <td>${kpiNum(rc.total_frames)}</td><td>${kpiHrs(rc.total_runtime_s)}</td>
+        <td>${kpiFmt(rc.avg_fps,2,' fps')}</td><td>${rc.gpu||'—'}</td></tr>`;
+    }).join('') : '<tr><td colspan="7" style="color:#aaa">No KPI files found.</td></tr>';
+
+    // Training table
+    document.getElementById('kpi-tr-body').innerHTML = runs.length ? runs.map(r=>{
+      const tr=r.training||{};
+      const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
+      const epochs=(tr.epochs_completed!==null&&tr.epochs_completed!==undefined)
+        ? `${tr.epochs_completed} / ${tr.epochs_requested||'—'}` : '—';
+      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${kpiSeqs(tr.train_sequences)}</td>
+        <td>${kpiNum(tr.n_train_images)}</td><td>${kpiHrs(tr.runtime_s)}</td>
+        <td>${epochs}</td><td>${tr.best_epoch!==null&&tr.best_epoch!==undefined?tr.best_epoch:'—'}</td>
+        <td>${tr.lr0!==null&&tr.lr0!==undefined?tr.lr0:'—'}</td>
+        <td>${tr.effective_batch!==null&&tr.effective_batch!==undefined?tr.effective_batch:'—'}</td>
+        <td>${tr.gpu||'—'}</td></tr>`;
+    }).join('') : '<tr><td colspan="10" style="color:#aaa">No KPI files found.</td></tr>';
+
+  }catch(e){
+    ['kpi-det-body','kpi-rec-body','kpi-tr-body'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.innerHTML='<tr><td colspan="10" style="color:#d00">Failed to load.</td></tr>';
+    });
+  }
+}
+
+// Screen-specific hooks on navigation
+document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>{
+  if(el.dataset.s!=='recon')    pbStop();
+  if(el.dataset.s!=='detect')   dtStop();
+  if(el.dataset.s!=='compare')  cpStop();
+  if(el.dataset.s==='recon')    reconLoad();
+  if(el.dataset.s==='detect')   detLoad();
+  if(el.dataset.s==='compare')  compLoad();
+  if(el.dataset.s==='kpis')     loadKpis();
+  if(el.dataset.s==='admin')    loadAdmin();
+}));
 </script>
 </body>
 </html>
