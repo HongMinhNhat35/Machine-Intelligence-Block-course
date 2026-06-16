@@ -334,6 +334,7 @@ def train(out_dir: Path, weights_out: Path, runs_dir: Path, args):
 
     kpis = {
         'stage':               'training',
+        'model':               'e2vid',  # pipeline name — used by GUI to filter KPIs
         'split_mode':          'sequence-level' if args.val_sequences else 'frame-level',
         'train_sequences':     [s for s in args.sequences if not args.val_sequences or s not in args.val_sequences],
         'val_sequences':       args.val_sequences or [],
