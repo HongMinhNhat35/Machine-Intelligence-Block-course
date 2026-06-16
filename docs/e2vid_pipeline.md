@@ -117,9 +117,9 @@ What it does for each sequence:
 > binary format that rpg_e2vid reads directly. Always use `prepare_sequences.sh` (or
 > `reconstruct.convert_h5_to_zip`) to create it — never zip `events.h5` manually.
 
-Requires `h5py` and `hdf5plugin`:
+Requires `h5py`:
 ```bash
-pip install h5py hdf5plugin
+pip install h5py
 ```
 
 ### Local layout
@@ -219,16 +219,18 @@ events at a time and streams output directly into the zip.
 **ZIP64** — at ~22 bytes per event line, 110M+ events produce files larger than the 4 GB limit of
 the standard zip32 format. ZIP64 extensions are enabled automatically.
 
-**ECF codec** — the HDF5 files use Prophesee's ECF compression codec. Reading them requires an
-HDF5 filter plugin. Two ways to satisfy this:
+**ECF codec** — the HDF5 files use Prophesee's ECF compression codec. This codec is
+**proprietary and only ships with OpenEB / Metavision SDK** — `pip install hdf5plugin` does
+**not** help here, because `hdf5plugin` only bundles open-source codecs (Blosc, LZ4, Zstd).
 
-- **System plugin** (if OpenEB / Metavision SDK is installed): `reconstruct.py` automatically
-  sets `HDF5_PLUGIN_PATH` to `/usr/lib/x86_64-linux-gnu/hdf5/plugins/`.
-- **Python package** (portable, no system install needed): `pip install hdf5plugin` — bundles
-  Blosc, LZ4, Zstd and other codecs; `reconstruct.py` imports it automatically when available.
+If you see `OSError: Can't synchronously read data (can't find plugin)`, the fix is:
 
-On machines without OpenEB, `pip install hdf5plugin` is the fix for the error:
-`OSError: Can't synchronously read data (can't find plugin)`.
+- **Install OpenEB** on the machine: https://docs.prophesee.ai/stable/installation/linux.html  
+  This puts the ECF filter at `/usr/lib/x86_64-linux-gnu/hdf5/plugins/`, which `reconstruct.py`
+  picks up automatically via `HDF5_PLUGIN_PATH`.
+- **No OpenEB available?** Get the pre-converted `events.zip` from a teammate who already ran
+  `prepare_sequences.sh`. Place it at `data/processed/sequence_N/events.zip` — the script skips
+  h5 conversion when the zip already exists.
 
 ### File sizes (team sequences)
 

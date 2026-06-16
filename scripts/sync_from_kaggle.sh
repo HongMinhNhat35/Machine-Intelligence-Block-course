@@ -78,7 +78,7 @@ def list_page(kc, owner, slug, token):
 
 def download_one(fname, url):
     outfile = OUT_DIR / fname
-    if outfile.exists():
+    if outfile.exists() and FRAME_PAT.search(fname):
         return 'skip', fname
     outfile.parent.mkdir(parents=True, exist_ok=True)
     for delay in NET_RETRY_DELAYS:

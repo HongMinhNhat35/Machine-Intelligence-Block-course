@@ -4,11 +4,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf 
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --timeout 300 \
-      --extra-index-url https://download.pytorch.org/whl/cpu \
-      -r requirements.txt && \
-    pip install --no-cache-dir opencv-python-headless
+COPY wheels/ /tmp/wheels/
+RUN pip install --no-cache-dir --no-index --find-links /tmp/wheels \
+      fastapi==0.111.0 uvicorn==0.30.1 ultralytics==8.4.54 \
+      torch==2.3.0+cpu torchvision==0.18.0+cpu && \
+    pip uninstall -y opencv-python opencv-python-headless 2>/dev/null || true && \
+    pip install --no-cache-dir --no-index --find-links /tmp/wheels opencv-python-headless && \
+    rm -rf /tmp/wheels
 
 COPY app.py .
 COPY weights/ /app/weights/

@@ -186,7 +186,10 @@ def device_info() -> dict:
     try:
         import torch
         if torch.cuda.is_available():
-            info['gpu'] = torch.cuda.get_device_name(0)
+            n = torch.cuda.device_count()
+            name = torch.cuda.get_device_name(0)
+            info['gpu']                = f"{name} x{n}" if n > 1 else name
+            info['n_gpus']             = n
             info['gpu_memory_total_mb'] = round(
                 torch.cuda.get_device_properties(0).total_memory / 1e6)
     except Exception:
@@ -217,6 +220,24 @@ def save_kpis(path: Path, kpis: dict):
 def train(out_dir: Path, weights_out: Path, runs_dir: Path, args):
     import time, torch
     from ultralytics import YOLO
+
+    # PyTorch 2.10 tightened DDP gradient reduction checks; ultralytics 8.4.x
+    # (Python 3.12 build) doesn't set find_unused_parameters=True, causing a
+    # crash when some detection head params don't receive gradients in a batch.
+    # Patch the installed trainer.py before launching DDP.
+    import importlib, re as _re
+    _spec = importlib.util.find_spec('ultralytics')
+    if _spec:
+        _trainer = Path(_spec.submodule_search_locations[0]) / 'engine' / 'trainer.py'
+        if _trainer.exists():
+            _src = _trainer.read_text()
+            if 'find_unused_parameters' not in _src:
+                _src = _src.replace(
+                    'static_graph=bool(self.args.compile),\n            )',
+                    'static_graph=bool(self.args.compile),\n                find_unused_parameters=True,\n            )',
+                )
+                _trainer.write_text(_src)
+                print('Patched ultralytics DDP: find_unused_parameters=True')
 
     if torch.cuda.device_count() > 1:
         device = ','.join(str(i) for i in range(torch.cuda.device_count()))
@@ -251,6 +272,8 @@ def train(out_dir: Path, weights_out: Path, runs_dir: Path, args):
         name      = 'e2vid',
         exist_ok  = True,
         patience  = 20,
+        optimizer = 'SGD',
+        lr0       = 0.01,
         verbose   = True,
         resume    = args.resume,
     )
@@ -293,20 +316,22 @@ def train(out_dir: Path, weights_out: Path, runs_dir: Path, args):
         gpu_mem_mb = round(torch.cuda.max_memory_allocated() / 1e6)
 
     src = best_metrics if best_metrics else metrics
+    dev = device_info()
 
     kpis = {
         'stage':               'training',
         'split_mode':          'sequence-level' if args.val_sequences else 'frame-level',
         'train_sequences':     [s for s in args.sequences if not args.val_sequences or s not in args.val_sequences],
         'val_sequences':       args.val_sequences or [],
-        **device_info(),
+        **dev,
         'gpu_memory_peak_mb':  gpu_mem_mb,
         'n_train_images':      n_train,
         'n_val_images':        n_val,
         'epochs_requested':    args.epochs,
         'epochs_completed':    epochs_completed,
         'best_epoch':          int(float(src.get('epoch', -1))) if src else -1,
-        'batch_size':          args.batch,
+        'batch_per_gpu':       args.batch,
+        'effective_batch':     args.batch * dev.get('n_gpus', 1),
         'imgsz':               args.imgsz,
         'runtime_s':           round(runtime, 1),
         'runtime_per_epoch_s': round(runtime / max(epochs_completed, 1), 1),

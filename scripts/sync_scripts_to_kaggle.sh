@@ -62,7 +62,8 @@ cat > "${STAGING_NOTEBOOK}/kernel-metadata.json" <<'EOF'
   "enable_internet": true,
   "dataset_sources": [
     "gennepy/fred-events-ami",
-    "gennepy/fred-scripts-ami"
+    "gennepy/fred-scripts-ami",
+    "gennepy/fred-frames-all"
   ],
   "kernel_sources": []
 }

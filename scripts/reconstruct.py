@@ -70,19 +70,34 @@ def convert_h5_to_zip(h5_path: Path, zip_path: Path,
     Reads in chunks to avoid loading hundreds of millions of events into RAM at once.
     chunk_size controls how many events are processed per iteration (default 5M).
     """
+    # ECF codec ships with OpenEB/Metavision SDK, not with hdf5plugin.
+    # If OpenEB is installed, the filter plugin lives at the path below.
     plugin_path = '/usr/lib/x86_64-linux-gnu/hdf5/plugins'
     if Path(plugin_path).exists():
         os.environ.setdefault('HDF5_PLUGIN_PATH', plugin_path)
-
-    try:
-        import hdf5plugin  # registers Blosc/LZ4/Zstd and other HDF5 filter plugins
-    except ImportError:
-        pass  # optional — only needed if events.h5 uses a non-default compression codec
 
     import h5py
     import numpy as np
 
     print(f'Reading {h5_path} ...')
+    try:
+        _f = h5py.File(h5_path, 'r')
+        _ = _f['CD/events'][0]['t']   # probe: triggers codec load
+        _f.close()
+    except OSError as _e:
+        if 'find plugin' in str(_e) or 'filter' in str(_e).lower():
+            sys.exit(
+                f'\nERROR: HDF5 ECF codec plugin not found.\n'
+                f'The FRED events.h5 files use Prophesee\'s ECF compression codec,\n'
+                f'which is NOT part of hdf5plugin — it requires OpenEB.\n\n'
+                f'Fix: install OpenEB / Metavision SDK on this machine:\n'
+                f'  https://docs.prophesee.ai/stable/installation/linux.html\n\n'
+                f'Workaround (no OpenEB needed): obtain the pre-converted events.zip\n'
+                f'from a teammate and place it at {h5_path.parent}/events.zip.\n'
+                f'prepare_sequences.sh skips h5 conversion when events.zip already exists.\n'
+            )
+        raise
+
     with h5py.File(h5_path, 'r') as f:
         ev      = f['CD/events']
         n_total = len(ev)
