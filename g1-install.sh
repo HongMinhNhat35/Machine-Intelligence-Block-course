@@ -8,13 +8,13 @@ DEFAULT_RECON="$HOME/g1-ami-data"
 echo "=== AMI Hybrid Vision System — Group 1 Installer ==="
 echo ""
 
-read -rp "Where should the sequence data be stored? [${DEFAULT_RECON}]: " RECON
+read -rp "Where should the reconstruction data be stored? [${DEFAULT_RECON}]: " RECON
 RECON="${RECON:-$DEFAULT_RECON}"
 
 echo ""
-echo "The FRED raw dataset (events.h5, coordinates.txt) is required for Late Fusion."
+echo "The FRED raw dataset (events.h5, coordinates.txt) is required for late fusion."
 echo "If you have it, enter its path (the folder containing sequence_84/, sequence_127/, …)."
-echo "If not, press Enter — the demo works without it for e2vid detection and comparison."
+echo "If not, press Enter — the demo works without it for e2vid/hypere2vid detection and comparison."
 read -rp "Path to FRED raw dataset [${RECON}]: " FRED
 FRED="${FRED:-$RECON}"
 
@@ -48,11 +48,19 @@ download_seq() {
     echo ""
 }
 
+# e2vid reconstructions
 download_seq sequence_85  sequence_85.tar
 download_seq sequence_127 sequence_127.tar.00 sequence_127.tar.01
 download_seq sequence_201 sequence_201.tar.00 sequence_201.tar.01
 download_seq sequence_84  sequence_84.tar.00  sequence_84.tar.01
 download_seq sequence_124 sequence_124.tar.00 sequence_124.tar.01 sequence_124.tar.02 sequence_124.tar.03
+
+# HyperE2VID reconstructions (not yet available)
+# download_seq sequence_85  hypere2vid_sequence_85.tar
+# download_seq sequence_127 hypere2vid_sequence_127.tar.00 hypere2vid_sequence_127.tar.01
+# download_seq sequence_201 hypere2vid_sequence_201.tar.00 hypere2vid_sequence_201.tar.01
+# download_seq sequence_84  hypere2vid_sequence_84.tar.00  hypere2vid_sequence_84.tar.01
+# download_seq sequence_124 hypere2vid_sequence_124.tar.00 hypere2vid_sequence_124.tar.01 hypere2vid_sequence_124.tar.02 hypere2vid_sequence_124.tar.03
 
 echo "Downloading docker-compose.yml ..."
 curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.yml"
