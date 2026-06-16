@@ -1,25 +1,23 @@
 # Group 1 — Hybrid Vision System: Quickstart
 
 Standalone deployment guide for the AMI drone-detection GUI.  
-No Python or ML setup required — everything runs inside Docker.
+No Python, no Git, no build step — just Docker.
 
 ---
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
-- Git
 - FRED dataset sequences extracted on your machine
 - A writable directory for reconstruction output (can be empty)
 
 ---
 
-## 1. Clone the repository
+## 1. Download the two config files
 
 ```bash
-git clone https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course.git \
-  --branch gui --single-branch ami-gui
-cd ami-gui
+curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.yml
+curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/.env.example
 ```
 
 ---
