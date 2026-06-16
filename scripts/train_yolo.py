@@ -1,38 +1,49 @@
 """
 train_yolo.py — Build YOLO dataset from e2vid frames + FRED annotations, then train.
 
-Usage (frame-level split, smoke test):
+Model default : yolov8s.pt  (upgraded from yolov8n in Run 5)
+Augmentation  : mosaic=1.0 (on), mixup=0.0 (off — blends images and erases tiny drones)
+Optimizer     : SGD, lr0=0.01
+
+─── Run history ──────────────────────────────────────────────────────────────
+Run 4  YOLOv8n  train: seq_84 seq_85 seq_124 seq_201  val: seq_127  mAP50=0.634
+Run 5a YOLOv8s  train: seq_84 seq_85 seq_124 seq_201  val: seq_127  (model upgrade only)
+Run 5b YOLOv8s  train: seq_44 seq_45 seq_46  seq_47   val: seq_146  (new sequences)
+
+─── Usage ────────────────────────────────────────────────────────────────────
+Smoke test (3 epochs, one sequence):
     python scripts/train_yolo.py \
-        --sequences  sequence_0 \
+        --sequences  sequence_84 \
         --raw_root   data/raw \
         --recon_root data/processed \
         --out_dir    data/yolo_e2vid \
         --weights    data/yolo_e2vid.pt \
         --epochs     3
 
-Usage (sequence-level split, full training on Kaggle — Run 5):
+Run 5a — existing sequences, new model (Kaggle):
     python scripts/train_yolo.py \
-        --sequences     sequence_44 sequence_45 sequence_46 sequence_47 sequence_146 \
-        --val_sequences sequence_146 \
-        --raw_root      data/raw \
-        --recon_root    data/processed \
-        --out_dir       data/yolo_e2vid \
-        --weights       data/yolo_e2vid.pt \
-        --model         yolov8s.pt \
+        --sequences     sequence_84 sequence_85 sequence_124 sequence_201 sequence_127 \
+        --val_sequences sequence_127 \
+        --raw_root      /kaggle/input/fred-events-ami \
+        --recon_root    /kaggle/input/fred-frames-all \
+        --out_dir       /kaggle/working/data/yolo_e2vid \
+        --weights       /kaggle/working/data/yolo_e2vid.pt \
         --epochs        100 \
         --batch         16
 
-Usage (resume after Colab disconnect):
+Run 5b — new sequences (after reconstruction on Kaggle):
     python scripts/train_yolo.py \
-        --sequences     sequence_0 sequence_1 sequence_2 sequence_3 sequence_8 \
-        --val_sequences sequence_8 \
-        --raw_root      data/raw \
-        --recon_root    data/processed \
-        --out_dir       data/yolo_e2vid \
-        --weights       data/yolo_e2vid.pt \
+        --sequences     sequence_44 sequence_45 sequence_46 sequence_47 sequence_146 \
+        --val_sequences sequence_146 \
+        --raw_root      /kaggle/input/fred-events-ami \
+        --recon_root    /kaggle/input/fred-frames-all \
+        --out_dir       /kaggle/working/data/yolo_e2vid \
+        --weights       /kaggle/working/data/yolo_e2vid.pt \
         --epochs        100 \
-        --batch         16 \
-        --resume
+        --batch         16
+
+Resume after disconnect:
+    (same command as above, add --resume)
 """
 
 import argparse
