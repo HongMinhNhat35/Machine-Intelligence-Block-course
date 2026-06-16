@@ -28,6 +28,7 @@ echo ""
 download_seq() {
     local seq=$1; shift
     local parts=("$@")
+    local n_parts=${#parts[@]}
     local target="$RECON/$seq/reconstruction_e2vid"
     if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
         echo "  [skip] $seq — already exists"
@@ -35,22 +36,22 @@ download_seq() {
         return
     fi
     mkdir -p "$RECON/$seq"
-    if [ "${#parts[@]}" -eq 1 ]; then
-        echo "  Downloading $seq ..."
-        curl -L --progress-bar -o "/tmp/${parts[0]}" "$RELEASE/${parts[0]}"
-        tar xf "/tmp/${parts[0]}" -C "$RECON/$seq/"
-        rm "/tmp/${parts[0]}"
-    else
-        local tmp_files=()
-        for part in "${parts[@]}"; do
-            echo "  Downloading $part ..."
-            curl -L --progress-bar -o "/tmp/$part" "$RELEASE/$part"
-            tmp_files+=("/tmp/$part")
-        done
-        cat "${tmp_files[@]}" | tar x -C "$RECON/$seq/"
-        rm "${tmp_files[@]}"
-    fi
-    echo "  [done] $seq"
+    local tmp_files=()
+    local i=1
+    for part in "${parts[@]}"; do
+        if [ "$n_parts" -eq 1 ]; then
+            echo "  [$seq] Downloading ..."
+        else
+            echo "  [$seq] Downloading part $i/$n_parts ..."
+        fi
+        curl -L --progress-bar -o "/tmp/$part" "$RELEASE/$part"
+        tmp_files+=("/tmp/$part")
+        (( i++ )) || true
+    done
+    echo "  [$seq] Extracting ..."
+    cat "${tmp_files[@]}" | tar x -C "$RECON/$seq/"
+    rm "${tmp_files[@]}"
+    echo "  [$seq] Done"
     echo ""
 }
 
