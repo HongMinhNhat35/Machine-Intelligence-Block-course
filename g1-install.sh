@@ -12,9 +12,10 @@ read -rp "Where should the sequence data be stored? [${DEFAULT_RECON}]: " RECON
 RECON="${RECON:-$DEFAULT_RECON}"
 
 echo ""
-echo "The FRED raw dataset (events.h5, coordinates.txt) is only needed if you"
-echo "have it locally. For the demo, just press Enter to use the same folder."
-read -rp "Where is the FRED raw dataset? [${RECON}]: " FRED
+echo "The FRED raw dataset (events.h5, coordinates.txt) is required for Late Fusion."
+echo "If you have it, enter its path (the folder containing sequence_84/, sequence_127/, …)."
+echo "If not, press Enter — the demo works without it for e2vid detection and comparison."
+read -rp "Path to FRED raw dataset [${RECON}]: " FRED
 FRED="${FRED:-$RECON}"
 
 mkdir -p "$RECON"
