@@ -83,7 +83,15 @@ mkdir -p $RECON/sequence_124 && cat /tmp/seq124.* | tar x -C $RECON/sequence_124
 # (repeat for sequence_84, sequence_127, sequence_201, sequence_124)
 ```
 
-### 3. Download the compose file and write `.env`
+### 3. Download pre-cached detections
+
+```bash
+curl -L -o /tmp/detections_e2vid_run5.tar.gz \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/detections_e2vid_run5.tar.gz
+tar xzf /tmp/detections_e2vid_run5.tar.gz -C $RECON/
+```
+
+### 4. Download the compose file and write `.env`
 
 > **Important:** Use an absolute path for `RECON` — Docker Compose does not expand `~` or `$HOME`.
 
@@ -97,7 +105,7 @@ RECON_DATA_PATH=$RECON
 EOF
 ```
 
-### 4. Pull images and start
+### 5. Pull images and start
 
 ```bash
 cd $RECON
@@ -126,7 +134,7 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
 | **Reconstruction** | Browse reconstructed e2vid frames with playback controls. |
 | **Detection** | View YOLO bounding-box overlay. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
-| **Comparison** | Side-by-side view of all three pipelines (HyperE2VID and Late Fusion show "not yet available"). |
+| **Comparison** | Side-by-side E2VID vs HyperE2VID view with bounding boxes and model KPIs. Late Fusion column not yet available. |
 | **KPIs** | Detection accuracy and training metrics table. |
 | **Admin** | Live health status of all backend services. |
 
