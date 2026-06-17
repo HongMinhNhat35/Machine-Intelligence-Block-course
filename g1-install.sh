@@ -69,6 +69,12 @@ download_seq sequence_124 sequence_124.tar.00 sequence_124.tar.01 sequence_124.t
 # download_seq sequence_84  hypere2vid_sequence_84.tar.00  hypere2vid_sequence_84.tar.01
 # download_seq sequence_124 hypere2vid_sequence_124.tar.00 hypere2vid_sequence_124.tar.01 hypere2vid_sequence_124.tar.02 hypere2vid_sequence_124.tar.03
 
+echo "Downloading detections (Run 5 — YOLOv8s) ..."
+curl -L --progress-bar -o /tmp/detections_e2vid_run5.tar.gz "$RELEASE/detections_e2vid_run5.tar.gz"
+tar xzf /tmp/detections_e2vid_run5.tar.gz -C "$RECON/"
+rm /tmp/detections_e2vid_run5.tar.gz
+echo ""
+
 echo "Downloading docker-compose.yml ..."
 curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.yml"
 
