@@ -25,7 +25,7 @@ The script will ask two questions:
 1. **Where to store the data** — default: `~/g1-ami-data`
 2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
-It then downloads ~15 GB of pre-processed sequences, writes `docker-compose.yml` and `.env`, and pulls the Docker images.
+It then downloads ~15 GB of pre-computed E2VID reconstruction frames (grayscale images converted from event data), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
 When it finishes:
 
@@ -35,6 +35,8 @@ docker compose up -d
 ```
 
 Open **http://localhost:8080**
+
+> **Warning:** only run `docker compose up -d` once. If the stack is already running, starting it again from a different directory will conflict on port 8080. Stop the existing stack first: `docker compose down`.
 
 ---
 
@@ -47,7 +49,7 @@ RECON=~/g1-ami-data      # absolute path — change if needed
 mkdir -p $RECON
 ```
 
-### 2. Download and extract the sequences
+### 2. Download and extract pre-computed reconstruction frames
 
 ```bash
 # sequence_85 (1.3 GB)
