@@ -541,7 +541,7 @@ metrics from `results.csv`.
 1. Parses `coordinates.txt` for each sequence → timestamps + bounding boxes
 2. Matches each reconstructed frame to its nearest annotation within 0.5 s
 3. Builds a YOLO dataset (`images/train`, `images/val`, `labels/`, `dataset.yaml`)
-4. Fine-tunes YOLOv8n on the dataset
+4. Fine-tunes a YOLOv8 model on the dataset (model size configured via `--model`)
 5. Copies `best.pt` to `--weights` output path
 6. Writes a KPI JSON
 
@@ -600,8 +600,13 @@ cp data/yolo_runs/e2vid/weights/best.pt services/e2vid/weights/yolo_e2vid.pt
 After new weights are in `services/e2vid/weights/yolo_e2vid.pt`:
 
 ```bash
-docker compose build e2vid
-docker compose up -d
+# Build and push to GHCR
+docker build -t ghcr.io/gennepy/ami-e2vid:latest services/e2vid/
+gh auth token | docker login ghcr.io -u gennepy --password-stdin
+docker push ghcr.io/gennepy/ami-e2vid:latest
+
+# Teammates pull the update
+docker compose pull e2vid && docker compose up -d e2vid
 ```
 
 The Dockerfile bakes the weights into the image (`COPY weights/ /app/weights/`),
@@ -661,7 +666,7 @@ ami/
 │   │   ├── app.py
 │   │   ├── requirements.txt
 │   │   └── weights/
-│   │       └── yolo_e2vid.pt   ← 6 MB, best.pt from full team-sequence run (mAP50=0.291 sequence-level)
+│   │       └── yolo_e2vid.pt   ← 22 MB, Run 5 YOLOv8s weights (mAP50=79.2%, sequence_127 val)
 │   ├── hypere2vid/             ← alternative reconstruction service (HyperE2VID)
 │   ├── fusion/                 ← early fusion service
 │   └── web/                    ← Streamlit UI
