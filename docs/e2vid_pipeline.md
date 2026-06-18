@@ -35,17 +35,29 @@ FRED event data (.zip)
 FRED (Florence RGB-Event Drone) is available on [HuggingFace](https://huggingface.co/datasets/GabrieleMagrini/FRED).
 The canonical split (`dataset_splits/canonical/`) defines which sequences belong to train and test.
 
-### Team-agreed sequences (current)
+### Sequences by run
 
-The group agreed to use sequences 84, 85, 201, 124 (train) and 127 (val).
+#### Run 5 sequences (sequences 84/85/201/124 train, 127 val)
 
 | Sequence | Split | Total events | Burst (<5s) | Kept (>5s) | Burst% | Duration | ~Frames | events.zip |
 |---|---|---|---|---|---|---|---|---|
-| sequence_84 | train | 142.6 M | 32.6 M | 110.0 M | 23% | 109.0 s | 11,935 | 648 MB |
-| sequence_85 | train | 73.6 M | 11.2 M | 62.5 M | 15% | 108.3 s | 6,776 | 374 MB |
-| sequence_201 | train | 123.2 M | 23.1 M | 100.1 M | 19% | 117.3 s | 10,860 | 604 MB |
-| sequence_124 | train | 486.6 M | 182.1 M | 304.6 M | 37% | 108.8 s | ~33,046 | 1.2 GB |
-| sequence_127 | test (val) | 241.1 M | 141.6 M | 99.5 M | 59% | 47.5 s | 10,794 | 555 MB |
+| sequence_84 | train | 142.6 M | 32.6 M | 110.0 M | 23% | 109.0 s | 11,935 | 618 MB |
+| sequence_85 | train | 73.6 M | 11.2 M | 62.5 M | 15% | 108.3 s | 6,776 | 357 MB |
+| sequence_201 | train | 123.2 M | 23.1 M | 100.1 M | 19% | 117.3 s | 10,860 | 577 MB |
+| sequence_124 | train | 486.6 M | 182.1 M | 304.6 M | 37% | 108.8 s | ~33,046 | 1.5 GB |
+| sequence_127 | val | 241.1 M | 141.6 M | 99.5 M | 59% | 47.5 s | 10,794 | 530 MB |
+
+#### Run 6 sequences (sequences 44/45/46/47 train, 146 val)
+
+Principled selection based on `fred_sequence_selection.md` scoring. Higher annotation counts, better spatial spread, and a harder val sequence (98% tiny drones) than Run 5.
+
+| Sequence | Split | events.zip | start_s | Notes |
+|---|---|---|---|---|
+| sequence_44 | train | 98 MB | 5.0 | clean burst; 2,925 annotations |
+| sequence_45 | train | 128 MB | 5.0 | clean burst; 4,989 annotations |
+| sequence_46 | train | 75 MB | 5.0 | clean burst; 5,073 annotations |
+| sequence_47 | train | 72 MB | **7.0** | residual burst at 5–7 s (17.8× drop); use start_s=7.0 |
+| sequence_146 | val | 882 MB | 5.0 | 98% tiny drones; much harder val than sequence_127 |
 
 All sequences have a noise burst in the first 5 seconds — correctly handled by `start_s = 5.0`.
 
@@ -155,16 +167,26 @@ of events with no relation to the scene. This is the **noise burst**.
 
 It is identified by comparing the event rate before and after the 5-second mark:
 
-| Sequence | Rate in first 5s | Rate after 5s | Ratio |
-|---|---|---|---|
-| sequence_84 | 6.5 M ev/s | 1.0 M ev/s | 6.5× |
-| sequence_85 | 2.2 M ev/s | 0.6 M ev/s | 3.7× |
-| sequence_201 | 4.6 M ev/s | 0.9 M ev/s | 5.1× |
-| sequence_127 | 28.3 M ev/s | 2.1 M ev/s | 13.5× |
+**Run 5 training sequences** (measured from raw `events.h5`, 0–5 s vs 5–10 s):
 
-The sudden drop is the signature. A burst of 2–28 M ev/s with no corresponding visual activity is
-unambiguously noise. `start_s = 5.0` is a conservative threshold — the burst decays within 2–4s
-for most Prophesee sensors, and it is safe for all sequences.
+| Sequence | Rate 0–5 s | Rate 5–10 s | Ratio | start_s used |
+|---|---|---|---|---|
+| sequence_84 | 6.5 M/s | 1.0 M/s | 6.5× | 5.0 |
+| sequence_85 | 2.2 M/s | 0.6 M/s | 3.7× | 5.0 |
+| sequence_201 | 4.6 M/s | 0.9 M/s | 5.1× | 5.0 |
+| sequence_127 | 28.3 M/s | 2.1 M/s | 13.5× | 5.0 |
+
+**Run 6 sequences (44–47, 146)** — measured from `events.zip` (already stripped to t≥5 s), so analysis compares t=5–7 s vs t=7–9 s to check for residual burst:
+
+| Sequence | Rate 5–7 s | Rate 7–9 s | Ratio | Verdict | start_s |
+|---|---|---|---|---|---|
+| sequence_44 | 0.11 M/s | 0.46 M/s | 0.2× | ✓ clean | 5.0 |
+| sequence_45 | 0.07 M/s | 0.07 M/s | 1.0× | ✓ clean | 5.0 |
+| sequence_46 | 0.16 M/s | 0.14 M/s | 1.1× | ✓ clean | 5.0 |
+| sequence_47 | 0.26 M/s | 0.01 M/s | 17.8× | ⚠ residual burst | **7.0** |
+| sequence_146 | 0.90 M/s | 1.62 M/s | 0.6× | ✓ clean | 5.0 |
+
+The sudden drop is the signature. `start_s = 5.0` is safe for all sequences except **sequence_47**, where the burst appears to extend into the 5–7 s window (17.8× rate drop afterward). Use `start_s = 7.0` for sequence_47 to avoid noisy warmup frames entering the training set.
 
 ### Annotation start times
 
