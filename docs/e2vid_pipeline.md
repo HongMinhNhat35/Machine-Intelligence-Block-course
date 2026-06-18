@@ -779,3 +779,25 @@ have helped — the model was genuinely stuck.
 | yolov8n | 3.2 M | 6 MB | ~7 min | ~12 h (with early stop: ~3.5 h) | ✓ |
 | yolov8s | 11.2 M | 22 MB | ~14 min | ~23 h (with early stop: ~7 h) | borderline |
 | yolov8m | 25.9 M | 52 MB | ~28 min | ~47 h | ✗ |
+
+---
+
+## 11. KPI Evolution (Run History)
+
+All runs use sequence-level split: sequences 84, 85, 201, 124 for training; sequence 127 for validation.
+
+| Run | Model | mAP@0.5 | mAP@0.5:95 | Precision | Recall | Epochs (best) | GPU | Notes |
+|---|---|---|---|---|---|---|---|---|
+| Run 1 | YOLOv8n | 0.291 | 0.072 | 0.546 | 0.314 | 32 (12) | 2×T4 | seq_84/85/201 train only (no seq_124) |
+| Run 2 | YOLOv8n | **0.634** | 0.275 | 0.820 | 0.582 | 23 (3) | 2×T4 | added seq_124 to train; lr0=0.01, batch=32 |
+| Run 3 | YOLOv8n | 0.634 | — | — | — | 23 (3) | 1×P100 | lr0=0.001 (accidental); identical metrics; weights deleted by cleanup bug |
+| Run 4 | YOLOv8n | 0.634 | 0.275 | 0.820 | 0.582 | 23 (3) | 2×T4 | lr0=0.001 (accidental); same result as Run 2 |
+| **Run 5** | **YOLOv8s** | **0.792** | **0.395** | **0.954** | **0.707** | **27 (5)** | **2×T4** | upgraded to YOLOv8s; lr0=0.01 (default); mosaic=1.0, mixup=0.0 |
+
+**Key observations:**
+- Run 1 → Run 2: the single biggest jump (+0.343 mAP50) came from adding sequence_124 to the training set, not from hyperparameter tuning.
+- Run 2 → Run 4: lr0=0.001 vs 0.01 made no measurable difference on YOLOv8n.
+- Run 4 → Run 5: upgrading from YOLOv8n (3.2M params) to YOLOv8s (11.2M params) gained +0.158 mAP50 with the same dataset — the model had more capacity to learn.
+- Early stopping consistently triggers around epoch 20–30, well before the 100-epoch limit.
+
+**Current production weights:** Run 5 (`ami-e2vid:latest` Docker image, baked in as `yolo_e2vid.pt`).
