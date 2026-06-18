@@ -42,19 +42,16 @@ docker compose down
 ## Using the interface
 
 ### Upload tab
-Browse your available sequences. For each sequence the UI shows which files were found (events, annotations, reconstructed frames). Select a sequence, choose pipeline steps, and click **Run pipeline**.
-
-- **e2vid detection** — runs YOLO on the reconstructed frames and caches results. Requires reconstruction to be done first.
-- Reconstruction, HyperE2VID, and fusion are not yet available through the GUI — see [Running reconstruction](#running-reconstruction) below.
+Browse your available sequences. The UI shows which files were found (events, annotations, reconstructed frames). Select a sequence to activate all other tabs.
 
 ### Reconstruction tab
 Frame viewer with playback for the reconstructed e2vid output.
 
 ### Detection tab
-Reconstructed frame alongside YOLO bounding box overlay. Confidence threshold slider filters detections client-side.
+Reconstructed frame alongside YOLO bounding box overlay. Confidence threshold slider filters detections client-side. Model selector routes detection to e2vid (:8001), hypere2vid (:8002), or fusion (:8003).
 
 ### Comparison tab
-Side-by-side view of e2vid, HyperE2VID, and fusion results (HyperE2VID and fusion pending).
+Side-by-side E2VID vs HyperE2VID view with bounding boxes and KPI metrics. Late Fusion column not yet available.
 
 ### KPIs tab
 Detection accuracy and compute metrics table.
@@ -85,5 +82,5 @@ Once frames are written to `RECON_DATA_PATH`, the GUI will show the sequence as 
 |---|---|---|
 | `web` | 8080 | FastAPI + static HTML/JS frontend |
 | `e2vid` | 8001 (internal) | YOLO inference on e2vid frames. Weights baked into image. |
-| `hypere2vid` | 8002 (internal) | Stub — not yet implemented |
-| `fusion` | 8003 (internal) | Stub — not yet implemented |
+| `hypere2vid` | 8002 (internal) | Implemented; no weights or reconstruction data yet |
+| `fusion` | 8003 (internal) | Not yet implemented |
