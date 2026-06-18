@@ -33,20 +33,21 @@ The e2vid inference service already uses FastAPI, so the team knows the stack.
 ```
 Browser
   │
-  │  GET /          → serves static/index.html
-  │  GET /api/*     → JSON data endpoints
-  │  GET /frames/*  → JPEG frame files (future)
+  │  GET /              → serves static/index.html (Cache-Control: no-store)
+  │  GET /api/*         → JSON data endpoints
+  │  GET /frames/*      → JPEG/PNG frame files
   ▼
 services/web  (FastAPI :8080)
   │
-  ├── GET /api/admin     → polls /health on each service, scans data dirs
-  ├── GET /api/kpis      → reads data/kpis/*.json          [planned]
-  ├── GET /api/sequences → lists FRED sequences             [planned]
-  ├── GET /api/detect    → proxies to e2vid :8001 /detect   [planned]
-  └── GET /frames/{seq}/{frame} → serves JPEG from /data/recon  [planned]
+  ├── GET  /api/sequences              → lists sequences from FRED + recon dirs
+  ├── GET  /api/kpis                   → reads /app/kpis/*.json (no-store)
+  ├── GET  /api/detections/{seq}?model → reads detections_{model}.json cache
+  ├── POST /api/detect                 → SSE stream, proxies to model service
+  ├── GET  /frames/{seq}/{n}?model     → serves frame from reconstruction_{model}/
+  └── GET  /api/admin                  → polls /health on each service
   │
-  ├── services/e2vid      (FastAPI :8001)  ← YOLO inference + health
-  ├── services/hypere2vid (FastAPI :8002)  ← not yet implemented
+  ├── services/e2vid      (FastAPI :8001)  ← YOLO inference, health, weights loaded
+  ├── services/hypere2vid (FastAPI :8002)  ← implemented; no weights/recon data yet
   └── services/fusion     (FastAPI :8003)  ← not yet implemented
 ```
 
@@ -59,12 +60,12 @@ never calls them directly. This avoids CORS issues and keeps Docker internal hos
 
 | Screen | Status | Notes |
 |---|---|---|
-| Admin | **Done** | Live data from `/api/admin` |
-| KPIs | Planned | Read `data/kpis/train_yolo.json` at runtime |
-| Upload | Planned | Browser lists `/data/fred/sequence_*` |
-| Reconstruction | Planned | Serve frames from `/data/recon` via `/frames/` endpoint |
-| Detection | Planned | Call `/api/detect`, render bboxes client-side with Canvas |
-| Comparison | Planned | Same as Detection, three panels synced via shared JS slider |
+| Upload | **Done** | Lists sequences from FRED + recon dirs; shows events/coords/frame status |
+| Reconstruction | **Done** | Serves E2VID frames; HyperE2VID side loads when reconstruction available |
+| Detection | **Done** | SSE-streamed detection run; bbox overlay; confidence slider; model selector |
+| Comparison | **Done** | E2VID vs HyperE2VID side-by-side; KPI metrics per model; split selector |
+| KPIs | **Done** | Three tables (detection, reconstruction, training) from `/app/kpis/*.json` |
+| Admin | **Done** | Live health from `/health` on each service; data paths; model settings |
 
 ---
 
@@ -73,29 +74,39 @@ never calls them directly. This avoids CORS issues and keeps Docker internal hos
 ### Admin screen — live polling
 Service health is fetched from each service's `/health` endpoint at page load (2 s timeout).
 The `weights_loaded` flag in the response drives the green/amber/grey status dot.
-Restart buttons are present in the UI but disabled — implementing them requires mounting the
-Docker socket into the web container, deferred to v2.
 
 ### Detection overlay — client-side rendering
 Bounding boxes are rendered as CSS `position:absolute` divs over the frame `<img>` tag.
 The confidence threshold slider filters the JS detections array in place — no backend call.
-This matches what the wireframe prototype already does and gives instant response.
 
 ### Pipeline "Run" button — SSE progress stream
-Running reconstruction or detection on a full sequence takes minutes. The Run button will POST
-to `/api/run` which returns a `text/event-stream` SSE response. The browser reads progress lines
-with `EventSource` and updates a progress bar. FastAPI's `StreamingResponse` supports this natively.
+Running detection on a full sequence takes minutes on CPU. The Run button POSTs to `/api/detect`
+which returns a `text/event-stream` SSE response. The browser reads progress lines and updates
+a status line. FastAPI's `StreamingResponse` supports this natively.
 
-### Frame serving
-Reconstructed frames are JPEG files at `/data/recon/{seq}/reconstruction_e2vid/frame_{N:06d}.jpg`.
-The web service exposes them at `/frames/{seq}/{n}` — a thin wrapper that calls
-`FileResponse(RECON_ROOT / seq / "reconstruction_e2vid" / f"frame_{n:06d}.jpg")`.
-The playback slider updates `<img src="/frames/{seq}/{frame}">` directly.
+### Frame serving — model-aware
+Reconstructed frames are served at `/frames/{seq}/{n}?model=e2vid` (default: `e2vid`).
+The `model` parameter selects the reconstruction directory:
+`RECON_ROOT/{seq}/reconstruction_{model}/frame_{n:06d}.{jpg|png}`.
 
-### KPIs — live from JSON
-The spec notes KPIs can be static or live. We use live: the `/api/kpis` endpoint reads
-`data/kpis/train_yolo.json` and the per-sequence `reconstruct_sequence_*.json` files at request
-time. No hardcoded numbers in the HTML.
+### Detection routing — model-aware
+`/api/detect` (POST) and `/api/detections/{seq}` (GET) both accept a `model` query parameter.
+The detect endpoint routes to the appropriate service URL:
+- `e2vid` → `:8001`
+- `hypere2vid` → `:8002`
+- `fusion` → `:8003`
+
+Detection results are cached per-model as `detections_{model}.json` in the sequence directory.
+
+### KPIs — live from JSON files
+The `/api/kpis` endpoint scans `/app/kpis/*.json` at request time and returns all entries sorted
+by filename (natural sort). KPI files are baked into the web image at build time from
+`services/web/kpis/`. Adding a new run means adding a new JSON file and rebuilding the image.
+The endpoint sets `Cache-Control: no-store` to prevent stale results in the browser.
+
+### Sidebar mAP50 — populated at page load
+On page load the browser fetches `/api/kpis`, picks the latest e2vid run, and populates the
+sidebar `mAP50` field. This keeps the sidebar current without navigating to the KPIs tab.
 
 ---
 
@@ -105,6 +116,7 @@ time. No hardcoded numbers in the HTML.
 |---|---|---|
 | `/data/fred` | Raw FRED sequences (`sequence_*/coordinates.txt`) | Read-only |
 | `/data/recon` | Reconstructed frames + detection JSON cache | Read-write |
-| `/app/weights` | YOLO weights (`yolo_e2vid.pt`) | Read-only |
+| `/app/kpis` | KPI JSON files (baked into image) | Read-only |
 
-Configured via environment variables `FRED_DATA_PATH`, `RECON_DATA_PATH`, `WEIGHTS_PATH`.
+Configured via environment variables `FRED_DATA_PATH`, `RECON_DATA_PATH`.
+`KPIS_PATH` defaults to `/app/kpis` (no mount needed — files are baked into the image).
