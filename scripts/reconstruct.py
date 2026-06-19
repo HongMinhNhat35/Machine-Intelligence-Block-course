@@ -406,8 +406,16 @@ def postprocess(out_dir: Path):
         shutil.copy(ts_src, out_dir / 'timestamps.txt')
         print(f'timestamps.txt preserved in {out_dir}')
 
+    # Rename JPEGs from event-count-based names (frame_0000009216.jpg) to
+    # sequential 6-digit names (frame_000000.jpg) so the GUI and downstream
+    # tools see a consistent convention regardless of reconstruction path.
     jpgs = sorted(out_dir.glob('frame_*.jpg'))
-    final = sorted(out_dir.glob('frame_*.png')) or jpgs
+    for i, fp in enumerate(jpgs):
+        target = out_dir / f'frame_{i:06d}.jpg'
+        if fp != target:
+            fp.rename(target)
+
+    final = sorted(out_dir.glob('frame_*.png')) or sorted(out_dir.glob('frame_*.jpg'))
     if not final:
         sys.exit(f'No frames found in {out_dir}')
     print(f'Frames: {len(final)}  ({final[0].name} → {final[-1].name})')
