@@ -144,7 +144,7 @@ tr.paper td{color:#888}
       <div class="sb-kv"><span class="sb-kv-key">ID</span><span class="sb-kv-val" id="sb-seq">—</span></div>
       <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-frames">—</span></div>
       <div class="sb-kv"><span class="sb-kv-key">Detections <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val" id="sb-dets">—</span></div>
-      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val">63.4%</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val" id="sb-map50">—</span></div>
       <div class="sb-divider"></div>
     </div>
     <div id="sb-extra"></div>
@@ -270,12 +270,15 @@ tr.paper td{color:#888}
             </div>
             <div class="comp-card">
               <div class="comp-hdr">HyperE2VID + YOLO</div>
-              <div class="frame-img" style="min-height:160px"><i class="ti ti-clock" style="font-size:22px"></i><span>not yet available</span></div>
+              <div class="det-img" id="cp-hyper-wrap">
+                <img id="cp-hyper-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
+                <div id="cp-hyper-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+              </div>
               <div class="comp-metric">
-                <div class="c-row"><span class="c-key">mAP@0.5</span><span>—</span></div>
-                <div class="c-row"><span class="c-key">mAP@0.5:95</span><span>—</span></div>
-                <div class="c-row"><span class="c-key">Precision</span><span>—</span></div>
-                <div class="c-row"><span class="c-key">Recall</span><span>—</span></div>
+                <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-hyper-map50">—</span></div>
+                <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp-hyper-map5095">—</span></div>
+                <div class="c-row"><span class="c-key">Precision</span><span id="cp-hyper-prec">—</span></div>
+                <div class="c-row"><span class="c-key">Recall</span><span id="cp-hyper-rec">—</span></div>
               </div>
             </div>
             <div class="comp-card">
@@ -408,6 +411,7 @@ function go(k){
     }
     document.querySelectorAll('[name="sp"]').forEach(r=>r.addEventListener('change',function(){
       cpUpdateMetrics(this.value);
+      cpUpdateMetricsHyper(this.value);
       document.getElementById('tb').textContent=this.value==='challenging'?'Challenging split':'Canonical split';
     }));
   }
@@ -420,10 +424,8 @@ let allSeqs=[], selSeq=null;
 let sharedConfPct=20, kpiCache=null;
 
 async function getKpis(){
-  if(!kpiCache){
-    try{ kpiCache=await fetch('/api/kpis').then(r=>r.json()); }
-    catch(e){ kpiCache=[]; }
-  }
+  try{ kpiCache=await fetch('/api/kpis').then(r=>r.json()); }
+  catch(e){ kpiCache=kpiCache||[]; }
   return kpiCache;
 }
 
@@ -645,7 +647,7 @@ function detLoad(){
 
 // ── Comparison screen ─────────────────────────────────────────────────────────
 let cpPlaying=false, cpTimer=null, cpFrame=0, cpMax=0, cpDragging=false, cpLoadedSeq=null;
-let cpDetections=null, cpImgDebounce=null;
+let cpDetections=null, cpHyperDetections=null, cpImgDebounce=null;
 
 function cpRenderBboxes(){
   const bboxDiv=document.getElementById('cp-e2vid-bboxes');
@@ -671,6 +673,9 @@ function cpLoadImage(){
     const img=document.getElementById('cp-e2vid-img');
     img.onload=cpRenderBboxes;
     img.src='/frames/'+seq+'/'+n;
+    const hyperImg=document.getElementById('cp-hyper-img');
+    hyperImg.onload=cpRenderHyperBboxes;
+    hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
   }, 60);
 }
 
@@ -690,17 +695,56 @@ function cpStop(){
   if(btn) btn.innerHTML='<i class="ti ti-player-play"></i> Play';
 }
 
+function updateSidebarMap50(){
+  const el=document.getElementById('sb-map50');
+  if(!el||!kpiCache) return;
+  const runs=kpiCache.filter(r=>r.model==='e2vid');
+  if(!runs.length){ el.textContent='—'; return; }
+  const v=runs[runs.length-1].detection?.canonical?.map50;
+  el.textContent=(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+}
+
 function cpUpdateMetrics(split){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='e2vid');
   if(!runs.length) return;
   const run=runs[runs.length-1];
   const m=(split==='challenging')?(run.detection?.challenging||{}):(run.detection?.canonical||{});
-  const pct=v=>(v===null||v===undefined)?'—':(+v*100).toFixed(1)+'%';
+  const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-map50').textContent=pct(m.map50);
   document.getElementById('cp-map5095').textContent=pct(m.map50_95);
   document.getElementById('cp-prec').textContent=pct(m.precision);
   document.getElementById('cp-rec').textContent=pct(m.recall);
+  updateSidebarMap50();
+}
+
+function cpUpdateMetricsHyper(split){
+  if(!kpiCache) return;
+  const runs=kpiCache.filter(r=>r.model==='hypere2vid');
+  if(!runs.length) return;
+  const run=runs[runs.length-1];
+  const m=(split==='challenging')?(run.detection?.challenging||{}):(run.detection?.canonical||{});
+  const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+  document.getElementById('cp-hyper-map50').textContent=pct(m.map50);
+  document.getElementById('cp-hyper-map5095').textContent=pct(m.map50_95);
+  document.getElementById('cp-hyper-prec').textContent=pct(m.precision);
+  document.getElementById('cp-hyper-rec').textContent=pct(m.recall);
+}
+
+function cpRenderHyperBboxes(){
+  const bboxDiv=document.getElementById('cp-hyper-bboxes');
+  if(!bboxDiv) return;
+  if(!cpHyperDetections){ bboxDiv.innerHTML=''; return; }
+  const img=document.getElementById('cp-hyper-img');
+  const imgW=img.naturalWidth||1280, imgH=img.naturalHeight||720;
+  const conf=cpGetConf();
+  const boxes=cpHyperDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
+  bboxDiv.innerHTML=boxes.map(d=>{
+    const [x,y,w,h]=d.bbox;
+    const px=(x/imgW*100).toFixed(2)+'%', py=(y/imgH*100).toFixed(2)+'%';
+    const pw=(w/imgW*100).toFixed(2)+'%', ph=(h/imgH*100).toFixed(2)+'%';
+    return `<div class="bbox" style="left:${px};top:${py};width:${pw};height:${ph}"><span class="bbox-lbl">${d.class} ${d.confidence.toFixed(2)}</span></div>`;
+  }).join('');
 }
 
 async function compLoad(){
@@ -714,6 +758,7 @@ async function compLoad(){
     cpLoadedSeq=selSeq.id;
     cpMax=selSeq.frame_count-1;
     cpDetections=null;
+    cpHyperDetections=null;
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
     document.getElementById('cp-max2').textContent=cpMax;
@@ -722,12 +767,17 @@ async function compLoad(){
       .then(r=>r.ok?r.json():null)
       .then(data=>{ if(data){ cpDetections=data.detections; cpRenderBboxes(); } })
       .catch(()=>{});
+    fetch('/api/detections/'+selSeq.id+'?model=hypere2vid')
+      .then(r=>r.ok?r.json():null)
+      .then(data=>{ if(data){ cpHyperDetections=data.detections; cpRenderHyperBboxes(); } })
+      .catch(()=>{});
   }
   panel.style.display='block';
   if(seqChanged) cpSetFrame(0);
   await getKpis();
   const split=document.querySelector('[name="sp"]:checked');
   cpUpdateMetrics(split?split.value:'canonical');
+  cpUpdateMetricsHyper(split?split.value:'canonical');
 }
 
 // Comparison slider drag tracking
@@ -869,6 +919,7 @@ document.getElementById('pb-next').addEventListener('click',()=>{ pbStop(); pbSe
 document.getElementById('pb-goto').addEventListener('change',function(){ pbStop(); pbSetFrame(parseInt(this.value)||0); });
 
 initBrowser();
+getKpis().then(updateSidebarMap50);
 
 async function loadAdmin(){
   try{
@@ -936,7 +987,7 @@ async function loadAdmin(){
 function kpiFmt(v, decimals=1, suffix=''){
   return (v===null||v===undefined) ? '—' : (+v).toFixed(decimals)+suffix;
 }
-function kpiPct(v){ return (v===null||v===undefined) ? '—' : (+v*100).toFixed(1)+'%'; }
+function kpiPct(v){ return (v===null||v===undefined) ? '—' : (Math.round(+v*1000)/10).toFixed(1)+'%'; }
 function kpiHrs(s){ return (s===null||s===undefined) ? '—' : (+s/3600).toFixed(1)+' h'; }
 function kpiNum(v){ return (v===null||v===undefined) ? '—' : (+v).toLocaleString(); }
 function kpiRun(id){ return id ? id.replace(/^run_?/i,'') : '—'; }

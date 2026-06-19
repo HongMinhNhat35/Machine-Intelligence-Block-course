@@ -30,7 +30,10 @@ app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
 @app.get("/")
 def index():
-    return FileResponse(str(STATIC / "index.html"))
+    return FileResponse(
+        str(STATIC / "index.html"),
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 # ── Sequences ──────────────────────────────────────────────────────────────────
@@ -72,52 +75,59 @@ def get_sequences():
 # ── Run pipeline (SSE) ────────────────────────────────────────────────────────
 
 @app.get("/frames/{seq}/{n}")
-def get_frame(seq: str, n: int):
+def get_frame(seq: str, n: int, model: str = "e2vid"):
+    recon_dir = f"reconstruction_{model}"
     for ext in ("jpg", "png"):
-        p = RECON_ROOT / seq / "reconstruction_e2vid" / f"frame_{n:06d}.{ext}"
+        p = RECON_ROOT / seq / recon_dir / f"frame_{n:06d}.{ext}"
         if p.exists():
             return FileResponse(str(p), media_type=f"image/{ext}")
-    raise HTTPException(status_code=404, detail=f"Frame {n} not found for {seq}")
+    raise HTTPException(status_code=404, detail=f"Frame {n} not found for {seq} ({model})")
 
 
 @app.get("/api/kpis")
 def get_kpis():
+    from fastapi.responses import JSONResponse
     if not KPIS_ROOT.exists():
-        return []
+        return JSONResponse([], headers={"Cache-Control": "no-store"})
     results = []
     for f in sorted(KPIS_ROOT.glob("*.json"), key=lambda p: _nat_key(p.name)):
         try:
             results.append(json.loads(f.read_text()))
         except Exception:
             pass
-    return results
+    return JSONResponse(results, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/detections/{seq_id}")
-def get_detections(seq_id: str):
-    cache = RECON_ROOT / seq_id / "detections_e2vid.json"
+def get_detections(seq_id: str, model: str = "e2vid"):
+    cache = RECON_ROOT / seq_id / f"detections_{model}.json"
     if not cache.exists():
         raise HTTPException(status_code=404, detail="No detections cached for this sequence")
     data = json.loads(cache.read_text())
-    return {"sequence_id": seq_id, "model": "e2vid", "detections": data.get("detections", [])}
+    return {"sequence_id": seq_id, "model": model, "detections": data.get("detections", [])}
 
 
 def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
-async def _detect_stream(sequence_id: str, frame_count: int):
+async def _detect_stream(sequence_id: str, frame_count: int, model: str = "e2vid"):
     yield _sse("log", f"Starting detection for {sequence_id} ({frame_count} frames)…")
-    e2vid_dir = RECON_ROOT / sequence_id / "reconstruction_e2vid"
-    if not e2vid_dir.exists() or not any(e2vid_dir.glob("frame_*")):
+    recon_dir = RECON_ROOT / sequence_id / f"reconstruction_{model}"
+    if not recon_dir.exists() or not any(recon_dir.glob("frame_*")):
         yield _sse("error", "No reconstructed frames found — reconstruction must be run first")
         yield _sse("done", "failed")
         return
+    service_url = {
+        "e2vid":      E2VID_URL,
+        "hypere2vid": HYPERE2VID_URL,
+        "fusion":     FUSION_URL,
+    }.get(model, E2VID_URL)
     try:
         async with httpx.AsyncClient(timeout=3600.0) as client:
             async with client.stream(
                 "POST",
-                f"{E2VID_URL}/detect",
+                f"{service_url}/detect",
                 json={"sequence_id": sequence_id, "frame_start": 0, "frame_end": frame_count},
             ) as r:
                 event_type: str | None = None
@@ -144,19 +154,20 @@ async def _detect_stream(sequence_id: str, frame_count: int):
                             yield _sse("done", "ok")
                         event_type = None
     except Exception as exc:
-        yield _sse("error", f"Could not reach e2vid service: {exc}")
+        yield _sse("error", f"Could not reach {model} service: {exc}")
         yield _sse("done", "failed")
 
 
 class DetectRequest(BaseModel):
     sequence_id: str
     frame_count: int
+    model: str = "e2vid"
 
 
 @app.post("/api/detect")
 async def detect(req: DetectRequest):
     return StreamingResponse(
-        _detect_stream(req.sequence_id, req.frame_count),
+        _detect_stream(req.sequence_id, req.frame_count, req.model),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
