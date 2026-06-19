@@ -280,7 +280,11 @@ def _jpeg_watcher(recon_subdir: Path, out_dir: Path, stop_event, quality: int = 
     Converts all-but-the-latest PNG each iteration (the latest may still be open
     for writing by E2VID). After stop_event is set, flushes any remaining PNGs.
     """
-    from PIL import Image
+    try:
+        from PIL import Image
+    except ImportError as e:
+        print(f'[watcher] PIL not available: {e} — JPEG compression disabled', flush=True)
+        return
 
     processed: set = set()
 
@@ -297,16 +301,20 @@ def _jpeg_watcher(recon_subdir: Path, out_dir: Path, stop_event, quality: int = 
             pass  # file may be partially written; will retry next loop
 
     while not stop_event.is_set():
-        pngs = sorted(recon_subdir.glob('frame_*.png'))
-        for png in pngs[:-1]:   # leave the latest alone — may still be open
-            if png.name not in processed:
-                convert_one(png)
+        # recon_subdir is created by E2VID; it may not exist yet on first iterations
+        if recon_subdir.exists():
+            pngs = sorted(recon_subdir.glob('frame_*.png'))
+            for png in pngs[:-1]:   # leave the latest alone — may still be open
+                if png.name not in processed:
+                    convert_one(png)
         stop_event.wait(timeout=0.5)
 
     # Flush all remaining PNGs after E2VID exits
-    for png in sorted(recon_subdir.glob('frame_*.png')):
-        if png.name not in processed:
-            convert_one(png)
+    if recon_subdir.exists():
+        for png in sorted(recon_subdir.glob('frame_*.png')):
+            if png.name not in processed:
+                convert_one(png)
+    print(f'[watcher] done — {len(processed)} frames converted', flush=True)
 
 
 def run_reconstruction(e2vid_dir: Path, weights_path: Path,
