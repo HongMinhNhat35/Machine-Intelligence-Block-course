@@ -273,30 +273,62 @@ class CudaTimer:
 
 # ── Run reconstruction ────────────────────────────────────────────────────────
 
+def _png_staging_dir(out_dir: Path, n_events: int, events_per_pixel: float,
+                     width: int, height: int) -> Path:
+    """Return /dev/shm staging dir if RAM disk has enough space, else fall back to out_dir.
+
+    Keeping intermediate PNGs on a RAM disk avoids exhausting the 20 GB
+    /kaggle/working quota with ~11 GB of temporary PNG files for large sequences.
+    /dev/shm is a tmpfs mounted in RAM on all Linux hosts (Kaggle included).
+    """
+    devshm = Path('/dev/shm')
+    if devshm.exists():
+        estimated_frames = n_events // max(1, int(width * height * events_per_pixel))
+        estimated_png_bytes = estimated_frames * width * height  # ~1 byte/pixel worst case
+        try:
+            free = shutil.disk_usage(devshm).free
+            if free > estimated_png_bytes * 1.2:
+                staging = devshm / f'e2vid_{out_dir.parent.name}'
+                print(f'PNG staging: {staging}  '
+                      f'(RAM disk, {free / 1e9:.1f} GB free, '
+                      f'~{estimated_png_bytes / 1e9:.1f} GB needed)')
+                return staging
+            else:
+                print(f'RAM disk too small ({free / 1e9:.1f} GB free, '
+                      f'~{estimated_png_bytes / 1e9:.1f} GB needed) — using out_dir')
+        except Exception:
+            pass
+    return out_dir
+
+
 def run_reconstruction(e2vid_dir: Path, weights_path: Path,
                        zip_path: Path, out_dir: Path,
                        events_per_pixel: float,
-                       n_events: int, width: int, height: int):
+                       n_events: int, width: int, height: int) -> Path:
+    """Run RPG E2VID and return the staging directory where PNGs were written."""
     import time
 
+    staging = _png_staging_dir(out_dir, n_events, events_per_pixel, width, height)
+
     # Clear stale frames from any previous interrupted run
-    recon_subdir = out_dir / 'reconstruction'
+    recon_subdir = staging / 'reconstruction'
     if recon_subdir.exists():
         shutil.rmtree(recon_subdir)
 
+    staging.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)
     cmd = [
         sys.executable,
         str(e2vid_dir / 'run_reconstruction.py'),
         '-c', str(weights_path),
         '-i', str(zip_path),
-        '--output_folder', str(out_dir),
+        '--output_folder', str(staging),
         '--auto_hdr',
         '--num_events_per_pixel', str(events_per_pixel),
     ]
     print('\nRunning:', ' '.join(cmd), '\n')
 
-    expected = n_events // int(width * height * events_per_pixel)
+    expected = n_events // max(1, int(width * height * events_per_pixel))
     process = subprocess.Popen(cmd)
     t0 = time.time()
 
@@ -316,43 +348,61 @@ def run_reconstruction(e2vid_dir: Path, weights_path: Path,
     if process.returncode != 0:
         sys.exit(f'e2vid failed with return code {process.returncode}')
 
+    return staging
+
 
 # ── Post-process: rename frames + keep timestamps.txt ─────────────────────────
 
-def postprocess(out_dir: Path):
-    recon_subdir = out_dir / 'reconstruction'
+def postprocess(out_dir: Path, staging: Path, compress_jpeg: bool = False, quality: int = 90):
+    """Rename frames from staging/reconstruction/ into out_dir.
+
+    If staging != out_dir (i.e. PNG staging was on /dev/shm), files are moved
+    cross-filesystem.  When compress_jpeg=True, each PNG is converted to JPEG
+    immediately after being read, so at most one PNG exists on-disk at a time.
+    The staging directory is removed after all frames are processed.
+    """
+    from PIL import Image
+
+    recon_subdir = staging / 'reconstruction'
     frames = sorted(recon_subdir.glob('frame_*.png'))
     if not frames:
         sys.exit(f'No frames found in {recon_subdir}')
 
+    before_mb = sum(p.stat().st_size for p in frames) / 1e6
+    after_mb  = 0.0
+
     for i, fp in enumerate(frames):
-        fp.rename(out_dir / f'frame_{i:06d}.png')
+        if compress_jpeg:
+            img = Image.open(fp)
+            if img.mode == 'RGBA':
+                img = img.convert('RGB')
+            dst = out_dir / f'frame_{i:06d}.jpg'
+            img.save(str(dst), 'JPEG', quality=quality)
+            after_mb += dst.stat().st_size / 1e6
+            fp.unlink()
+        else:
+            dst = out_dir / f'frame_{i:06d}.png'
+            if staging == out_dir:
+                fp.rename(dst)
+            else:
+                shutil.move(str(fp), str(dst))
 
     ts_src = recon_subdir / 'timestamps.txt'
     if ts_src.exists():
         shutil.copy(ts_src, out_dir / 'timestamps.txt')
         print(f'timestamps.txt preserved in {out_dir}')
 
-    final = sorted(out_dir.glob('frame_*.png'))
+    if staging != out_dir and staging.exists():
+        shutil.rmtree(staging)
+        print(f'Staging dir removed: {staging}')
+
+    if compress_jpeg:
+        print(f'Compressed {len(frames)} frames: {before_mb:.0f} MB PNG → {after_mb:.0f} MB JPEG  (q={quality})')
+
+    exts   = ('*.jpg',) if compress_jpeg else ('*.png',)
+    final  = [f for e in exts for f in sorted(out_dir.glob(e))]
     print(f'Frames: {len(final)}  ({final[0].name} → {final[-1].name})')
     print(f'Output: {out_dir}')
-
-
-# ── JPEG compression ─────────────────────────────────────────────────────────
-
-def compress_to_jpeg(out_dir: Path, quality: int = 90):
-    """Convert PNG frames to JPEG in-place. ~5x smaller than PNG for e2vid output."""
-    from PIL import Image
-    pngs = sorted(out_dir.glob('frame_*.png'))
-    before_mb = sum(p.stat().st_size for p in pngs) / 1e6
-    for png_path in pngs:
-        img = Image.open(png_path)
-        if img.mode == 'RGBA':
-            img = img.convert('RGB')
-        img.save(str(png_path.with_suffix('.jpg')), 'JPEG', quality=quality)
-        png_path.unlink()
-    after_mb = sum(p.stat().st_size for p in out_dir.glob('frame_*.jpg')) / 1e6
-    print(f'Compressed {len(pngs)} frames: {before_mb:.0f} MB → {after_mb:.0f} MB  (q={quality})')
 
 
 # ── Smoke trimming ────────────────────────────────────────────────────────────
@@ -461,17 +511,13 @@ def main():
 
     print('\n=== Run e2vid reconstruction ===')
     t0 = time.time()
-    run_reconstruction(e2vid_dir, weights_path, events_path,
-                       args.out_dir, args.events_per_pixel,
-                       n_events, args.width, args.height)
+    staging = run_reconstruction(e2vid_dir, weights_path, events_path,
+                                 args.out_dir, args.events_per_pixel,
+                                 n_events, args.width, args.height)
     runtime = time.time() - t0
 
-    print('\n=== Rename frames ===')
-    postprocess(args.out_dir)
-
-    if args.compress_jpeg:
-        print('\n=== Compress frames to JPEG ===')
-        compress_to_jpeg(args.out_dir)
+    print('\n=== Rename frames (compress_jpeg={}) ==='.format(args.compress_jpeg))
+    postprocess(args.out_dir, staging, compress_jpeg=args.compress_jpeg)
 
     n_frames = len(sorted(args.out_dir.glob('frame_*.png'))) or \
                len(sorted(args.out_dir.glob('frame_*.jpg')))
