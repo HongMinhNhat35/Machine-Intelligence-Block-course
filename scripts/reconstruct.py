@@ -273,56 +273,69 @@ class CudaTimer:
 
 # ── Run reconstruction ────────────────────────────────────────────────────────
 
-def _png_staging_dir(out_dir: Path, n_events: int, events_per_pixel: float,
-                     width: int, height: int) -> Path:
-    """Return /dev/shm staging dir if RAM disk has enough space, else fall back to out_dir.
+def _jpeg_watcher(recon_subdir: Path, out_dir: Path, stop_event, quality: int = 90):
+    """Background thread: convert PNGs to JPEG as E2VID writes them, delete each PNG immediately.
 
-    Keeping intermediate PNGs on a RAM disk avoids exhausting the 20 GB
-    /kaggle/working quota with ~11 GB of temporary PNG files for large sequences.
-    /dev/shm is a tmpfs mounted in RAM on all Linux hosts (Kaggle included).
+    Keeps at most 1-2 PNGs on disk at a time regardless of total frame count.
+    Converts all-but-the-latest PNG each iteration (the latest may still be open
+    for writing by E2VID). After stop_event is set, flushes any remaining PNGs.
     """
-    devshm = Path('/dev/shm')
-    if devshm.exists():
-        estimated_frames = n_events // max(1, int(width * height * events_per_pixel))
-        estimated_png_bytes = estimated_frames * width * height * 0.15  # ~0.15 bytes/pixel for grayscale PNG
+    from PIL import Image
+
+    processed: set = set()
+
+    def convert_one(png: Path):
         try:
-            free = shutil.disk_usage(devshm).free
-            if free > estimated_png_bytes * 1.2:
-                staging = devshm / f'e2vid_{out_dir.parent.name}'
-                print(f'PNG staging: {staging}  '
-                      f'(RAM disk, {free / 1e9:.1f} GB free, '
-                      f'~{estimated_png_bytes / 1e9:.1f} GB needed)')
-                return staging
-            else:
-                print(f'RAM disk too small ({free / 1e9:.1f} GB free, '
-                      f'~{estimated_png_bytes / 1e9:.1f} GB needed) — using out_dir')
+            img = Image.open(png)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            dst = out_dir / (png.stem + '.jpg')
+            img.save(str(dst), 'JPEG', quality=quality)
+            png.unlink()
+            processed.add(png.name)
         except Exception:
-            pass
-    return out_dir
+            pass  # file may be partially written; will retry next loop
+
+    while not stop_event.is_set():
+        pngs = sorted(recon_subdir.glob('frame_*.png'))
+        for png in pngs[:-1]:   # leave the latest alone — may still be open
+            if png.name not in processed:
+                convert_one(png)
+        stop_event.wait(timeout=0.5)
+
+    # Flush all remaining PNGs after E2VID exits
+    for png in sorted(recon_subdir.glob('frame_*.png')):
+        if png.name not in processed:
+            convert_one(png)
 
 
 def run_reconstruction(e2vid_dir: Path, weights_path: Path,
                        zip_path: Path, out_dir: Path,
                        events_per_pixel: float,
-                       n_events: int, width: int, height: int) -> Path:
-    """Run RPG E2VID and return the staging directory where PNGs were written."""
+                       n_events: int, width: int, height: int,
+                       compress_jpeg: bool = False) -> None:
+    """Run RPG E2VID reconstruction.
+
+    When compress_jpeg=True a background thread converts each PNG to JPEG and
+    deletes it immediately, so at most 1-2 PNGs (~3 MB) exist at any time.
+    This avoids accumulating tens of GB of intermediate PNGs for long sequences.
+    """
+    import threading
     import time
 
-    staging = _png_staging_dir(out_dir, n_events, events_per_pixel, width, height)
+    recon_subdir = out_dir / 'reconstruction'
 
     # Clear stale frames from any previous interrupted run
-    recon_subdir = staging / 'reconstruction'
     if recon_subdir.exists():
         shutil.rmtree(recon_subdir)
 
-    staging.mkdir(parents=True, exist_ok=True)
     out_dir.mkdir(parents=True, exist_ok=True)
     cmd = [
         sys.executable,
         str(e2vid_dir / 'run_reconstruction.py'),
         '-c', str(weights_path),
         '-i', str(zip_path),
-        '--output_folder', str(staging),
+        '--output_folder', str(out_dir),
         '--auto_hdr',
         '--num_events_per_pixel', str(events_per_pixel),
     ]
@@ -332,75 +345,63 @@ def run_reconstruction(e2vid_dir: Path, weights_path: Path,
     process = subprocess.Popen(cmd)
     t0 = time.time()
 
+    # Start background JPEG converter so PNGs never accumulate on disk
+    stop_event = threading.Event()
+    if compress_jpeg:
+        watcher = threading.Thread(
+            target=_jpeg_watcher,
+            args=(recon_subdir, out_dir, stop_event),
+            daemon=True,
+        )
+        watcher.start()
+    else:
+        watcher = None
+
     while process.poll() is None:
         time.sleep(30)
         n_done = len(list(recon_subdir.glob('frame_*.png'))) if recon_subdir.exists() else 0
+        if compress_jpeg:
+            n_done += len(list(out_dir.glob('frame_*.jpg')))
         elapsed = time.time() - t0
         if n_done > 0:
-            fps  = n_done / elapsed
-            eta  = (expected - n_done) / fps
+            fps = n_done / elapsed
+            eta = (expected - n_done) / fps
             print(f'  {n_done}/{expected} frames  '
                   f'{n_done/expected*100:.0f}%  '
                   f'{fps:.2f} fps  ETA {eta/60:.1f} min', flush=True)
         else:
             print(f'  Waiting for first frame... ({elapsed:.0f}s elapsed)', flush=True)
 
+    # Signal watcher to flush remaining PNGs and wait for it
+    stop_event.set()
+    if watcher:
+        watcher.join()
+
     if process.returncode != 0:
         sys.exit(f'e2vid failed with return code {process.returncode}')
-
-    return staging
 
 
 # ── Post-process: rename frames + keep timestamps.txt ─────────────────────────
 
-def postprocess(out_dir: Path, staging: Path, compress_jpeg: bool = False, quality: int = 90):
-    """Rename frames from staging/reconstruction/ into out_dir.
+def postprocess(out_dir: Path):
+    """Rename frames from out_dir/reconstruction/ into out_dir and copy timestamps."""
+    recon_subdir = out_dir / 'reconstruction'
 
-    If staging != out_dir (i.e. PNG staging was on /dev/shm), files are moved
-    cross-filesystem.  When compress_jpeg=True, each PNG is converted to JPEG
-    immediately after being read, so at most one PNG exists on-disk at a time.
-    The staging directory is removed after all frames are processed.
-    """
-    from PIL import Image
-
-    recon_subdir = staging / 'reconstruction'
-    frames = sorted(recon_subdir.glob('frame_*.png'))
-    if not frames:
-        sys.exit(f'No frames found in {recon_subdir}')
-
-    before_mb = sum(p.stat().st_size for p in frames) / 1e6
-    after_mb  = 0.0
-
-    for i, fp in enumerate(frames):
-        if compress_jpeg:
-            img = Image.open(fp)
-            if img.mode == 'RGBA':
-                img = img.convert('RGB')
-            dst = out_dir / f'frame_{i:06d}.jpg'
-            img.save(str(dst), 'JPEG', quality=quality)
-            after_mb += dst.stat().st_size / 1e6
-            fp.unlink()
-        else:
-            dst = out_dir / f'frame_{i:06d}.png'
-            if staging == out_dir:
-                fp.rename(dst)
-            else:
-                shutil.move(str(fp), str(dst))
+    # When compress_jpeg was used in run_reconstruction, PNGs were already converted
+    # by the background watcher. Only rename any remaining PNGs (non-jpeg path).
+    pngs = sorted(recon_subdir.glob('frame_*.png'))
+    for i, fp in enumerate(pngs):
+        fp.rename(out_dir / f'frame_{i:06d}.png')
 
     ts_src = recon_subdir / 'timestamps.txt'
     if ts_src.exists():
         shutil.copy(ts_src, out_dir / 'timestamps.txt')
         print(f'timestamps.txt preserved in {out_dir}')
 
-    if staging != out_dir and staging.exists():
-        shutil.rmtree(staging)
-        print(f'Staging dir removed: {staging}')
-
-    if compress_jpeg:
-        print(f'Compressed {len(frames)} frames: {before_mb:.0f} MB PNG → {after_mb:.0f} MB JPEG  (q={quality})')
-
-    exts   = ('*.jpg',) if compress_jpeg else ('*.png',)
-    final  = [f for e in exts for f in sorted(out_dir.glob(e))]
+    jpgs = sorted(out_dir.glob('frame_*.jpg'))
+    final = sorted(out_dir.glob('frame_*.png')) or jpgs
+    if not final:
+        sys.exit(f'No frames found in {out_dir}')
     print(f'Frames: {len(final)}  ({final[0].name} → {final[-1].name})')
     print(f'Output: {out_dir}')
 
@@ -511,13 +512,14 @@ def main():
 
     print('\n=== Run e2vid reconstruction ===')
     t0 = time.time()
-    staging = run_reconstruction(e2vid_dir, weights_path, events_path,
-                                 args.out_dir, args.events_per_pixel,
-                                 n_events, args.width, args.height)
+    run_reconstruction(e2vid_dir, weights_path, events_path,
+                       args.out_dir, args.events_per_pixel,
+                       n_events, args.width, args.height,
+                       compress_jpeg=args.compress_jpeg)
     runtime = time.time() - t0
 
-    print('\n=== Rename frames (compress_jpeg={}) ==='.format(args.compress_jpeg))
-    postprocess(args.out_dir, staging, compress_jpeg=args.compress_jpeg)
+    print('\n=== Rename frames ===')
+    postprocess(args.out_dir)
 
     n_frames = len(sorted(args.out_dir.glob('frame_*.png'))) or \
                len(sorted(args.out_dir.glob('frame_*.jpg')))
