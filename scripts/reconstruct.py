@@ -284,7 +284,7 @@ def _png_staging_dir(out_dir: Path, n_events: int, events_per_pixel: float,
     devshm = Path('/dev/shm')
     if devshm.exists():
         estimated_frames = n_events // max(1, int(width * height * events_per_pixel))
-        estimated_png_bytes = estimated_frames * width * height  # ~1 byte/pixel worst case
+        estimated_png_bytes = estimated_frames * width * height * 0.15  # ~0.15 bytes/pixel for grayscale PNG
         try:
             free = shutil.disk_usage(devshm).free
             if free > estimated_png_bytes * 1.2:
