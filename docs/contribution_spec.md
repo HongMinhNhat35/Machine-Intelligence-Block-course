@@ -41,24 +41,61 @@ Trained on HyperE2VID-reconstructed frames using `scripts/train_yolo.py` with `-
 
 File name: `hypere2vid_run1.json` (increment run number for subsequent runs).
 
-Use this structure — the `model` field is required for the GUI to pick it up:
+The fields that the GUI reads are nested under `detection`, `training`, and `reconstruction`. Use the full structure below — fill in actual values from your run:
 
 ```json
 {
-  "stage": "training",
+  "schema_version": "1.0",
   "model": "hypere2vid",
-  "train_sequences": ["sequence_84", "sequence_85", "sequence_124", "sequence_201"],
-  "val_sequences": ["sequence_127"],
-  "map50": 0.0,
-  "map50_95": 0.0,
-  "precision": 0.0,
-  "recall": 0.0,
-  "epochs_completed": 0,
-  "best_epoch": 0,
-  "imgsz": 640,
-  "timestamp": "2026-01-01T00:00:00"
+  "detector": "YOLOv8s",
+  "run_id": "run_1",
+  "contributor": "Team HyperE2VID",
+  "timestamp": "2026-01-01T00:00:00",
+  "note": "Brief description of this run.",
+
+  "reconstruction": {
+    "sequences": ["sequence_84", "sequence_85", "sequence_124", "sequence_201", "sequence_127"],
+    "total_frames": 0,
+    "total_runtime_s": null,
+    "avg_fps": null,
+    "gpu": null
+  },
+
+  "training": {
+    "train_sequences": ["sequence_84", "sequence_85", "sequence_124", "sequence_201"],
+    "val_sequences": ["sequence_127"],
+    "n_train_images": 0,
+    "n_val_images": 0,
+    "lr0": 0.01,
+    "epochs_requested": 100,
+    "epochs_completed": 0,
+    "best_epoch": 0,
+    "n_gpus": 1,
+    "batch_per_gpu": 16,
+    "effective_batch": 16,
+    "imgsz": 640,
+    "runtime_s": null,
+    "gpu": null
+  },
+
+  "detection": {
+    "canonical": {
+      "map50": 0.0,
+      "map50_95": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    "challenging": {
+      "map50": null,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    }
+  }
 }
 ```
+
+**Required fields:** `model`, `detection.canonical.map50/map50_95/precision/recall`. All others are shown in the KPI table but missing values display as `—`.
 
 ---
 
@@ -70,7 +107,7 @@ File: `fusion_best.pt`
 
 ### 2. KPI JSON
 
-File name: `fusion_run1.json`. Same structure, `"model": "fusion"`.
+File name: `fusion_run1.json`. Same structure as above, with `"model": "fusion"`.
 
 ### 3. Service implementation
 
@@ -78,14 +115,11 @@ File: `services/fusion/app.py`
 
 ---
 
-## Notes for Klaus on integration
-
-**Services (app.py):** The hypere2vid and fusion services follow the same API contract as `services/e2vid/app.py`. Once the weights arrive, implementing them requires no special knowledge — just copy `services/e2vid/app.py`, point the frame path at `reconstruction_hypere2vid/` and the weights at `hypere2vid_best.pt`. Late Fusion is more complex (depends on the fusion approach used).
+## Notes on integration
 
 **KPI naming convention:** The GUI reads all `*.json` files from the `kpis/` folder sorted by name. Use `e2vid_run4.json`, `hypere2vid_run1.json`, `fusion_run1.json` — the `model` field in the JSON is what the GUI uses to filter, not the filename.
 
 **Integration checklist:**
-- [ ] Frames follow the `reconstruction_hypere2vid/` naming convention
-- [ ] `timestamps.txt` exists and line count matches frame count
-- [ ] Weights file loads without error in the service container
+- [ ] hypere2vid: Frames follow the `reconstruction_hypere2vid/` naming convention
+- [ ] hypere2vid: `timestamps.txt` exists and line count matches frame count
 - [ ] KPI JSON includes `"model": "hypere2vid"` or `"model": "fusion"`
