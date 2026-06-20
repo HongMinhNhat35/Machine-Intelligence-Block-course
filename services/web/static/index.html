@@ -43,7 +43,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;background:#f
 .sec-lbl{font-size:12px;font-weight:600;margin-bottom:8px;color:#333}
 .browser{border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:12px;background:#fff}
 .browser-bar{padding:5px 12px;background:#f5f5f5;border-bottom:1px solid #ddd;font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
-.browser-body{padding:4px 0}
+.browser-body{padding:4px 0;max-height:40vh;overflow-y:auto}
 .b-row{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;cursor:pointer;transition:background .1s}
 .b-row:hover{background:#f0f4f8}
 .b-row.selected{background:#e8f0fb;color:#1a3a60;font-weight:500}
@@ -1044,7 +1044,7 @@ function kpiSeqs(seqs){ return Array.isArray(seqs) && seqs.length ? seqs.map(s=>
 
 async function loadKpis(){
   try{
-    const runs = await fetch('/api/kpis').then(r=>r.json());
+    const runs = (await fetch('/api/kpis').then(r=>r.json())).filter(r=>r.model);
 
     // Detection table
     document.getElementById('kpi-det-body').innerHTML = runs.length ? runs.map(r=>{
