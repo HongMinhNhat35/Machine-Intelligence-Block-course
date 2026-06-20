@@ -174,7 +174,17 @@ tr.paper td{color:#888}
           <div class="file-row" id="df-coords" style="display:none"></div>
           <div class="file-row" id="df-recon"  style="display:none"></div>
         </div>
-        <p id="upload-hint" style="display:none;font-size:11px;color:#888;margin-top:6px">Select a sequence above, then use the tabs to view reconstruction or run detection.</p>
+        <div id="det-precompute-section" style="display:none;margin-top:10px">
+          <div class="sb-divider" style="margin:10px 0"></div>
+          <div class="sec-lbl">Detection pre-compute</div>
+          <div id="precomp-cache-status" style="font-size:11px;color:#888;margin-bottom:8px">—</div>
+          <div class="radio-group" style="flex-direction:row;flex-wrap:wrap;gap:2px 6px;margin-bottom:8px">
+            <label class="radio-row"><input type="radio" name="pcm" value="e2vid" checked> e2vid + YOLO</label>
+            <label class="radio-row"><input type="radio" name="pcm" value="hypere2vid"> HyperE2VID + YOLO</label>
+          </div>
+          <button class="run-btn" id="precomp-btn"><i class="ti ti-radar"></i> Run Detection (background)</button>
+          <div id="precomp-progress" style="font-size:11px;color:#888;margin-top:6px"></div>
+        </div>
       </div>
 
       <!-- RECONSTRUCTION -->
@@ -245,8 +255,7 @@ tr.paper td{color:#888}
             <label class="radio-row"><input type="radio" name="dm" data-m="hyper"> HyperE2VID + YOLO</label>
             <label class="radio-row"><input type="radio" name="dm" data-m="fusion"> Late fusion</label>
           </div>
-          <button class="run-btn" id="det-run-btn"><i class="ti ti-radar"></i> Run Detection</button>
-          <div id="det-status" style="font-size:11px;color:#888;margin-top:6px"></div>
+          <div id="det-status" style="font-size:11px;color:#888"></div>
         </div>
       </div>
 
@@ -419,6 +428,7 @@ function go(k){
 document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.s)));
 document.querySelectorAll('[name="dm"]').forEach(r=>r.addEventListener('change',function(){
   document.getElementById('tb').textContent=this.closest('label').textContent.trim();
+  if(selSeq) dtLoadDetections(selSeq.id, this.dataset.m);
 }));
 let allSeqs=[], selSeq=null;
 let sharedConfPct=20, kpiCache=null;
@@ -456,7 +466,14 @@ function onSeqSelected(seq){
       seq.e2vid_done ? seq.frame_count+' frames' : 'run scripts/reconstruct.py',
       seq.e2vid_done);
     document.getElementById('detected-files').style.display='flex';
-    document.getElementById('upload-hint').style.display='block';
+    const pcSection=document.getElementById('det-precompute-section');
+    if(seq.e2vid_done){
+      pcSection.style.display='';
+      document.getElementById('precomp-progress').textContent='';
+      checkPrecomputeStatus(seq.id);
+    } else {
+      pcSection.style.display='none';
+    }
   }
   // update reconstruction screen
   reconLoad();
@@ -604,15 +621,21 @@ function dtStop(){
   if(btn) btn.innerHTML='<i class="ti ti-player-play"></i> Play';
 }
 
-async function dtLoadDetections(seqId){
+async function dtLoadDetections(seqId, model){
+  if(!model){ const c=document.querySelector('[name="dm"]:checked'); model=c?c.dataset.m:'e2vid'; }
   try{
-    const r=await fetch('/api/detections/'+seqId);
+    const r=await fetch('/api/detections/'+seqId+'?model='+model);
     if(r.ok){
       const data=await r.json();
       dtDetections=data.detections;
       document.getElementById('det-status').textContent='Cached — '+dtDetections.length+' detections across all frames';
       const sbD=document.getElementById('sb-dets');
       if(sbD) sbD.textContent=dtDetections.length;
+      dtRenderBboxes();
+    } else {
+      dtDetections=null;
+      document.getElementById('det-status').textContent='No detections cached — pre-compute from the Upload screen';
+      const sbD=document.getElementById('sb-dets'); if(sbD) sbD.textContent='—';
       dtRenderBboxes();
     }
   } catch(e){}
@@ -635,7 +658,7 @@ function detLoad(){
     document.getElementById('det-max').textContent=dtMax;
     document.getElementById('det-max2').textContent=dtMax;
     const gi=document.getElementById('det-goto'); if(gi){ gi.max=dtMax; gi.value=0; }
-    document.getElementById('det-status').textContent='';
+    document.getElementById('det-status').textContent='Loading…';
     document.getElementById('det-count').textContent='—';
     document.getElementById('det-bboxes').innerHTML='';
     const sbDets=document.getElementById('sb-dets'); if(sbDets) sbDets.textContent='—';
@@ -847,16 +870,34 @@ document.getElementById('det-prev').addEventListener('click',()=>{ dtStop(); dtS
 document.getElementById('det-next').addEventListener('click',()=>{ dtStop(); dtSetFrame(dtFrame+1); });
 document.getElementById('det-goto').addEventListener('change',function(){ dtStop(); dtSetFrame(parseInt(this.value)||0); });
 
-document.getElementById('det-run-btn').addEventListener('click',async function(){
+async function checkPrecomputeStatus(seqId){
+  const el=document.getElementById('precomp-cache-status');
+  const model=document.querySelector('[name="pcm"]:checked')?.value||'e2vid';
+  try{
+    const r=await fetch('/api/detections/'+seqId+'?model='+model);
+    if(r.ok){
+      const data=await r.json();
+      el.textContent='Cached — '+(data.detections?.length||0)+' detections';
+      el.style.color='#16a34a';
+    } else {
+      el.textContent='Not yet computed for this model';
+      el.style.color='#888';
+    }
+  } catch(e){ el.textContent='—'; el.style.color='#888'; }
+}
+
+document.getElementById('precomp-btn').addEventListener('click',async function(){
   if(!selSeq||!selSeq.e2vid_done) return;
+  const model=document.querySelector('[name="pcm"]:checked')?.value||'e2vid';
+  const prog=document.getElementById('precomp-progress');
+  const statusEl=document.getElementById('precomp-cache-status');
   this.disabled=true;
-  document.getElementById('det-status').textContent='Running…';
-  dtDetections=null;
-  document.getElementById('det-bboxes').innerHTML='';
-  document.getElementById('det-count').textContent='—';
+  prog.textContent='Starting…';
+  statusEl.textContent='Running…';
+  statusEl.style.color='#888';
   try{
     const r=await fetch('/api/detect',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sequence_id:selSeq.id,frame_count:selSeq.frame_count})});
+      body:JSON.stringify({sequence_id:selSeq.id,frame_count:selSeq.frame_count,model})});
     const reader=r.body.getReader(), dec=new TextDecoder();
     let buf='', eventType=null;
     while(true){
@@ -868,15 +909,23 @@ document.getElementById('det-run-btn').addEventListener('click',async function()
         if(line.startsWith('event: ')) eventType=line.slice(7).trim();
         else if(line.startsWith('data: ')){
           const data=line.slice(6).trim();
-          if(eventType==='log'||eventType==='error') document.getElementById('det-status').textContent=data;
-          if(eventType==='done' && data==='ok') await dtLoadDetections(selSeq.id);
+          if(eventType==='log'||eventType==='error') prog.textContent=data;
+          if(eventType==='done'&&data==='ok'){
+            prog.textContent='Done!';
+            await checkPrecomputeStatus(selSeq.id);
+            if(dtLoadedSeq===selSeq.id) await dtLoadDetections(selSeq.id, model);
+          }
           eventType=null;
         }
       }
     }
-  } catch(e){ document.getElementById('det-status').textContent='Failed: '+e.message; }
+  } catch(e){ prog.textContent='Failed: '+e.message; }
   this.disabled=false;
 });
+
+document.querySelectorAll('[name="pcm"]').forEach(r=>r.addEventListener('change',function(){
+  if(selSeq) checkPrecomputeStatus(selSeq.id);
+}));
 
 // Reconstruction slider drag tracking — prevents timer from overwriting slider position during drag
 (function(){
