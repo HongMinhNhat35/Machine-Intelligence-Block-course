@@ -5,19 +5,31 @@
   "run_id": "run_4",
   "contributor": "Klaus",
   "timestamp": "2026-06-14T22:27:41",
-  "note": "Run 4. lr0=0.001, 2×T4. Frames restored from fred-frames-all Kaggle dataset (no re-reconstruction). Early stopping at epoch 23 (patience=20, best at epoch 3). Identical metrics to Run 2.",
-
+  "note": "Run 4. lr0=0.001, 2\u00d7T4. Frames restored from fred-frames-all Kaggle dataset (no re-reconstruction). Early stopping at epoch 23 (patience=20, best at epoch 3). Identical metrics to Run 2.",
   "reconstruction": {
-    "sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_124", "sequence_127"],
+    "sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_201",
+      "sequence_124",
+      "sequence_127"
+    ],
+    "events_per_pixel": 0.01,
     "total_frames": 73416,
     "total_runtime_s": null,
     "avg_fps": null,
     "gpu": null
   },
-
   "training": {
-    "train_sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_124"],
-    "val_sequences": ["sequence_127"],
+    "train_sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_201",
+      "sequence_124"
+    ],
+    "val_sequences": [
+      "sequence_127"
+    ],
     "n_train_images": 62621,
     "n_val_images": 10795,
     "lr0": 0.001,
@@ -31,7 +43,6 @@
     "runtime_s": 21330.5,
     "gpu": "Tesla T4 x2"
   },
-
   "detection": {
     "canonical": {
       "map50": 0.6335,

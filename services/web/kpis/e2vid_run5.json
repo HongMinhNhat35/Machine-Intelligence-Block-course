@@ -6,18 +6,30 @@
   "contributor": "Klaus",
   "timestamp": "2026-06-16T23:17:13",
   "note": "Run 5. Upgraded from YOLOv8n to YOLOv8s, same sequences as Run 4. mosaic=1.0, mixup=0.0. lr0=0.01 (auto). Early stopping at epoch 27 (patience=20, best at epoch 5).",
-
   "reconstruction": {
-    "sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_124", "sequence_127"],
+    "sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_201",
+      "sequence_124",
+      "sequence_127"
+    ],
+    "events_per_pixel": 0.01,
     "total_frames": 73416,
     "total_runtime_s": null,
     "avg_fps": null,
     "gpu": null
   },
-
   "training": {
-    "train_sequences": ["sequence_84", "sequence_85", "sequence_124", "sequence_201"],
-    "val_sequences": ["sequence_127"],
+    "train_sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_124",
+      "sequence_201"
+    ],
+    "val_sequences": [
+      "sequence_127"
+    ],
     "n_train_images": 62621,
     "n_val_images": 10795,
     "lr0": 0.01,
@@ -31,7 +43,6 @@
     "runtime_s": 20532.6,
     "gpu": "Tesla T4 x2"
   },
-
   "detection": {
     "canonical": {
       "map50": 0.7915,

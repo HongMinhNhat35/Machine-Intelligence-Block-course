@@ -330,7 +330,7 @@ tr.paper td{color:#888}
         </table></div>
         <div class="tbl-title">Reconstruction</div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>Model</th><th>Run</th><th>Dataset</th><th>Total Frames</th><th>Runtime</th><th>Avg FPS</th><th>GPU</th></tr></thead>
+          <thead><tr><th>Model</th><th>Run</th><th>Dataset</th><th>events/px</th><th>Total Frames</th><th>Runtime</th><th>Avg FPS</th><th>GPU</th></tr></thead>
           <tbody id="kpi-rec-body"><tr><td colspan="7" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
         </table></div>
         <div class="tbl-title">Training</div>
@@ -1062,9 +1062,10 @@ async function loadKpis(){
       const rc=r.reconstruction||{};
       const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
       return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${kpiSeqs(rc.sequences)}</td>
+        <td>${rc.events_per_pixel!==null&&rc.events_per_pixel!==undefined?rc.events_per_pixel:'—'}</td>
         <td>${kpiNum(rc.total_frames)}</td><td>${kpiHrs(rc.total_runtime_s)}</td>
         <td>${kpiFmt(rc.avg_fps,2,' fps')}</td><td>${rc.gpu||'—'}</td></tr>`;
-    }).join('') : '<tr><td colspan="7" style="color:#aaa">No KPI files found.</td></tr>';
+    }).join('') : '<tr><td colspan="8" style="color:#aaa">No KPI files found.</td></tr>';
 
     // Training table
     document.getElementById('kpi-tr-body').innerHTML = runs.length ? runs.map(r=>{
