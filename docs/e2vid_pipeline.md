@@ -208,6 +208,34 @@ model that most frames contain no drone, reducing false positives.
 E2VID LSTM 5 seconds of warmup while skipping unnecessary background. For sequence_201 this would
 save reconstructing ~17 seconds of pure background frames. Not yet implemented.
 
+### E2VID LSTM warmup and early-frame reconstruction quality
+
+After the noise burst is skipped, the E2VID LSTM starts from a zero hidden state and takes time to
+build an accurate internal model of the scene. During this **warmup period**, reconstructed frames
+are often too visually degraded to show the drone clearly, even though the drone is genuinely present
+and annotated at those timestamps.
+
+**Verified for sequence_85 (Run 6, events_per_pixel=0.05):**
+
+| Frame range | Real time (approx) | Annotation says | YOLO detection | Reconstruction quality |
+|---|---|---|---|---|
+| 0–249 | t = 5–25 s | drone at x≈920, y≈226 (upper-right) | bbox ≈ [918, 226] ✓ correct | poor — drone visually invisible |
+| 800+ | t = 79 s+ | drone at x≈592, y≈458 (centre-bottom) | bbox ≈ [577, 454] ✓ correct | good — drone clearly visible |
+
+The YOLO detections are geometrically correct in both windows — the model finds the drone at the
+right position. The early frames simply look blank or noisy to a human observer because the LSTM
+hasn't stabilised yet. This is not a detection bug.
+
+**Warmup duration scales with events_per_pixel.** At 0.05 epp each frame covers ~0.08 s of real
+time, so 250 frames ≈ 20 s. At 0.1 epp each frame covers ~0.16 s, so the same 20-second warmup
+window spans only ~125 frames. The underlying LSTM convergence time (in events) is constant; only
+the frame-count representation changes.
+
+**For GUI users:** when viewing detections for the first ~20 s of a sequence, bounding boxes may
+appear over a visually empty region. This is expected — the drone is there but invisible in the
+reconstruction output. Detections from t > 25 s (frame > 250 at 0.05 epp) should be clearly
+co-located with visible drone activity.
+
 ---
 
 ## 2. Preprocessing: Generate events.zip
@@ -823,14 +851,16 @@ All runs use sequence-level split: sequences 84, 85, 201, 124 for training; sequ
 | Run 3 | YOLOv8n | 0.634 | — | — | — | 23 (3) | 62,621 | 1×P100 | lr0=0.001 (accidental); identical metrics; weights deleted by cleanup bug |
 | Run 4 | YOLOv8n | 0.634 | 0.293 | 0.867 | 0.524 | 23 (3) | 62,621 | 2×T4 | lr0=0.001 (accidental); best epoch 3; frames restored from Kaggle dataset |
 | Run 5 | YOLOv8s | 0.792 | 0.395 | 0.954 | 0.707 | 27 (5) | 62,621 | 2×T4 | upgraded to YOLOv8s; lr0=0.01 (default); mosaic=1.0, mixup=0.0 |
-| **Run 6** | **YOLOv8s** | **0.856** | **0.377** | **0.902** | **0.792** | **54 (34)** | **12,527** | **2×T4** | events_per_pixel=0.05 (5× denser frames, 5× fewer); 14,686 recon frames total |
+| Run 6 | YOLOv8s | 0.856 | 0.377 | 0.902 | 0.792 | 54 (34) | 12,527 | 2×T4 | events_per_pixel=0.05 (5× denser frames, 5× fewer); 14,686 recon frames total |
+| **Run 7** | **YOLOv8s** | **0.936** | **0.464** | **0.979** | **0.914** | **39 (20)** | **6,264** | **2×T4** | events_per_pixel=0.1 (2× denser frames vs Run 6); 7,344 recon frames total |
 
 **Reconstruction frames per run:**
 
 | Run | events_per_pixel | Total frames | Recon time | Training time |
 |---|---|---|---|---|
 | 1–5 | 0.01 | 73,416 | not tracked | ~5.7 h |
-| 6 | **0.05** | **14,686** | **1.2 h** | **2.3 h** |
+| 6 | 0.05 | 14,686 | 1.2 h | 2.3 h |
+| **7** | **0.10** | **7,344** | **0.6 h** | **0.9 h** |
 
 **Key observations:**
 - Run 1 → Run 2: the single biggest jump (+0.343 mAP50) came from adding sequence_124 to the training set, not from hyperparameter tuning.
@@ -838,7 +868,8 @@ All runs use sequence-level split: sequences 84, 85, 201, 124 for training; sequ
 - Run 4 → Run 5: upgrading from YOLOv8n (3.2M params) to YOLOv8s (11.2M params) gained +0.158 mAP50 with the same dataset — the model had more capacity to learn.
 - Run 5 → Run 6: raising `events_per_pixel` from 0.01 to 0.05 produced 5× fewer frames per sequence. Despite training on only 12,527 images (vs 62,621), mAP50 improved by +0.064 and recall jumped from 71% to 79%. Compute dropped by ~60% (training: 5.7h → 2.3h). Hypothesis: denser frames contain more informative signal per image — the drone is sharper and the background motion is more distinct — so the model learns better from fewer examples.
 - mAP50:95 dipped slightly (0.395 → 0.377) in Run 6. This metric penalises imprecise bounding boxes (it averages over IoU thresholds up to 0.95). The small regression likely reflects fewer training images providing less supervision for tight box regression. It does not affect detection rate at standard IoU=0.5.
-- **Best epoch pattern:** Runs 2–5 peaked at epoch 3–5 — very early convergence, suggesting the model memorised what it could from 62k correlated frames quickly and then stalled. Run 6 peaked at epoch 34 with only 12.5k denser frames — a much healthier learning curve.
+- Run 6 → Run 7: raising `events_per_pixel` further to 0.1 continued the trend strongly. mAP50 rose from 0.856 to 0.936 (+0.080), mAP50:95 recovered and surpassed Run 5 (0.464 vs 0.395), precision reached 97.9%, and recall 91.4%. Training time dropped to under an hour (0.9 h) on only 6,264 images. Contrary to the pre-run expectation, temporal aliasing did not visibly hurt box quality — mAP50:95 improved, not worsened. The "smearing" concern at 0.1 epp turned out not to be a limiting factor at this scale.
+- **Best epoch pattern:** Runs 2–5 peaked at epoch 3–5 — very early convergence, suggesting the model memorised what it could from 62k correlated frames quickly and then stalled. Run 6 peaked at epoch 34 with only 12.5k denser frames — a much healthier learning curve. Run 7 peaked at epoch 20 with 6.3k frames — still healthy, not as deep but the per-image quality is higher.
 - Early stopping (patience=20) consistently prevents wasted compute after the model plateaus.
 
 ---
@@ -861,7 +892,7 @@ save best.pt  ← weights from the epoch with highest val mAP50
 
 **Implication of a single val sequence:** Sequence 127 is doing a lot of work. It is relatively short (47.5 s usable, 10,795 frames) and has an unusually high noise-burst ratio (59%), which means there is less "clean" data. If sequence 127 happens to be easier or harder than average, the reported numbers are biased accordingly. A more reliable estimate would use cross-validation (each sequence takes a turn as val), but that is 5× the compute and not yet done.
 
-**Current production weights:** Run 6 (`ami-e2vid:latest` Docker image, baked in as `yolo_e2vid.pt`).
+**Current production weights:** Run 7 (`ami-e2vid:latest` Docker image, baked in as `yolo_e2vid.pt`).
 
 ---
 
@@ -871,19 +902,25 @@ save best.pt  ← weights from the epoch with highest val mAP50
 
 The team has agreed to use exactly 5 sequences (84, 85, 124, 201 for training; 127 for validation) for all runs. Adding more sequences is out of scope.
 
-### Increasing events_per_pixel beyond 0.05
+### Increasing events_per_pixel — results so far
 
-The improvement from Run 5→6 (0.01→0.05) raises the question of whether pushing the parameter further would continue the trend.
+The full trend across runs 5→6→7:
 
-**Why it might still help at 0.1**
+| Run | epp | Train imgs | mAP50 | mAP50:95 | Best epoch | Train time |
+|---|---|---|---|---|---|---|
+| 5 | 0.01 | 62,621 | 0.792 | 0.395 | 5/27 | 5.7 h |
+| 6 | 0.05 | 12,527 | 0.856 | 0.377 | 34/54 | 2.3 h |
+| 7 | 0.10 | 6,264 | **0.936** | **0.464** | 20/39 | **0.9 h** |
 
-The gain from 0.01→0.05 came from breaking a specific failure mode: 73k nearly-identical, highly correlated frames caused the model to saturate early (best epoch 3–5) because it memorised backgrounds quickly and had nothing new to learn. Denser frames broke that pattern — Run 6 peaked at epoch 34 with richer per-frame signal. At 0.1 (~7,300 total frames, ~6,200 train) the frames would be denser still and the training set would remain a reasonable size.
+The trend held strongly through 0.1 epp. Contrary to expectation, temporal aliasing did not degrade box quality — mAP50:95 improved, not worsened, despite each Run 7 frame integrating ~1.5 seconds of scene activity. The pre-run concern about smeared drone trails turned out not to be a limiting factor.
 
-**Why returns likely diminish**
+**Why returns may still continue at 0.2**
 
-At 0.05 each frame integrates ~46,080 events, which at FRED's average post-burst rate of ~60k events/s corresponds to roughly 0.75 seconds of scene activity per frame. At 0.1 that becomes ~1.5 seconds. Over 1.5 seconds the drone moves substantially across the sensor — E2VID will reconstruct it as a smeared trail rather than a sharp object. This is not traditional motion blur (event cameras encode motion as contrast changes, not photons over time), but the reconstructed intensity frame will encode "where the drone was over 1.5 seconds" rather than a snapshot. YOLO was trained on snapshot-like frames and may struggle to localise a trailed object precisely.
+The same logic that worked at 0.05→0.1 (denser signal, richer per-frame content, healthier learning curve) still applies at 0.2. At 0.2 (~3,700 total frames, ~3,100 train) the dataset is thin but not yet degenerate.
 
-At 0.2 (~3,700 total frames, ~3,100 train) the training set becomes thin for stable YOLO training and the temporal aliasing problem is worse.
+**Why 0.2 is riskier**
+
+At 0.2 each frame integrates ~184,320 events, corresponding to ~3 seconds of scene activity per frame. The drone can traverse a significant portion of the frame in 3 seconds. Training image count (~3,100) is approaching the floor for stable fine-tuning of YOLOv8s. If a run at 0.2 underperforms, it may be hard to attribute the cause (too few images vs genuine temporal aliasing).
 
 **Frame count estimates**
 
@@ -894,16 +931,18 @@ At 0.2 (~3,700 total frames, ~3,100 train) the training set becomes thin for sta
 | 0.10 | 92,160 | ~7,300 | ~6,200 |
 | 0.20 | 184,320 | ~3,700 | ~3,100 |
 
-**Verdict**
+**Verdict on epp=0.1 (Run 7):** Confirmed — a strong improvement with no sign of the predicted temporal aliasing problem. Run 7 is now production.
 
-A run at 0.1 is the natural next experiment and the dataset size is still workable. However, the expected gain is uncertain: the Run 5→6 jump may have captured most of the benefit from denser frames, and temporal aliasing becomes a real risk. If Kaggle GPU quota is limited, a smoke-test variant (reconstruct one sequence, train for ~20 epochs, check val mAP) is a low-cost way to test the hypothesis before committing to a full run.
+**Next epp candidate (0.2):** worth attempting but riskier. Dataset shrinks to ~3,100 train images. Run a full experiment — at only 0.9 h total compute, the cost is low.
 
 ### Other levers within the current 5-sequence scope
 
-| Experiment | Expected impact | Notes |
-|---|---|---|
-| events_per_pixel=0.1 | Low–medium | Risky due to temporal aliasing; smoke-test first |
-| Raise `box` loss coefficient (default 7.5) | Low–medium | May recover the mAP50:95 dip seen in Run 6 at the cost of some mAP50 |
-| Reduce mosaic augmentation strength | Low | Heavy mosaic can hurt box regression; currently mosaic=1.0 |
-| Resize frames to 640px before training | Neutral (quality), positive (speed) | YOLO rescales to 640px anyway; pre-resizing avoids decode overhead and reduces disk I/O |
-| Cross-validation (each sequence as val) | Measurement quality only | Gives a more reliable mAP estimate; does not improve the model; 5× compute cost |
+| Experiment | Status | Expected impact | Notes |
+|---|---|---|---|
+| events_per_pixel=0.1 | ✅ **Run 7** | +0.080 mAP50 | Strong result; temporal aliasing concern did not materialise |
+| events_per_pixel=0.2 | candidate | Unknown | ~3,100 train images; 3 s per frame; low compute cost (~0.5 h) |
+| Upgrade to YOLOv8m | candidate | Medium–high | Previously too slow at 73k frames; now feasible at 6k images (~28 min/epoch, ~19 epochs in 9h) |
+| Raise `box` loss coefficient (default 7.5) | low priority | Low | mAP50:95 already recovered in Run 7 (0.464 vs 0.395 Run 5); no longer needed |
+| Reduce mosaic augmentation strength | low priority | Low | Heavy mosaic can hurt box regression; currently mosaic=1.0 |
+| Resize frames to 640px before training | efficiency | Neutral (quality), positive (speed) | YOLO rescales to 640px anyway; pre-resizing avoids decode overhead and reduces disk I/O |
+| Cross-validation (each sequence as val) | measurement | Quality only | Gives a more reliable mAP estimate; does not improve the model; 5× compute cost |

@@ -305,7 +305,7 @@ fi
 if [[ "${DOWNLOAD_FRAMES_ARG}" == "--frames" ]]; then
     echo ""
     echo "--- Reconstructed frames ---"
-    for SEQ in 84 85 201 127; do
+    for SEQ in 84 85 201 124 127; do
         SRC="$TMPDIR/data/processed/sequence_${SEQ}/reconstruction_e2vid"
         DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
         if [ -d "$SRC" ]; then
