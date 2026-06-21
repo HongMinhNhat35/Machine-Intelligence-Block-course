@@ -127,6 +127,7 @@ tr.paper td{color:#888}
   <div class="tab" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
   <div class="tab" data-s="compare"><i class="ti ti-layout-columns"></i> Comparison</div>
   <div class="tab" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
+  <div class="tab" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
   <div class="tab" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
 </div>
 <div class="app">
@@ -137,6 +138,7 @@ tr.paper td{color:#888}
     <div class="nav-item" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
     <div class="nav-item" data-s="compare"><i class="ti ti-layout-columns"></i> Comparison</div>
     <div class="nav-item" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
+    <div class="nav-item" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
     <div class="nav-item" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
     <div class="sb-divider"></div>
     <div id="sb-seq-block" style="display:none">
@@ -340,6 +342,57 @@ tr.paper td{color:#888}
         </table></div>
       </div>
 
+      <!-- DATASET -->
+      <div class="screen" id="s-dataset">
+        <div class="tbl-title">FRED sequences — team selection (Runs 5–7)</div>
+        <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Sequence</th><th>Split</th><th>Duration</th><th>Events (post-burst)</th><th>Frames (Run 6)</th><th>First annotation</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>sequence_84</strong></td>
+              <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
+              <td>109 s</td><td>110.0 M</td><td>2,389</td>
+              <td>2.9 s <span style="font-size:10px;color:#888">(inside burst)</span></td>
+              <td style="font-size:11px;color:#555">Drone visible from sequence start; pre-burst annotations lost. Burst ratio 23%.</td>
+            </tr>
+            <tr>
+              <td><strong>sequence_85</strong></td>
+              <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
+              <td>108 s</td><td>62.5 M</td><td>1,357</td>
+              <td>0.4 s <span style="font-size:10px;color:#888">(inside burst)</span></td>
+              <td style="font-size:11px;color:#555">Drone in upper-right at t=5 s, moves to centre-bottom by t=79 s. First ~250 frames (t&lt;25 s) show the drone in the reconstruction but visually faint — LSTM still warming up. YOLO detections remain geometrically accurate (centre error &lt;5 px, IoU&nbsp;0.73–0.92). Burst ratio 15%.</td>
+            </tr>
+            <tr>
+              <td><strong>sequence_124</strong></td>
+              <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
+              <td>109 s</td><td>304.6 M</td><td>6,611</td>
+              <td>19.6 s</td>
+              <td style="font-size:11px;color:#555">Drone appears 14.6 s after the 5 s noise skip → background frames fill that gap. <strong>DJI Tello EDU</strong> — different drone type from all other sequences (which use a DarwinFPV cineape20). Adds appearance diversity but may increase label noise. Highest event count by far (304.6 M). Burst ratio 37%.</td>
+            </tr>
+            <tr>
+              <td><strong>sequence_201</strong></td>
+              <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
+              <td>117 s</td><td>100.1 M</td><td>2,174</td>
+              <td>26.9 s</td>
+              <td style="font-size:11px;color:#555">Drone appears 21.9 s after the noise skip. Longest pre-drone gap of all train sequences → most background frames. Burst ratio 19%.</td>
+            </tr>
+            <tr>
+              <td><strong>sequence_127</strong></td>
+              <td><span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">val</span></td>
+              <td>47.5 s</td><td>99.5 M</td><td>2,160</td>
+              <td>12.6 s</td>
+              <td style="font-size:11px;color:#555">Validation only — never used for training. Shortest usable duration (47.5 s vs ~108–117 s for train sequences). Very high burst ratio (59%) — most events in this sequence are camera noise. Drone appears 7.6 s after the noise skip.</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:11px;color:#78350f;line-height:1.6">
+          <strong>Camera noise burst</strong> — when a Prophesee event camera powers on, unsettled sensor pixels fire continuously for several seconds. All sequences skip the first 5 s (start_s = 5.0) to discard this burst; sequence_124 uses start_s = 7.0 due to a residual burst at 5–7 s. Events before start_s are excluded from reconstruction and training.<br>
+          <strong>E2VID LSTM warmup</strong> — after the burst skip, the reconstruction network starts from a zero hidden state and takes ~20 s to converge. During this period reconstructed frames appear visually degraded, but YOLO detections remain accurate (verified on sequence_85: centre error &lt;5 px throughout).
+        </div>
+      </div>
+
       <!-- ADMIN -->
       <div class="screen" id="s-admin">
         <div class="adm-card">
@@ -384,6 +437,7 @@ const cfg={
   detect:{title:'Detection',badge:'e2vid + YOLO',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl"></div>`},
   compare:{title:'Comparison',badge:'Canonical split',extra:`<div class="sb-lbl">Split</div><div class="radio-group"><label class="radio-row"><input type="radio" name="sp" value="canonical" checked> Canonical</label><label class="radio-row"><input type="radio" name="sp" value="challenging"> Challenging</label></div><div class="sb-divider"></div><div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval2">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl2"></div>`},
   kpis:{title:'KPIs',badge:'Canonical split',extra:''},
+  dataset:{title:'Dataset',badge:'5 sequences · FRED',extra:''},
   admin:{title:'Admin',badge:'system',extra:''}
 };
 function go(k){
