@@ -8,7 +8,7 @@ No Python, no Git, no build step — just Docker.
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
-- ~20 GB free disk space
+- ~3 GB free disk space
 
 ---
 
@@ -25,7 +25,7 @@ The script will ask two questions:
 1. **Where to store the data** — default: `~/g1-ami-data`
 2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
-It then downloads ~15 GB of pre-computed E2VID reconstruction frames (grayscale images converted from event data), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
+It then downloads ~1.5 GB of pre-computed E2VID reconstruction frames (Run 7, events_per_pixel=0.1), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
 When it finishes:
 
@@ -52,45 +52,38 @@ mkdir -p $RECON
 ### 2. Download and extract pre-computed reconstruction frames
 
 ```bash
-# sequence_85 (1.3 GB)
+# sequence_84 (128 MB)
+curl -L -o /tmp/sequence_84.tar \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_84.tar
+mkdir -p $RECON/sequence_84 && tar xf /tmp/sequence_84.tar -C $RECON/sequence_84/
+
+# sequence_85 (83 MB)
 curl -L -o /tmp/sequence_85.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_85.tar
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_85.tar
 mkdir -p $RECON/sequence_85 && tar xf /tmp/sequence_85.tar -C $RECON/sequence_85/
 
-# sequence_127 (2.1 GB — two parts)
-curl -L -o /tmp/seq127.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_127.tar.00
-curl -L -o /tmp/seq127.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_127.tar.01
-mkdir -p $RECON/sequence_127 && cat /tmp/seq127.* | tar x -C $RECON/sequence_127/
+# sequence_124 (668 MB)
+curl -L -o /tmp/sequence_124.tar \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_124.tar
+mkdir -p $RECON/sequence_124 && tar xf /tmp/sequence_124.tar -C $RECON/sequence_124/
 
-# sequence_201 (2.1 GB — two parts)
-curl -L -o /tmp/seq201.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_201.tar.00
-curl -L -o /tmp/seq201.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_201.tar.01
-mkdir -p $RECON/sequence_201 && cat /tmp/seq201.* | tar x -C $RECON/sequence_201/
+# sequence_127 (242 MB)
+curl -L -o /tmp/sequence_127.tar \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_127.tar
+mkdir -p $RECON/sequence_127 && tar xf /tmp/sequence_127.tar -C $RECON/sequence_127/
 
-# sequence_84 (2.3 GB — two parts)
-curl -L -o /tmp/seq84.00 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_84.tar.00
-curl -L -o /tmp/seq84.01 https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_84.tar.01
-mkdir -p $RECON/sequence_84 && cat /tmp/seq84.* | tar x -C $RECON/sequence_84/
-
-# sequence_124 (6.7 GB — four parts)
-for i in 00 01 02 03; do
-  curl -L -o /tmp/seq124.$i https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/sequence_124.tar.$i
-done
-mkdir -p $RECON/sequence_124 && cat /tmp/seq124.* | tar x -C $RECON/sequence_124/
-
-# HyperE2VID reconstructions — not yet available, uncomment when released
-# curl -L -o /tmp/hypere2vid_sequence_85.tar \
-#   https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/hypere2vid_sequence_85.tar
-# mkdir -p $RECON/sequence_85 && tar xf /tmp/hypere2vid_sequence_85.tar -C $RECON/sequence_85/
-# (repeat for sequence_84, sequence_127, sequence_201, sequence_124)
+# sequence_201 (326 MB)
+curl -L -o /tmp/sequence_201.tar \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_201.tar
+mkdir -p $RECON/sequence_201 && tar xf /tmp/sequence_201.tar -C $RECON/sequence_201/
 ```
 
 ### 3. Download pre-cached detections
 
 ```bash
-curl -L -o /tmp/detections_e2vid_run5.tar.gz \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0/detections_e2vid_run5.tar.gz
-tar xzf /tmp/detections_e2vid_run5.tar.gz -C $RECON/
+curl -L -o /tmp/detections_e2vid_run7.tar.gz \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/detections_e2vid_run7.tar.gz
+tar xzf /tmp/detections_e2vid_run7.tar.gz -C $RECON/
 ```
 
 ### 4. Download the compose file and write `.env`
@@ -137,7 +130,8 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 | **Reconstruction** | Browse reconstructed e2vid frames with playback controls. |
 | **Detection** | View YOLO bounding-box overlay. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
 | **Comparison** | Side-by-side E2VID vs HyperE2VID view with bounding boxes and model KPIs. Late Fusion column not yet available. |
-| **KPIs** | Detection accuracy and training metrics table. |
+| **KPIs** | Detection accuracy and training metrics table across all runs. |
+| **Dataset** | Per-sequence notes: event counts, annotation timing, known reconstruction quirks. |
 | **Admin** | Live health status of all backend services. |
 
 ---
@@ -146,5 +140,20 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 
 - Detection results are pre-cached (`detections_e2vid.json` in each sequence folder). They load instantly. Click **Run Detection** only to re-run inference (e.g. after new model weights).
 - The confidence slider is a display filter only — the cache always holds all detections at confidence ≥ 0.1.
+- **Early frames (~first 250 frames per sequence):** YOLO bounding boxes may appear over a visually empty region. This is expected — the E2VID LSTM needs ~20 s to warm up from a cold start. The detections are geometrically correct (verified against ground truth, IoU 0.73–0.92); the drone is present but the reconstruction quality is too low for human visibility.
 - Reconstruction (event → frames) is not triggered from the GUI. Frames are pre-generated and included in the downloaded data.
 - The FRED raw dataset (`FRED_DATA_PATH`) is only needed for Late Fusion. The e2vid pipeline and comparison view work without it.
+
+---
+
+## Model — Run 7
+
+| Metric | Value |
+|---|---|
+| Architecture | YOLOv8s |
+| events_per_pixel | 0.10 |
+| mAP @ IoU=0.5 | **93.6%** |
+| mAP @ IoU=0.5:95 | 46.4% |
+| Precision | 97.9% |
+| Recall | 91.4% |
+| Val sequence | sequence_127 (held out) |

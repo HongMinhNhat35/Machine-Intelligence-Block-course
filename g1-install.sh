@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RELEASE="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v1.0"
+RELEASE="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0"
 RAW="https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui"
 DEFAULT_RECON="$HOME/g1-ami-data"
 
@@ -14,7 +14,7 @@ RECON="${RECON:-$DEFAULT_RECON}"
 echo ""
 echo "The FRED raw dataset (events.h5, coordinates.txt) is required for late fusion."
 echo "If you have it, enter its path (the folder containing sequence_84/, sequence_127/, …)."
-echo "If not, press Enter — the demo works without it for e2vid/hypere2vid detection and comparison."
+echo "If not, press Enter — the demo works without it for e2vid detection and comparison."
 read -rp "Path to FRED raw dataset [${RECON}]: " FRED
 FRED="${FRED:-$RECON}"
 
@@ -22,7 +22,7 @@ mkdir -p "$RECON"
 
 echo ""
 echo "Downloading pre-computed E2VID reconstruction frames to $RECON ..."
-echo "(This is ~15 GB — go get a coffee)"
+echo "(Run 7 — events_per_pixel=0.1 — ~1.5 GB total)"
 echo ""
 
 download_seq() {
@@ -55,24 +55,17 @@ download_seq() {
     echo ""
 }
 
-# e2vid reconstructions
+# e2vid reconstructions — Run 7 (events_per_pixel=0.1)
+download_seq sequence_84  sequence_84.tar
 download_seq sequence_85  sequence_85.tar
-download_seq sequence_127 sequence_127.tar.00 sequence_127.tar.01
-download_seq sequence_201 sequence_201.tar.00 sequence_201.tar.01
-download_seq sequence_84  sequence_84.tar.00  sequence_84.tar.01
-download_seq sequence_124 sequence_124.tar.00 sequence_124.tar.01 sequence_124.tar.02 sequence_124.tar.03
+download_seq sequence_124 sequence_124.tar
+download_seq sequence_127 sequence_127.tar
+download_seq sequence_201 sequence_201.tar
 
-# HyperE2VID reconstructions (not yet available)
-# download_seq sequence_85  hypere2vid_sequence_85.tar
-# download_seq sequence_127 hypere2vid_sequence_127.tar.00 hypere2vid_sequence_127.tar.01
-# download_seq sequence_201 hypere2vid_sequence_201.tar.00 hypere2vid_sequence_201.tar.01
-# download_seq sequence_84  hypere2vid_sequence_84.tar.00  hypere2vid_sequence_84.tar.01
-# download_seq sequence_124 hypere2vid_sequence_124.tar.00 hypere2vid_sequence_124.tar.01 hypere2vid_sequence_124.tar.02 hypere2vid_sequence_124.tar.03
-
-echo "Downloading detections (Run 5 — YOLOv8s) ..."
-curl -L --progress-bar -o /tmp/detections_e2vid_run5.tar.gz "$RELEASE/detections_e2vid_run5.tar.gz"
-tar xzf /tmp/detections_e2vid_run5.tar.gz -C "$RECON/"
-rm /tmp/detections_e2vid_run5.tar.gz
+echo "Downloading pre-cached detections (Run 7 — YOLOv8s, mAP@0.5=93.6%) ..."
+curl -L --progress-bar -o /tmp/detections_e2vid_run7.tar.gz "$RELEASE/detections_e2vid_run7.tar.gz"
+tar xzf /tmp/detections_e2vid_run7.tar.gz -C "$RECON/"
+rm /tmp/detections_e2vid_run7.tar.gz
 echo ""
 
 echo "Downloading docker-compose.yml ..."
