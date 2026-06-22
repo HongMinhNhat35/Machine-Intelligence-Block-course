@@ -20,11 +20,14 @@ trap "rm -f $SCRIPT" EXIT
 
 DOWNLOAD_FRAMES_ARG=""
 DOWNLOAD_FRAMES_ZIP=false
-if [[ "${1:-}" == "--frames" ]]; then
-    DOWNLOAD_FRAMES_ARG="--frames"
-elif [[ "${1:-}" == "--frames-zip" ]]; then
-    DOWNLOAD_FRAMES_ZIP=true
-fi
+RUN_ID="run6"
+for arg in "$@"; do
+    case "$arg" in
+        --frames)      DOWNLOAD_FRAMES_ARG="--frames" ;;
+        --frames-zip)  DOWNLOAD_FRAMES_ZIP=true ;;
+        --run=*)       RUN_ID="${arg#--run=}" ;;
+    esac
+done
 
 # ── Inline Python paginator ───────────────────────────────────────────────────
 cat > "$SCRIPT" << 'PYEOF'
@@ -39,7 +42,7 @@ sys.path.insert(0, KAGGLE_LIB)
 from kaggle.api.kaggle_api_extended import KaggleApi
 from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
 
-KERNEL          = "gennepy/ami-e2vid-pipeline"
+KERNEL          = "kevinhong54385/ami-e2vid-pipeline"
 OUT_DIR         = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/kaggle_output")
 DOWNLOAD_FRAMES = "--frames" in sys.argv
 FRAME_PAT       = re.compile(r"frame_\d+\.(jpg|png)$")
@@ -78,7 +81,7 @@ def list_page(kc, owner, slug, token):
 
 def download_one(fname, url):
     outfile = OUT_DIR / fname
-    if outfile.exists():
+    if outfile.exists() and FRAME_PAT.search(fname):
         return 'skip', fname
     outfile.parent.mkdir(parents=True, exist_ok=True)
     for delay in NET_RETRY_DELAYS:
@@ -171,7 +174,7 @@ import requests
 
 api = KaggleApi(); api.authenticate()
 out_dir = Path(sys.argv[1]); out_dir.mkdir(parents=True, exist_ok=True)
-owner, slug, _ = api.parse_kernel_string("gennepy/ami-e2vid-pipeline")
+owner, slug, _ = api.parse_kernel_string("kevinhong54385/ami-e2vid-pipeline")
 
 with api.build_kaggle_client() as kc:
     token = ""
@@ -253,20 +256,36 @@ for SEQ in 84 85 201 127; do
         echo "  sequence_${SEQ} KPIs → data/kpis/"
     fi
 done
-if [ -d "$TMPDIR/kpis" ]; then
+if [ -f "$TMPDIR/kpis/train_yolo.json" ]; then
     mkdir -p "${ROOT}/data/kpis"
-    cp -r "$TMPDIR/kpis/." "${ROOT}/data/kpis/"
-    echo "  kpis/ → data/kpis/"
+    cp "$TMPDIR/kpis/train_yolo.json" "${ROOT}/data/kpis/train_yolo_${RUN_ID}.json"
+    echo "  train_yolo.json → data/kpis/train_yolo_${RUN_ID}.json"
 fi
 
 # ── Copy training runs ─────────────────────────────────────────────────────────
 echo ""
 echo "--- Training runs ---"
+RUNS_DST="${ROOT}/data/yolo_runs/${RUN_ID}"
+mkdir -p "${RUNS_DST}/e2vid/weights"
+
+# weights come from yolo_runs/ in the output
 if [ -d "$TMPDIR/yolo_runs" ]; then
-    mkdir -p "${ROOT}/data/yolo_runs"
-    cp -r "$TMPDIR/yolo_runs/." "${ROOT}/data/yolo_runs/"
-    echo "  yolo_runs/ → data/yolo_runs/"
+    cp -r "$TMPDIR/yolo_runs/." "${RUNS_DST}/"
+    echo "  yolo_runs/ → data/yolo_runs/${RUN_ID}/"
 fi
+
+# training plots land in kpis/ (notebook cleanup copies them there)
+PLOTS="BoxF1_curve.png BoxPR_curve.png BoxP_curve.png BoxR_curve.png \
+       confusion_matrix.png confusion_matrix_normalized.png labels.jpg \
+       results.csv results.png \
+       train_batch0.jpg train_batch1.jpg train_batch2.jpg \
+       val_batch0_labels.jpg val_batch0_pred.jpg \
+       val_batch1_labels.jpg val_batch1_pred.jpg \
+       val_batch2_labels.jpg val_batch2_pred.jpg"
+for f in $PLOTS; do
+    [ -f "$TMPDIR/kpis/$f" ] && cp "$TMPDIR/kpis/$f" "${RUNS_DST}/e2vid/$f"
+done
+echo "  kpis/*.png/csv → data/yolo_runs/${RUN_ID}/e2vid/"
 
 # ── Copy logs ─────────────────────────────────────────────────────────────────
 echo ""
@@ -286,7 +305,7 @@ fi
 if [[ "${DOWNLOAD_FRAMES_ARG}" == "--frames" ]]; then
     echo ""
     echo "--- Reconstructed frames ---"
-    for SEQ in 84 85 201 127; do
+    for SEQ in 84 85 201 124 127; do
         SRC="$TMPDIR/data/processed/sequence_${SEQ}/reconstruction_e2vid"
         DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
         if [ -d "$SRC" ]; then
