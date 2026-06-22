@@ -58,7 +58,7 @@ echo "  scripts/train_yolo.py"
 cat > "${STAGING}/dataset-metadata.json" <<'EOF'
 {
   "title": "FRED Events AMI",
-  "id": "Gennepy/fred-events-ami",
+  "id": "kevinhong54385/fred-events-ami",
   "licenses": [{"name": "other"}]
 }
 EOF
@@ -77,5 +77,5 @@ fi
 
 echo ""
 echo "=== Done ==="
-echo "Dataset will appear at: https://www.kaggle.com/datasets/Gennepy/fred-events-ami"
+echo "Dataset will appear at: https://www.kaggle.com/datasets/kevinhong54385/fred-events-ami"
 echo "Add it to your notebook: Notebook → + Add data → Your Datasets → fred-events-ami"

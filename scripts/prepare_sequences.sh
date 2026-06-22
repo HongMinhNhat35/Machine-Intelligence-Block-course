@@ -73,11 +73,16 @@ PYEOF
         echo "    (delete ${PROC_DIR}/events.zip to force re-run)"
     else
         echo "  Step 3: Converting HDF5 → events.zip ..."
+        export HDF5_PLUGIN_PATH="/tmp"
         python3 - << PYEOF
 import sys
+import os
+os.environ['HDF5_PLUGIN_PATH'] = '/tmp'
 sys.path.insert(0, '${ROOT}/scripts')
 from reconstruct import convert_h5_to_zip
 from pathlib import Path
+import hdf5plugin
+import h5py
 convert_h5_to_zip(
     h5_path    = Path('${PROC_DIR}/events.h5'),
     zip_path   = Path('${PROC_DIR}/events.zip'),

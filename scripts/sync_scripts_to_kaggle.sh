@@ -29,7 +29,7 @@ echo "  train_yolo.py   ($(wc -c < "${ROOT}/scripts/train_yolo.py") bytes)"
 cat > "${STAGING_DATASET}/dataset-metadata.json" <<'EOF'
 {
   "title": "FRED Scripts AMI",
-  "id": "Gennepy/fred-scripts-ami",
+  "id": "kevinhong54385/fred-scripts-ami",
   "licenses": [{"name": "other"}]
 }
 EOF
@@ -52,7 +52,7 @@ cp "${ROOT}/notebooks/kaggle_launcher.ipynb" "${STAGING_NOTEBOOK}/kaggle_launche
 
 cat > "${STAGING_NOTEBOOK}/kernel-metadata.json" <<'EOF'
 {
-  "id": "Gennepy/ami-e2vid-pipeline",
+  "id": "kevinhong54385/ami-e2vid-pipeline",
   "title": "AMI E2VID Pipeline",
   "code_file": "kaggle_launcher.ipynb",
   "language": "python",
@@ -61,8 +61,8 @@ cat > "${STAGING_NOTEBOOK}/kernel-metadata.json" <<'EOF'
   "enable_gpu": true,
   "enable_internet": true,
   "dataset_sources": [
-    "gennepy/fred-events-ami",
-    "gennepy/fred-scripts-ami"
+    "kevinhong54385/fred-events-ami",
+    "kevinhong54385/fred-scripts-ami"
   ],
   "kernel_sources": []
 }
@@ -72,5 +72,5 @@ EOF
 
 echo ""
 echo "=== Done ==="
-echo "Scripts : https://www.kaggle.com/datasets/Gennepy/fred-scripts-ami"
-echo "Notebook: https://www.kaggle.com/code/Gennepy/ami-e2vid-pipeline"
+echo "Scripts : https://www.kaggle.com/datasets/kevinhong54385/fred-scripts-ami"
+echo "Notebook: https://www.kaggle.com/code/kevinhong54385/ami-e2vid-pipeline"

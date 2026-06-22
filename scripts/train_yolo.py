@@ -81,8 +81,11 @@ def parse_args():
 # ── Annotations ───────────────────────────────────────────────────────────────
 
 def load_annotations(seq_dir: Path):
-    """Parse coordinates.txt → (timestamps_s, boxes_pixels arrays)."""
+    """Parse coordinates.txt → (timestamps_s, boxes_pixels arrays), or None if file missing."""
     ann_file = seq_dir / 'coordinates.txt'
+    if not ann_file.exists():
+        print(f'  ⚠  {seq_dir.name}: coordinates.txt not found — skipping sequence')
+        return None, None
     ts_list, box_list = [], []
     for line in ann_file.read_text().splitlines():
         line = line.strip()
@@ -91,6 +94,9 @@ def load_annotations(seq_dir: Path):
         ts_str, box_str = line.split(':')
         ts_list.append(float(ts_str.strip()))
         box_list.append([float(v) for v in box_str.split(',')[:4]])
+    if not ts_list:
+        print(f'  ⚠  {seq_dir.name}: coordinates.txt is empty — skipping sequence')
+        return None, None
     ts  = np.array(ts_list)
     box = np.array(box_list)
     print(f'  {ann_file.parent.name}: {len(ts)} annotations  '
@@ -342,6 +348,8 @@ def main():
         train_matches, val_matches = [], []
         for sid in args.sequences:
             ann_t, ann_boxes = load_annotations(args.raw_root / sid)
+            if ann_t is None:
+                continue   # coordinates.txt missing or empty — already warned above
             matches = match_frames(sid, args.recon_root, ann_t, ann_boxes,
                                    args.match_threshold, args.width, args.height)
             if val_set:
