@@ -8,7 +8,7 @@ No Python, no Git, no build step — just Docker.
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
-- ~3 GB free disk space
+- ~4 GB free disk space (E2VID + HyperE2VID frames)
 
 ---
 
@@ -25,7 +25,7 @@ The script will ask two questions:
 1. **Where to store the data** — default: `~/g1-ami-data`
 2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
-It then downloads ~1.5 GB of pre-computed E2VID reconstruction frames (Run 7, events_per_pixel=0.1), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
+It then downloads ~1.5 GB of pre-computed E2VID frames (Run 7, events_per_pixel=0.1) and optionally ~485 MB of HyperE2VID frames (Run 1, events_per_frame=46080), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
 When it finishes:
 
@@ -78,7 +78,17 @@ curl -L -o /tmp/sequence_201.tar \
 mkdir -p $RECON/sequence_201 && tar xf /tmp/sequence_201.tar -C $RECON/sequence_201/
 ```
 
-### 3. Download pre-cached detections
+### 3. Download HyperE2VID frames (optional, ~485 MB)
+
+```bash
+for seq in sequence_84 sequence_85 sequence_127 sequence_201; do
+  curl -L -o /tmp/${seq}_hypere2vid.tar \
+    https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/${seq}_hypere2vid.tar
+  tar xf /tmp/${seq}_hypere2vid.tar -C $RECON/$seq/
+done
+```
+
+### 4. Download pre-cached detections
 
 ```bash
 curl -L -o /tmp/detections_e2vid_run7.tar.gz \
@@ -86,7 +96,7 @@ curl -L -o /tmp/detections_e2vid_run7.tar.gz \
 tar xzf /tmp/detections_e2vid_run7.tar.gz -C $RECON/
 ```
 
-### 4. Download the compose file and write `.env`
+### 5. Download the compose file and write `.env`
 
 > **Important:** Use an absolute path for `RECON` — Docker Compose does not expand `~` or `$HOME`.
 
@@ -100,7 +110,7 @@ RECON_DATA_PATH=$RECON
 EOF
 ```
 
-### 5. Pull images and start
+### 6. Pull images and start
 
 ```bash
 cd $RECON
@@ -127,8 +137,8 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 | Tab | What it does |
 |---|---|
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
-| **Reconstruction** | Browse reconstructed e2vid frames with playback controls. |
-| **Detection** | View YOLO bounding-box overlay. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
+| **Reconstruction** | Browse E2VID and HyperE2VID reconstructed frames side-by-side with playback controls. |
+| **Detection** | View YOLO bounding-box overlay for E2VID or HyperE2VID frames. Switch model with the radio buttons. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
 | **Comparison** | Side-by-side E2VID vs HyperE2VID view with bounding boxes and model KPIs. Late Fusion column not yet available. |
 | **KPIs** | Detection accuracy and training metrics table across all runs. |
 | **Dataset** | Per-sequence notes: event counts, annotation timing, known reconstruction quirks. |
@@ -146,14 +156,30 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 
 ---
 
-## Model — Run 7
+## Models
+
+### E2VID — Run 7
 
 | Metric | Value |
 |---|---|
 | Architecture | YOLOv8s |
-| events_per_pixel | 0.10 |
+| Reconstruction | events_per_pixel=0.10 |
+| Frames | 7,344 across 5 sequences |
 | mAP @ IoU=0.5 | **93.6%** |
 | mAP @ IoU=0.5:95 | 46.4% |
 | Precision | 97.9% |
 | Recall | 91.4% |
 | Val sequence | sequence_127 (held out) |
+
+### HyperE2VID — Run 1
+
+| Metric | Value |
+|---|---|
+| Architecture | YOLOv8n |
+| Reconstruction | events_per_frame=46080 (fixed bin size) |
+| Frames | 8,072 across 4 sequences (seq_124 missing) |
+| mAP @ IoU=0.5 | **13.2%** |
+| Precision | 25.0% |
+| Recall | 20.5% |
+| Val sequence | sequence_127 (held out) |
+| Contributor | Kevin (kevinhong54385) |

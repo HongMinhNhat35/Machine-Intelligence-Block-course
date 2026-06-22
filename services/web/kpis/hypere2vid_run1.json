@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "model": "hypere2vid",
+  "detector": "YOLOv8n",
+  "run_id": "run_1",
+  "contributor": "Kevin (kevinhong54385)",
+  "timestamp": "2026-06-22T02:30:38",
+  "note": "Run 1. HyperE2VID reconstruction with events_per_frame=46080 (fixed bin size). sequence_124 not included (not available in Kaggle input dataset). Training peaked at epoch 1 (mAP50=13.2%) then collapsed — 20-epoch patience triggered stop at epoch 21. Strong contrast with E2VID Run 7 (mAP50=93.6%). Likely causes: HyperE2VID frame style differs significantly from E2VID; 30% background frames in val sequence_127; smaller model (YOLOv8n vs YOLOv8s).",
+  "reconstruction": {
+    "sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_127"],
+    "events_per_frame": 46080,
+    "total_frames": 8072,
+    "total_runtime_s": 5889.6,
+    "avg_fps": 1.37,
+    "gpu": "Tesla T4"
+  },
+  "training": {
+    "train_sequences": ["sequence_84", "sequence_85", "sequence_201"],
+    "val_sequences": ["sequence_127"],
+    "n_train_images": 5914,
+    "n_val_images": 2158,
+    "lr0": 0.01,
+    "epochs_requested": 100,
+    "epochs_completed": 21,
+    "best_epoch": 1,
+    "n_gpus": 2,
+    "batch_per_gpu": 16,
+    "effective_batch": 32,
+    "imgsz": 640,
+    "runtime_s": 1417.6,
+    "gpu": "Tesla T4 x2"
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.1323,
+      "map50_95": 0.0277,
+      "precision": 0.2497,
+      "recall": 0.2052
+    },
+    "challenging": {
+      "map50": null,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    }
+  }
+}

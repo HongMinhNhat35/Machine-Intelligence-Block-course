@@ -144,18 +144,30 @@ tr.paper td{color:#888}
     <div id="sb-seq-block" style="display:none">
       <div class="sb-lbl" style="margin-top:4px">Sequence</div>
       <div class="sb-kv"><span class="sb-kv-key">ID</span><span class="sb-kv-val" id="sb-seq">—</span></div>
-      <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-frames">—</span></div>
-      <div class="sb-kv"><span class="sb-kv-key">Detections <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val" id="sb-dets">—</span></div>
-      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val" id="sb-map50">—</span></div>
+      <div class="sb-divider"></div>
+      <div class="sb-lbl">E2VID</div>
+      <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-e2vid-frames">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">Det <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val" id="sb-e2vid-dets">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val" id="sb-e2vid-map50">—</span></div>
+      <div class="sb-divider"></div>
+      <div class="sb-lbl">HyperE2VID</div>
+      <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-hyper-frames">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">Det <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val" id="sb-hyper-dets">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val" id="sb-hyper-map50">—</span></div>
+      <div class="sb-divider"></div>
+      <div class="sb-lbl">Late Fusion</div>
+      <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">Det <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val">—</span></div>
+      <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val">—</span></div>
       <div class="sb-divider"></div>
     </div>
     <div id="sb-extra"></div>
     <div class="sb-push"></div>
     <div class="sb-divider"></div>
     <div class="sb-lbl">Container status</div>
-    <div class="svc-row"><div class="dot dot-g"></div>e2vid · weights loaded</div>
-    <div class="svc-row"><div class="dot dot-y"></div>HyperE2VID · starting</div>
-    <div class="svc-row"><div class="dot dot-x"></div>Fusion · unreachable</div>
+    <div class="svc-row" id="sb-svc-e2vid"><div class="dot dot-x"></div>e2vid · …</div>
+    <div class="svc-row" id="sb-svc-hyper"><div class="dot dot-x"></div>HyperE2VID · …</div>
+    <div class="svc-row" id="sb-svc-fusion"><div class="dot dot-x"></div>Fusion · …</div>
   </div>
   <div class="main">
     <div class="topbar">
@@ -180,11 +192,11 @@ tr.paper td{color:#888}
           <div class="sb-divider" style="margin:10px 0"></div>
           <div class="sec-lbl">Detection pre-compute</div>
           <div id="precomp-cache-status" style="font-size:11px;color:#888;margin-bottom:8px">—</div>
-          <div class="radio-group" style="flex-direction:row;flex-wrap:wrap;gap:2px 6px;margin-bottom:8px">
-            <label class="radio-row"><input type="radio" name="pcm" value="e2vid" checked> e2vid + YOLO</label>
-            <label class="radio-row"><input type="radio" name="pcm" value="hypere2vid"> HyperE2VID + YOLO</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+            <button class="run-btn" id="precomp-e2vid-btn" data-model="e2vid"><i class="ti ti-radar"></i> E2VID</button>
+            <button class="run-btn" id="precomp-hyper-btn" data-model="hypere2vid"><i class="ti ti-radar"></i> HyperE2VID</button>
+            <button class="run-btn" id="precomp-fusion-btn" data-model="fusion" disabled title="Late Fusion not yet available" style="opacity:.4;cursor:not-allowed"><i class="ti ti-radar"></i> Late Fusion</button>
           </div>
-          <button class="run-btn" id="precomp-btn"><i class="ti ti-radar"></i> Run Detection (background)</button>
           <div id="precomp-progress" style="font-size:11px;color:#888;margin-top:6px"></div>
         </div>
       </div>
@@ -254,7 +266,7 @@ tr.paper td{color:#888}
           <div class="sb-lbl">Model</div>
           <div class="radio-group" style="flex-direction:row;flex-wrap:wrap;gap:2px 6px;margin-bottom:10px">
             <label class="radio-row"><input type="radio" name="dm" checked data-m="e2vid"> e2vid + YOLO</label>
-            <label class="radio-row"><input type="radio" name="dm" data-m="hyper"> HyperE2VID + YOLO</label>
+            <label class="radio-row"><input type="radio" name="dm" data-m="hypere2vid"> HyperE2VID + YOLO</label>
             <label class="radio-row"><input type="radio" name="dm" data-m="fusion"> Late fusion</label>
           </div>
           <div id="det-status" style="font-size:11px;color:#888"></div>
@@ -482,7 +494,12 @@ function go(k){
 document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.s)));
 document.querySelectorAll('[name="dm"]').forEach(r=>r.addEventListener('change',function(){
   document.getElementById('tb').textContent=this.closest('label').textContent.trim();
-  if(selSeq) dtLoadDetections(selSeq.id, this.dataset.m);
+  const lbl=document.getElementById('det-left-lbl');
+  if(lbl){ const pill=document.getElementById('det-pill'); lbl.innerHTML=this.closest('label').textContent.trim()+' '; if(pill) lbl.appendChild(pill); }
+  if(selSeq){
+    dtLoadDetections(selSeq.id, this.dataset.m);
+    dtLoadImage();
+  }
 }));
 let allSeqs=[], selSeq=null;
 let sharedConfPct=20, kpiCache=null;
@@ -502,8 +519,18 @@ function onSeqSelected(seq){
   if(block) block.style.display=seq ? '' : 'none';
   if(seq){
     const es=document.getElementById('sb-seq'); if(es) es.textContent=seq.id;
-    const ef=document.getElementById('sb-frames'); if(ef) ef.textContent=seq.frame_count;
-    const ed=document.getElementById('sb-dets'); if(ed) ed.textContent='—';
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    set('sb-e2vid-frames', seq.e2vid_done ? seq.frame_count : '—');
+    set('sb-e2vid-dets', '—');
+    set('sb-hyper-frames', seq.hypere2vid_done ? seq.hyper_frame_count : '—');
+    set('sb-hyper-dets', '—');
+    getKpis().then(()=>{
+      const e2vidRun=kpiCache?kpiCache.filter(r=>r.model==='e2vid').slice(-1)[0]:null;
+      const hyperRun=kpiCache?kpiCache.filter(r=>r.model==='hypere2vid').slice(-1)[0]:null;
+      const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+      set('sb-e2vid-map50', e2vidRun ? pct(e2vidRun.detection?.canonical?.map50) : '—');
+      set('sb-hyper-map50', hyperRun ? pct(hyperRun.detection?.canonical?.map50) : '—');
+    });
   }
   // update upload file status
   if(seq){
@@ -552,10 +579,13 @@ async function initBrowser(){
   document.getElementById('browser-body').innerHTML=allSeqs.length===0
     ? '<div style="padding:14px;color:#aaa;font-size:11px">No sequences found.</div>'
     : allSeqs.map(s=>{
-        const tag=s.e2vid_done
-          ? `<span class="b-tag ok">${s.frame_count} frames</span>`
-          : `<span class="b-tag">not reconstructed</span>`;
-        return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${tag}</div>`;
+        const e2vidTag=s.e2vid_done
+          ? `<span class="b-tag ok">e2vid ${s.frame_count}</span>`
+          : `<span class="b-tag">e2vid —</span>`;
+        const hyperTag=s.hypere2vid_done
+          ? `<span class="b-tag ok">hyper ${s.hyper_frame_count}</span>`
+          : `<span class="b-tag">hyper —</span>`;
+        return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${e2vidTag}${hyperTag}</div>`;
       }).join('');
   document.querySelectorAll('#browser-body .b-row').forEach(el=>{
     el.addEventListener('click',()=>{
@@ -577,7 +607,7 @@ function pbLoadImage(){
     if(pbFrame===n){
       document.getElementById('recon-img').src='/frames/'+seq+'/'+n;
       const hyperImg=document.getElementById('recon-img-hyper');
-      if(hyperImg.dataset.active==='1') hyperImg.src='/frames-hyper/'+seq+'/'+n;
+      if(hyperImg.dataset.active==='1') hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
     }
   }, 60);
 }
@@ -586,6 +616,9 @@ function pbSetFrame(n){
   pbFrame=Math.max(0,Math.min(n,pbMax));
   document.getElementById('pb-lbl').textContent='Frame '+pbFrame;
   document.getElementById('r-pill').textContent='frame '+pbFrame+' / '+pbMax;
+  const hp=document.getElementById('r-pill-hyper');
+  if(hp && document.getElementById('recon-img-hyper').dataset.active==='1')
+    hp.textContent='frame '+pbFrame;
   const gi=document.getElementById('pb-goto'); if(gi) gi.value=pbFrame;
   if(!pbDragging){
     document.getElementById('pb-sl').value=pbFrame;
@@ -616,6 +649,16 @@ function reconLoad(){
     document.getElementById('pb-sl').max=pbMax;
     document.getElementById('pb-max').textContent=pbMax;
     const gi=document.getElementById('pb-goto'); if(gi){ gi.max=pbMax; gi.value=0; }
+    // HyperE2VID panel
+    const ph=document.getElementById('hyper-placeholder');
+    const hi=document.getElementById('recon-img-hyper');
+    if(selSeq.hypere2vid_done){
+      hi.dataset.active='1'; hi.style.display='block'; ph.style.display='none';
+      document.getElementById('r-pill-hyper').textContent='frame 0';
+    } else {
+      hi.dataset.active='0'; hi.style.display='none'; ph.style.display='flex';
+      hi.src='';
+    }
   }
   document.getElementById('recon-player').style.display='block';
   if(seqChanged) pbSetFrame(0);
@@ -645,15 +688,19 @@ function dtRenderBboxes(){
   }).join('');
 }
 
+function dtGetModel(){
+  const c=document.querySelector('[name="dm"]:checked'); return c?c.dataset.m:'e2vid';
+}
+
 function dtLoadImage(){
   clearTimeout(dtImgDebounce);
-  const seq=selSeq.id, n=dtFrame;
+  const seq=selSeq.id, n=dtFrame, model=dtGetModel();
   dtImgDebounce=setTimeout(()=>{
     if(dtFrame!==n) return;
-    document.getElementById('det-img').src='/frames/'+seq+'/'+n;
+    document.getElementById('det-img').src='/frames/'+seq+'/'+n+'?model='+model;
     const img2=document.getElementById('det-img2');
     img2.onload=dtRenderBboxes;
-    img2.src='/frames/'+seq+'/'+n;
+    img2.src='/frames/'+seq+'/'+n+'?model='+model;
   }, 60);
 }
 
@@ -683,8 +730,8 @@ async function dtLoadDetections(seqId, model){
       const data=await r.json();
       dtDetections=data.detections;
       document.getElementById('det-status').textContent='Cached — '+dtDetections.length+' detections across all frames';
-      const sbD=document.getElementById('sb-dets');
-      if(sbD) sbD.textContent=dtDetections.length;
+      const sbKey=model==='hypere2vid'?'sb-hyper-dets':'sb-e2vid-dets';
+      const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent=dtDetections.length;
       dtRenderBboxes();
     } else {
       dtDetections=null;
@@ -773,12 +820,20 @@ function cpStop(){
 }
 
 function updateSidebarMap50(){
-  const el=document.getElementById('sb-map50');
-  if(!el||!kpiCache) return;
-  const runs=kpiCache.filter(r=>r.model==='e2vid');
-  if(!runs.length){ el.textContent='—'; return; }
-  const v=runs[runs.length-1].detection?.canonical?.map50;
-  el.textContent=(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+  if(!kpiCache) return;
+  const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+  const e2vidRuns=kpiCache.filter(r=>r.model==='e2vid');
+  const e2vidEl=document.getElementById('sb-e2vid-map50');
+  if(e2vidEl){
+    const v=e2vidRuns.length ? e2vidRuns[e2vidRuns.length-1].detection?.canonical?.map50 : undefined;
+    e2vidEl.textContent=pct(v);
+  }
+  const hyperRuns=kpiCache.filter(r=>r.model==='hypere2vid');
+  const hyperEl=document.getElementById('sb-hyper-map50');
+  if(hyperEl){
+    const v=hyperRuns.length ? hyperRuns[hyperRuns.length-1].detection?.canonical?.map50 : undefined;
+    hyperEl.textContent=pct(v);
+  }
 }
 
 function cpUpdateMetrics(split){
@@ -926,32 +981,35 @@ document.getElementById('det-goto').addEventListener('change',function(){ dtStop
 
 async function checkPrecomputeStatus(seqId){
   const el=document.getElementById('precomp-cache-status');
-  const model=document.querySelector('[name="pcm"]:checked')?.value||'e2vid';
-  try{
-    const r=await fetch('/api/detections/'+seqId+'?model='+model);
-    if(r.ok){
-      const data=await r.json();
-      el.textContent='Cached — '+(data.detections?.length||0)+' detections';
-      el.style.color='#16a34a';
-    } else {
-      el.textContent='Not yet computed for this model';
-      el.style.color='#888';
-    }
-  } catch(e){ el.textContent='—'; el.style.color='#888'; }
+  const parts=[];
+  for(const model of ['e2vid','hypere2vid']){
+    try{
+      const r=await fetch('/api/detections/'+seqId+'?model='+model);
+      if(r.ok){
+        const data=await r.json();
+        parts.push(model+': '+(data.detections?.length||0)+' det');
+      } else {
+        parts.push(model+': not cached');
+      }
+    } catch(e){ parts.push(model+': —'); }
+  }
+  el.textContent=parts.join(' · ');
+  el.style.color='#555';
 }
 
-document.getElementById('precomp-btn').addEventListener('click',async function(){
-  if(!selSeq||!selSeq.e2vid_done) return;
-  const model=document.querySelector('[name="pcm"]:checked')?.value||'e2vid';
+async function runPrecompute(btn, model){
+  if(!selSeq) return;
+  const frameCount=model==='hypere2vid' ? selSeq.hyper_frame_count : selSeq.frame_count;
+  if(!frameCount){ alert('No '+model+' frames available for this sequence.'); return; }
   const prog=document.getElementById('precomp-progress');
   const statusEl=document.getElementById('precomp-cache-status');
-  this.disabled=true;
-  prog.textContent='Starting…';
-  statusEl.textContent='Running…';
+  btn.disabled=true;
+  prog.textContent='['+model+'] Starting…';
+  statusEl.textContent='Running '+model+'…';
   statusEl.style.color='#888';
   try{
     const r=await fetch('/api/detect',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({sequence_id:selSeq.id,frame_count:selSeq.frame_count,model})});
+      body:JSON.stringify({sequence_id:selSeq.id,frame_count:frameCount,model})});
     const reader=r.body.getReader(), dec=new TextDecoder();
     let buf='', eventType=null;
     while(true){
@@ -963,9 +1021,9 @@ document.getElementById('precomp-btn').addEventListener('click',async function()
         if(line.startsWith('event: ')) eventType=line.slice(7).trim();
         else if(line.startsWith('data: ')){
           const data=line.slice(6).trim();
-          if(eventType==='log'||eventType==='error') prog.textContent=data;
+          if(eventType==='log'||eventType==='error') prog.textContent='['+model+'] '+data;
           if(eventType==='done'&&data==='ok'){
-            prog.textContent='Done!';
+            prog.textContent='['+model+'] Done!';
             await checkPrecomputeStatus(selSeq.id);
             if(dtLoadedSeq===selSeq.id) await dtLoadDetections(selSeq.id, model);
           }
@@ -973,13 +1031,12 @@ document.getElementById('precomp-btn').addEventListener('click',async function()
         }
       }
     }
-  } catch(e){ prog.textContent='Failed: '+e.message; }
-  this.disabled=false;
-});
+  } catch(e){ prog.textContent='['+model+'] Failed: '+e.message; }
+  btn.disabled=false;
+}
 
-document.querySelectorAll('[name="pcm"]').forEach(r=>r.addEventListener('change',function(){
-  if(selSeq) checkPrecomputeStatus(selSeq.id);
-}));
+document.getElementById('precomp-e2vid-btn').addEventListener('click',function(){ runPrecompute(this,'e2vid'); });
+document.getElementById('precomp-hyper-btn').addEventListener('click',function(){ runPrecompute(this,'hypere2vid'); });
 
 // Reconstruction slider drag tracking — prevents timer from overwriting slider position during drag
 (function(){
@@ -1023,6 +1080,7 @@ document.getElementById('pb-goto').addEventListener('change',function(){ pbStop(
 
 initBrowser();
 getKpis().then(updateSidebarMap50);
+loadAdmin();
 
 async function loadAdmin(){
   try{
@@ -1075,9 +1133,14 @@ async function loadAdmin(){
     document.getElementById('ms-fusion').textContent=ms.fusion_weights;
 
     // Sidebar status dots
-    const sbDots=document.querySelectorAll('.svc-row .dot');
-    d.services.forEach((s,i)=>{
-      if(sbDots[i]){sbDots[i].className='dot '+(dotCls[s.status]||'dot-x');}
+    const sbSvcIds={e2vid:'sb-svc-e2vid',hypere2vid:'sb-svc-hyper',fusion:'sb-svc-fusion'};
+    const sbSvcLabels={e2vid:'e2vid',hypere2vid:'HyperE2VID',fusion:'Fusion'};
+    d.services.forEach(s=>{
+      const row=document.getElementById(sbSvcIds[s.name]);
+      if(!row) return;
+      const cls='dot '+(dotCls[s.status]||'dot-x');
+      const label=sbSvcLabels[s.name]||s.name;
+      row.innerHTML=`<div class="${cls}"></div>${label} · ${s.detail}`;
     });
 
   }catch(e){

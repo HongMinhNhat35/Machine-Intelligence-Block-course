@@ -51,8 +51,10 @@ def get_sequences():
         fred_dir  = FRED_ROOT  / seq_id
         recon_dir = RECON_ROOT / seq_id
         e2vid_dir = recon_dir / "reconstruction_e2vid"
+        hyper_dir = recon_dir / "reconstruction_hypere2vid"
 
-        frames = list(e2vid_dir.glob("frame_*")) if e2vid_dir.exists() else []
+        frames       = list(e2vid_dir.glob("frame_*")) if e2vid_dir.exists() else []
+        hyper_frames = list(hyper_dir.glob("frame_*")) if hyper_dir.exists() else []
 
         # events.zip / events.h5 land in RECON_ROOT after preprocessing;
         # raw FRED extracts put the events in FRED_ROOT/seq/Event/ instead.
@@ -61,13 +63,15 @@ def get_sequences():
         has_raw_events = (fred_dir / "Event").is_dir()
 
         result.append({
-            "id":              seq_id,
-            "has_events_zip":  has_events_zip,
-            "has_events_h5":   has_events_h5,
-            "has_raw_events":  has_raw_events,
-            "has_coordinates": (fred_dir / "coordinates.txt").exists(),
-            "e2vid_done":      len(frames) > 0,
-            "frame_count":     len(frames),
+            "id":                seq_id,
+            "has_events_zip":    has_events_zip,
+            "has_events_h5":     has_events_h5,
+            "has_raw_events":    has_raw_events,
+            "has_coordinates":   (fred_dir / "coordinates.txt").exists(),
+            "e2vid_done":        len(frames) > 0,
+            "frame_count":       len(frames),
+            "hypere2vid_done":   len(hyper_frames) > 0,
+            "hyper_frame_count": len(hyper_frames),
         })
     return result
 
