@@ -47,6 +47,32 @@ def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
+@app.get("/detect_frame")
+def detect_frame_live(sequence_id: str, frame_n: int):
+    frames_dir = RECON_ROOT / sequence_id / f"reconstruction_{MODEL_NAME}"
+    if not frames_dir.exists():
+        raise HTTPException(status_code=404, detail="No reconstructed frames for this sequence")
+    if not WEIGHTS_PATH.exists():
+        raise HTTPException(status_code=503, detail="Model weights not found")
+    all_frames = sorted(frames_dir.glob("frame_*.png")) + sorted(frames_dir.glob("frame_*.jpg"))
+    frame_file = next((f for f in all_frames if int(f.stem.split("_")[-1]) == frame_n), None)
+    if frame_file is None:
+        raise HTTPException(status_code=404, detail=f"Frame {frame_n} not found")
+    model = get_model()
+    results = model(str(frame_file), verbose=False, conf=0.1)
+    boxes = []
+    for result in results:
+        for box in result.boxes:
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            boxes.append({
+                "frame":      frame_n,
+                "bbox":       [x1, y1, x2 - x1, y2 - y1],
+                "confidence": float(box.conf[0]),
+                "class":      "drone",
+            })
+    return {"frame": frame_n, "boxes": boxes}
+
+
 @app.post("/detect")
 def detect(req: DetectRequest):
     cache_path = RECON_ROOT / req.sequence_id / "detections_hypere2vid.json"
