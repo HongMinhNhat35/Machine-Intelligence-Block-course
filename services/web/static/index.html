@@ -142,8 +142,7 @@ tr.paper td{color:#888}
     <div class="nav-item" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
     <div class="sb-divider"></div>
     <div id="sb-seq-block" style="display:none">
-      <div class="sb-lbl" style="margin-top:4px">Sequence</div>
-      <div class="sb-kv"><span class="sb-kv-key">ID</span><span class="sb-kv-val" id="sb-seq">—</span></div>
+      <div class="sb-kv" style="margin-top:4px"><span class="sb-kv-key">Sequence</span><span class="sb-kv-val" id="sb-seq">—</span></div>
       <div class="sb-divider"></div>
       <div class="sb-lbl">E2VID</div>
       <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-e2vid-frames">—</span></div>
@@ -186,7 +185,6 @@ tr.paper td{color:#888}
         <div class="detected-files" id="detected-files">
           <div class="file-row" id="df-events" style="display:none"></div>
           <div class="file-row" id="df-coords" style="display:none"></div>
-          <div class="file-row" id="df-recon"  style="display:none"></div>
         </div>
         <div id="det-precompute-section" style="display:none;margin-top:10px">
           <div class="sb-divider" style="margin:10px 0"></div>
@@ -213,7 +211,7 @@ tr.paper td{color:#888}
             </div>
             <div class="frame-box">
               <div class="frame-hdr">HyperE2VID <span class="stat-pill" id="r-pill-hyper">—</span></div>
-              <div id="hyper-placeholder" class="frame-img" style="height:180px"><i class="ti ti-clock" style="font-size:20px"></i><span>not yet implemented</span></div>
+              <div id="hyper-placeholder" class="frame-img" style="height:180px"><i class="ti ti-clock" style="font-size:20px"></i><span>No frames for this sequence</span></div>
               <img id="recon-img-hyper" src="" style="width:100%;display:none;background:#e8ecf0;min-height:180px;object-fit:contain">
             </div>
           </div>
@@ -256,6 +254,7 @@ tr.paper td{color:#888}
               <button class="pb-btn" id="det-stop"><i class="ti ti-player-stop"></i> Stop</button>
               <button class="pb-btn" id="det-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
               <button class="pb-btn" id="det-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
+              <button class="pb-btn" id="det-next-det" title="Jump to next detection" style="padding:4px 9px"><i class="ti ti-crosshair"></i></button>
               <input type="number" id="det-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
               <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="det-max">0</span></span>
             </div>
@@ -296,6 +295,7 @@ tr.paper td{color:#888}
               <div class="det-img" id="cp-hyper-wrap">
                 <img id="cp-hyper-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
                 <div id="cp-hyper-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+                <div id="cp-hyper-no-frames" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>No frames for this sequence</span></div>
               </div>
               <div class="comp-metric">
                 <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-hyper-map50">—</span></div>
@@ -321,6 +321,7 @@ tr.paper td{color:#888}
               <button class="pb-btn" id="cp-stop"><i class="ti ti-player-stop"></i> Stop</button>
               <button class="pb-btn" id="cp-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
               <button class="pb-btn" id="cp-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
+              <button class="pb-btn" id="cp-next-det" title="Jump to next detection (either model)" style="padding:4px 9px"><i class="ti ti-crosshair"></i></button>
               <input type="number" id="cp-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
               <span class="pb-note">All views synced</span>
               <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="cp-max">0</span></span>
@@ -541,20 +542,15 @@ function onSeqSelected(seq){
       seq.has_events_zip||seq.has_events_h5||seq.has_raw_events);
     if(seq.has_coordinates) fileRow('df-coords','ti-map-pin','coordinates.txt','annotations',true);
     else document.getElementById('df-coords').style.display='none';
-    fileRow('df-recon',
-      seq.e2vid_done ? 'ti-check' : 'ti-clock',
-      seq.e2vid_done ? 'e2vid reconstruction ready' : 'not yet reconstructed',
-      seq.e2vid_done ? seq.frame_count+' frames' : 'run scripts/reconstruct.py',
-      seq.e2vid_done);
     document.getElementById('detected-files').style.display='flex';
     const pcSection=document.getElementById('det-precompute-section');
     if(seq.e2vid_done){
       pcSection.style.display='';
       document.getElementById('precomp-progress').textContent='';
-      checkPrecomputeStatus(seq.id);
     } else {
       pcSection.style.display='none';
     }
+    checkPrecomputeStatus(seq.id);
   }
   // update reconstruction screen
   reconLoad();
@@ -666,7 +662,7 @@ function reconLoad(){
 
 // ── Detection screen ──────────────────────────────────────────────────────────
 let dtPlaying=false, dtTimer=null, dtFrame=0, dtMax=0, dtDragging=false, dtLoadedSeq=null;
-let dtDetections=null, dtImgDebounce=null;
+let dtDetections=null, dtImgDebounce=null, dtLiveMode=false, dtLiveBoxes=[];
 
 function dtGetConf(){ return sharedConfPct/100; }
 function cpGetConf(){ return sharedConfPct/100; }
@@ -674,11 +670,16 @@ function cpGetConf(){ return sharedConfPct/100; }
 function dtRenderBboxes(){
   const bboxDiv=document.getElementById('det-bboxes');
   if(!bboxDiv) return;
-  if(!dtDetections){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
+  const conf=dtGetConf();
+  let boxes;
+  if(dtLiveMode){
+    boxes=(dtLiveBoxes||[]).filter(d=>d.confidence>=conf);
+  } else {
+    if(!dtDetections){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
+    boxes=dtDetections.filter(d=>d.frame===dtFrame && d.confidence>=conf);
+  }
   const img=document.getElementById('det-img2');
   const imgW=img.naturalWidth||1280, imgH=img.naturalHeight||720;
-  const conf=dtGetConf();
-  const boxes=dtDetections.filter(d=>d.frame===dtFrame && d.confidence>=conf);
   document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
   bboxDiv.innerHTML=boxes.map(d=>{
     const [x,y,w,h]=d.bbox;
@@ -692,14 +693,34 @@ function dtGetModel(){
   const c=document.querySelector('[name="dm"]:checked'); return c?c.dataset.m:'e2vid';
 }
 
+async function dtFetchLiveFrame(seq, n, model){
+  try{
+    const r=await fetch('/api/detect_frame/'+seq+'/'+n+'?model='+model);
+    if(!r.ok) return;
+    const data=await r.json();
+    if(dtFrame!==n || dtLoadedSeq!==seq) return;
+    dtLiveBoxes=data.boxes||[];
+    dtRenderBboxes();
+  }catch(e){}
+}
+
 function dtLoadImage(){
+  const model=dtGetModel();
+  if(model==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
+    document.getElementById('det-img').src='';
+    document.getElementById('det-img2').src='';
+    document.getElementById('det-bboxes').innerHTML='';
+    document.getElementById('det-count').textContent='—';
+    return;
+  }
   clearTimeout(dtImgDebounce);
-  const seq=selSeq.id, n=dtFrame, model=dtGetModel();
+  const seq=selSeq.id, n=dtFrame;
+  if(dtLiveMode) dtLiveBoxes=[];
   dtImgDebounce=setTimeout(()=>{
     if(dtFrame!==n) return;
     document.getElementById('det-img').src='/frames/'+seq+'/'+n+'?model='+model;
     const img2=document.getElementById('det-img2');
-    img2.onload=dtRenderBboxes;
+    img2.onload=()=>{ dtRenderBboxes(); if(dtLiveMode) dtFetchLiveFrame(seq, n, model); };
     img2.src='/frames/'+seq+'/'+n+'?model='+model;
   }, 60);
 }
@@ -724,20 +745,28 @@ function dtStop(){
 
 async function dtLoadDetections(seqId, model){
   if(!model){ const c=document.querySelector('[name="dm"]:checked'); model=c?c.dataset.m:'e2vid'; }
+  if(model==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
+    dtDetections=null; dtLiveMode=false; dtLiveBoxes=[];
+    document.getElementById('det-status').textContent='No HyperE2VID reconstruction frames for this sequence';
+    dtRenderBboxes();
+    return;
+  }
   try{
     const r=await fetch('/api/detections/'+seqId+'?model='+model);
     if(r.ok){
       const data=await r.json();
       dtDetections=data.detections;
+      dtLiveMode=false; dtLiveBoxes=[];
       document.getElementById('det-status').textContent='Cached — '+dtDetections.length+' detections across all frames';
       const sbKey=model==='hypere2vid'?'sb-hyper-dets':'sb-e2vid-dets';
       const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent=dtDetections.length;
       dtRenderBboxes();
     } else {
       dtDetections=null;
-      document.getElementById('det-status').textContent='No detections cached — pre-compute from the Upload screen';
-      const sbD=document.getElementById('sb-dets'); if(sbD) sbD.textContent='—';
-      dtRenderBboxes();
+      dtLiveMode=true; dtLiveBoxes=[];
+      document.getElementById('det-status').textContent='Live detection — running frame by frame (no cache)';
+      const sbD=document.getElementById('sb-dets'); if(sbD) sbD.textContent='live';
+      dtLoadImage();
     }
   } catch(e){}
 }
@@ -772,15 +801,21 @@ function detLoad(){
 // ── Comparison screen ─────────────────────────────────────────────────────────
 let cpPlaying=false, cpTimer=null, cpFrame=0, cpMax=0, cpDragging=false, cpLoadedSeq=null;
 let cpDetections=null, cpHyperDetections=null, cpImgDebounce=null;
+let cpLiveE2vid=false, cpLiveHyper=false, cpLiveBoxes=[], cpLiveHyperBoxes=[];
 
 function cpRenderBboxes(){
   const bboxDiv=document.getElementById('cp-e2vid-bboxes');
   if(!bboxDiv) return;
-  if(!cpDetections){ bboxDiv.innerHTML=''; return; }
+  const conf=cpGetConf();
+  let boxes;
+  if(cpLiveE2vid){
+    boxes=(cpLiveBoxes||[]).filter(d=>d.confidence>=conf);
+  } else {
+    if(!cpDetections){ bboxDiv.innerHTML=''; return; }
+    boxes=cpDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
+  }
   const img=document.getElementById('cp-e2vid-img');
   const imgW=img.naturalWidth||1280, imgH=img.naturalHeight||720;
-  const conf=cpGetConf();
-  const boxes=cpDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
   bboxDiv.innerHTML=boxes.map(d=>{
     const [x,y,w,h]=d.bbox;
     const px=(x/imgW*100).toFixed(2)+'%', py=(y/imgH*100).toFixed(2)+'%';
@@ -792,14 +827,18 @@ function cpRenderBboxes(){
 function cpLoadImage(){
   clearTimeout(cpImgDebounce);
   const seq=selSeq.id, n=cpFrame;
+  if(cpLiveE2vid) cpLiveBoxes=[];
+  if(cpLiveHyper) cpLiveHyperBoxes=[];
   cpImgDebounce=setTimeout(()=>{
     if(cpFrame!==n) return;
     const img=document.getElementById('cp-e2vid-img');
-    img.onload=cpRenderBboxes;
+    img.onload=()=>{ cpRenderBboxes(); if(cpLiveE2vid) cpFetchLiveFrame(seq, n, 'e2vid'); };
     img.src='/frames/'+seq+'/'+n;
-    const hyperImg=document.getElementById('cp-hyper-img');
-    hyperImg.onload=cpRenderHyperBboxes;
-    hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
+    if(selSeq.hypere2vid_done){
+      const hyperImg=document.getElementById('cp-hyper-img');
+      hyperImg.onload=()=>{ cpRenderHyperBboxes(); if(cpLiveHyper) cpFetchLiveFrame(seq, n, 'hypere2vid'); };
+      hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
+    }
   }, 60);
 }
 
@@ -866,17 +905,33 @@ function cpUpdateMetricsHyper(split){
 function cpRenderHyperBboxes(){
   const bboxDiv=document.getElementById('cp-hyper-bboxes');
   if(!bboxDiv) return;
-  if(!cpHyperDetections){ bboxDiv.innerHTML=''; return; }
+  const conf=cpGetConf();
+  let boxes;
+  if(cpLiveHyper){
+    boxes=(cpLiveHyperBoxes||[]).filter(d=>d.confidence>=conf);
+  } else {
+    if(!cpHyperDetections){ bboxDiv.innerHTML=''; return; }
+    boxes=cpHyperDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
+  }
   const img=document.getElementById('cp-hyper-img');
   const imgW=img.naturalWidth||1280, imgH=img.naturalHeight||720;
-  const conf=cpGetConf();
-  const boxes=cpHyperDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
   bboxDiv.innerHTML=boxes.map(d=>{
     const [x,y,w,h]=d.bbox;
     const px=(x/imgW*100).toFixed(2)+'%', py=(y/imgH*100).toFixed(2)+'%';
     const pw=(w/imgW*100).toFixed(2)+'%', ph=(h/imgH*100).toFixed(2)+'%';
     return `<div class="bbox" style="left:${px};top:${py};width:${pw};height:${ph}"><span class="bbox-lbl">${d.class} ${d.confidence.toFixed(2)}</span></div>`;
   }).join('');
+}
+
+async function cpFetchLiveFrame(seq, n, model){
+  try{
+    const r=await fetch('/api/detect_frame/'+seq+'/'+n+'?model='+model);
+    if(!r.ok) return;
+    const data=await r.json();
+    if(cpFrame!==n || cpLoadedSeq!==seq) return;
+    if(model==='hypere2vid'){ cpLiveHyperBoxes=data.boxes||[]; cpRenderHyperBboxes(); }
+    else { cpLiveBoxes=data.boxes||[]; cpRenderBboxes(); }
+  }catch(e){}
 }
 
 async function compLoad(){
@@ -889,20 +944,33 @@ async function compLoad(){
     cpStop();
     cpLoadedSeq=selSeq.id;
     cpMax=selSeq.frame_count-1;
-    cpDetections=null;
-    cpHyperDetections=null;
+    cpDetections=null; cpHyperDetections=null;
+    cpLiveE2vid=false; cpLiveHyper=false; cpLiveBoxes=[]; cpLiveHyperBoxes=[];
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
     document.getElementById('cp-max2').textContent=cpMax;
     const gi=document.getElementById('cp-goto'); if(gi){ gi.max=cpMax; gi.value=0; }
+    // Show/hide hypere2vid column based on whether frames exist
+    const cpHyperImg=document.getElementById('cp-hyper-img');
+    const cpHyperNoFrames=document.getElementById('cp-hyper-no-frames');
+    if(selSeq.hypere2vid_done){
+      cpHyperImg.style.display='block'; if(cpHyperNoFrames) cpHyperNoFrames.style.display='none';
+    } else {
+      cpHyperImg.src=''; cpHyperImg.style.display='none';
+      if(cpHyperNoFrames) cpHyperNoFrames.style.display='flex';
+    }
     fetch('/api/detections/'+selSeq.id)
       .then(r=>r.ok?r.json():null)
-      .then(data=>{ if(data){ cpDetections=data.detections; cpRenderBboxes(); } })
+      .then(data=>{ if(data){ cpDetections=data.detections; cpLiveE2vid=false; cpRenderBboxes(); }
+                    else { cpLiveE2vid=true; cpLiveBoxes=[]; } })
       .catch(()=>{});
-    fetch('/api/detections/'+selSeq.id+'?model=hypere2vid')
-      .then(r=>r.ok?r.json():null)
-      .then(data=>{ if(data){ cpHyperDetections=data.detections; cpRenderHyperBboxes(); } })
-      .catch(()=>{});
+    if(selSeq.hypere2vid_done){
+      fetch('/api/detections/'+selSeq.id+'?model=hypere2vid')
+        .then(r=>r.ok?r.json():null)
+        .then(data=>{ if(data){ cpHyperDetections=data.detections; cpLiveHyper=false; cpRenderHyperBboxes(); }
+                      else { cpLiveHyper=true; cpLiveHyperBoxes=[]; } })
+        .catch(()=>{});
+    }
   }
   panel.style.display='block';
   if(seqChanged) cpSetFrame(0);
@@ -944,6 +1012,17 @@ document.getElementById('cp-stop').addEventListener('click',()=>{ cpStop(); cpSe
 document.getElementById('cp-prev').addEventListener('click',()=>{ cpStop(); cpSetFrame(cpFrame-1); });
 document.getElementById('cp-next').addEventListener('click',()=>{ cpStop(); cpSetFrame(cpFrame+1); });
 document.getElementById('cp-goto').addEventListener('change',function(){ cpStop(); cpSetFrame(parseInt(this.value)||0); });
+document.getElementById('cp-next-det').addEventListener('click',()=>{
+  const conf=cpGetConf();
+  // collect frame indices with a detection in either cached model
+  const frameSet=new Set();
+  if(cpDetections) cpDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
+  if(cpHyperDetections) cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
+  if(!frameSet.size) return;
+  const frames=[...frameSet].sort((a,b)=>a-b);
+  const next=frames.find(f=>f>cpFrame) ?? frames[0];
+  if(next!=null){ cpStop(); cpSetFrame(next); }
+});
 
 // Detection slider drag tracking
 (function(){
@@ -968,7 +1047,7 @@ document.getElementById('det-play').addEventListener('click',function(){
   clearInterval(dtTimer); dtTimer=null;
   if(dtPlaying){
     this.innerHTML='<i class="ti ti-player-pause"></i> Pause';
-    dtTimer=setInterval(()=>{ if(!dtDragging) dtSetFrame(dtFrame>=dtMax ? 0 : dtFrame+1); }, 150);
+    dtTimer=setInterval(()=>{ if(!dtDragging) dtSetFrame(dtFrame>=dtMax ? 0 : dtFrame+1); }, dtLiveMode ? 500 : 150);
   } else {
     this.innerHTML='<i class="ti ti-player-play"></i> Play';
   }
@@ -977,19 +1056,31 @@ document.getElementById('det-play').addEventListener('click',function(){
 document.getElementById('det-stop').addEventListener('click',()=>{ dtStop(); dtSetFrame(0); });
 document.getElementById('det-prev').addEventListener('click',()=>{ dtStop(); dtSetFrame(dtFrame-1); });
 document.getElementById('det-next').addEventListener('click',()=>{ dtStop(); dtSetFrame(dtFrame+1); });
+document.getElementById('det-next-det').addEventListener('click',()=>{
+  if(!dtDetections||dtLiveMode) return;
+  const conf=dtGetConf();
+  // search forward from current frame+1, wrap around once
+  const frames=[...new Set(dtDetections.filter(d=>d.confidence>=conf).map(d=>d.frame))].sort((a,b)=>a-b);
+  const next=frames.find(f=>f>dtFrame) ?? frames[0];
+  if(next!=null){ dtStop(); dtSetFrame(next); }
+});
 document.getElementById('det-goto').addEventListener('change',function(){ dtStop(); dtSetFrame(parseInt(this.value)||0); });
 
 async function checkPrecomputeStatus(seqId){
   const el=document.getElementById('precomp-cache-status');
   const parts=[];
   for(const model of ['e2vid','hypere2vid']){
+    const sbKey=model==='hypere2vid'?'sb-hyper-dets':'sb-e2vid-dets';
     try{
       const r=await fetch('/api/detections/'+seqId+'?model='+model);
       if(r.ok){
         const data=await r.json();
-        parts.push(model+': '+(data.detections?.length||0)+' det');
+        const n=data.detections?.length||0;
+        parts.push(model+': '+n+' det');
+        const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent=n;
       } else {
         parts.push(model+': not cached');
+        const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent='—';
       }
     } catch(e){ parts.push(model+': —'); }
   }

@@ -111,6 +111,23 @@ def get_detections(seq_id: str, model: str = "e2vid"):
     return {"sequence_id": seq_id, "model": model, "detections": data.get("detections", [])}
 
 
+@app.get("/api/detect_frame/{seq_id}/{n}")
+async def detect_frame_live(seq_id: str, n: int, model: str = "e2vid"):
+    service_url = {
+        "e2vid":      E2VID_URL,
+        "hypere2vid": HYPERE2VID_URL,
+    }.get(model, E2VID_URL)
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            r = await client.get(f"{service_url}/detect_frame", params={"sequence_id": seq_id, "frame_n": n})
+            r.raise_for_status()
+            return r.json()
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail="Detection service error")
+        except Exception:
+            raise HTTPException(status_code=503, detail="Detection service unavailable")
+
+
 def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
