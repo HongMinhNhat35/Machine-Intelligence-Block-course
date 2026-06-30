@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Upload events.zip, coordinates.txt, and scripts to a Kaggle dataset.
+# Upload events.zip and coordinates.txt for Run 8 sequences to Kaggle.
 # Run once to create; re-run to update (adds a new dataset version).
+# Scripts (reconstruct.py, train_yolo.py) are in a separate dataset —
+# update them with sync_scripts_to_kaggle.sh instead.
 #
 # Prerequisites:
 #   pip install kaggle
@@ -24,7 +26,7 @@ echo "=== Staging files ==="
 rm -rf "$STAGING"
 
 # events.zip per sequence
-for SEQ in 84 85 201 127 124 44 45 46 47 146; do
+for SEQ in 44 45 46 47 146; do
     mkdir -p "${STAGING}/data/processed/sequence_${SEQ}"
     ZIP="${ROOT}/data/processed/sequence_${SEQ}/events.zip"
     if [ -f "$ZIP" ]; then
@@ -36,7 +38,7 @@ for SEQ in 84 85 201 127 124 44 45 46 47 146; do
 done
 
 # coordinates.txt per sequence
-for SEQ in 84 85 201 127 124 44 45 46 47 146; do
+for SEQ in 44 45 46 47 146; do
     mkdir -p "${STAGING}/data/raw/sequence_${SEQ}"
     COORD="${ROOT}/data/raw/sequence_${SEQ}/coordinates.txt"
     if [ -f "$COORD" ]; then
@@ -46,13 +48,6 @@ for SEQ in 84 85 201 127 124 44 45 46 47 146; do
         echo "  ✗ ${COORD} not found — skipping"
     fi
 done
-
-# scripts
-mkdir -p "${STAGING}/scripts"
-cp "${ROOT}/scripts/reconstruct.py" "${STAGING}/scripts/reconstruct.py"
-cp "${ROOT}/scripts/train_yolo.py"  "${STAGING}/scripts/train_yolo.py"
-echo "  scripts/reconstruct.py"
-echo "  scripts/train_yolo.py"
 
 # dataset metadata
 cat > "${STAGING}/dataset-metadata.json" <<'EOF'
