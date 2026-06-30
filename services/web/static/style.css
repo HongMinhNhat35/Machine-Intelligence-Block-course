@@ -1,0 +1,148 @@
+/*
+ * AMI Hybrid Vision System — Group 1
+ * File: style.css
+ *
+ * All styles for the GUI. No external CSS framework — purpose-built
+ * Organised into labelled sections:
+ *   Reset & base · App shell · Sidebar · Sidebar confidence slider
+ *   Main area · Upload (browser, files, pre-compute) · Grid layouts
+ *   Frame player · Detection overlay · Comparison cards
+ *   KPI tables · Metrics cards · Admin panel
+ */
+
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;background:#f5f5f5;color:#1a1a1a}
+
+/* ── App shell ────────────────────────────────────────────────────────────── */
+.app-wrap{display:flex;flex-direction:column;height:100vh}
+.tab-bar{display:flex;background:#fff;border-bottom:1px solid #ddd;padding:0 16px;overflow-x:auto}
+.tab{padding:10px 14px;font-size:12px;cursor:pointer;color:#666;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tab:hover{color:#333}
+.tab.active{color:#1a3a60;font-weight:600;border-bottom-color:#1a3a60}
+.app{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+.sidebar{width:190px;min-width:190px;background:#fff;border-right:1px solid #e0e0e0;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.brand{font-size:13px;font-weight:600;padding:4px 8px;margin-bottom:8px;color:#1a3a60}
+.nav-item{padding:6px 10px;border-radius:8px;cursor:pointer;color:#555;font-size:12px;display:flex;align-items:center;gap:7px;transition:background .15s}
+.nav-item:hover{background:#f0f4f8}
+.nav-item.active{background:#e8f0fb;color:#1a3a60;font-weight:600}
+.sb-divider{border-top:1px solid #eee;margin:6px 0;flex-shrink:0}
+.sb-lbl{font-size:10px;color:#888;padding:0 8px;margin-top:6px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.sb-kv{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;font-size:11px}
+.sb-kv-key{color:#888}
+.sb-kv-val{font-weight:600;color:#1a3a60;text-align:right;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-push{flex:1}
+
+/* ── Sidebar confidence slider (injected by go()) ─────────────────────────── */
+.radio-group{display:flex;flex-direction:column;gap:2px}
+.radio-row{display:flex;align-items:center;gap:7px;font-size:12px;padding:4px 8px;cursor:pointer}
+.radio-row input{accent-color:#1a3a60}
+.conf-wrap{padding:0 8px;margin-top:4px}
+.conf-top{display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:3px}
+.conf-top span:last-child{font-weight:600;color:#1a3a60}
+
+/* ── Main area ────────────────────────────────────────────────────────────── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-width:0;background:#f8f9fa}
+.topbar{padding:10px 18px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;gap:10px;background:#fff}
+.topbar-title{font-size:14px;font-weight:600}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;background:#e8f0fb;color:#1a3a60;font-weight:500}
+.content{flex:1;padding:16px 18px;overflow-y:auto}
+.screen{display:none}.screen.active{display:block}
+.sec-lbl{font-size:12px;font-weight:600;margin-bottom:8px;color:#333}
+
+/* ── Upload — sequence browser ────────────────────────────────────────────── */
+.browser{border:1px solid #ddd;border-radius:10px;overflow:hidden;margin-bottom:12px;background:#fff}
+.browser-bar{padding:5px 12px;background:#f5f5f5;border-bottom:1px solid #ddd;font-size:11px;color:#888;display:flex;align-items:center;gap:5px}
+.browser-body{padding:4px 0;max-height:40vh;overflow-y:auto}
+.b-row{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;cursor:pointer;transition:background .1s}
+.b-row:hover{background:#f0f4f8}
+.b-row.selected{background:#e8f0fb;color:#1a3a60;font-weight:500}
+.b-tag{margin-left:auto;font-size:10px;padding:2px 7px;border-radius:20px;background:#f0f0f0;color:#666;border:1px solid #e0e0e0}
+.b-tag.ok{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+
+/* ── Upload — detected files & pre-compute ────────────────────────────────── */
+.detected-files{border:1px solid #ddd;border-radius:10px;padding:8px 12px;margin-bottom:12px;display:none;flex-direction:column;gap:6px;background:#fff}.detected-files .file-row{display:flex;align-items:center;gap:8px}
+.file-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.file-tag{font-size:10px;padding:2px 7px;border-radius:20px;background:#f0f0f0;color:#666;border:1px solid #e0e0e0}
+.file-tag.ok{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+.cb-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.cb-row{display:flex;align-items:center;gap:9px;font-size:12px;padding:7px 12px;border:1px solid #e0e0e0;border-radius:8px;background:#fff;cursor:pointer}
+.cb-row input{accent-color:#1a3a60}
+.run-btn{width:100%;padding:9px;border-radius:8px;border:1px solid #1a3a60;background:#1a3a60;cursor:pointer;font-size:13px;font-weight:600;color:#fff;transition:background .15s}
+.run-btn:hover:not(:disabled){background:#2d5a8e}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;background:#888;border-color:#888}
+
+/* ── Grid layouts ─────────────────────────────────────────────────────────── */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+
+/* ── Frame player ─────────────────────────────────────────────────────────── */
+.frame-box{border:1px solid #ddd;border-radius:10px;overflow:hidden;background:#fff}
+.frame-hdr{padding:6px 10px;background:#f5f5f5;font-size:12px;font-weight:600;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;align-items:center}
+.frame-img{background:#e8ecf0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;flex-direction:column;gap:4px}
+.frame-img i{font-size:24px}
+.frame-ftr{padding:5px 10px;font-size:10px;color:#888;display:flex;gap:12px;background:#fafafa;border-top:1px solid #eee}
+.stat-pill{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#555}
+.playback{border:1px solid #ddd;border-radius:10px;padding:8px 12px;margin-bottom:10px;background:#fff}
+.pb-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pb-btn{padding:4px 12px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:12px;color:#333;display:flex;align-items:center;gap:5px;transition:background .1s}
+.pb-btn:hover{background:#f0f0f0}
+.pb-frame{font-size:12px;color:#888;margin-left:auto}
+.pb-note{font-size:11px;color:#aaa;margin-left:4px}
+.pb-slider{width:100%;margin-bottom:3px;accent-color:#1a3a60}
+.pb-range{display:flex;justify-content:space-between;font-size:10px;color:#aaa}
+
+/* ── Detection overlay & bounding boxes ───────────────────────────────────── */
+.det-img{position:relative;background:#e8ecf0}
+.bbox{position:absolute;border:2px solid #3490dc;border-radius:3px}
+.bbox-lbl{position:absolute;top:-18px;left:0;font-size:9px;background:#3490dc;color:#fff;padding:2px 5px;border-radius:3px;white-space:nowrap}
+.res-info{position:absolute;bottom:6px;right:8px;font-size:10px;color:#999}
+
+/* ── Comparison cards ─────────────────────────────────────────────────────── */
+.comp-card{border:1px solid #ddd;border-radius:10px;overflow:hidden;background:#fff}
+.comp-hdr{padding:6px 10px;background:#f5f5f5;font-size:12px;font-weight:600;border-bottom:1px solid #ddd}
+.comp-metric{padding:6px 10px;display:flex;flex-direction:column;gap:3px}
+.c-row{display:flex;justify-content:space-between;font-size:11px}
+.c-key{color:#888}
+
+/* ── KPI tables ───────────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:7px 10px;text-align:left;background:#1a3a60;color:#fff;font-weight:600;font-size:11px}
+td{padding:7px 10px;border:1px solid #e0e0e0}
+tr:nth-child(even) td{background:#f8f9fa}
+tr.ours td{background:#eaf1fa}
+tr.ours td:first-child{font-weight:600}
+tr.paper td{color:#888}
+.tbl-title{font-size:13px;font-weight:600;margin-bottom:6px;margin-top:14px;color:#333}
+
+/* ── Metrics cards (unused, kept for future use) ──────────────────────────── */
+.metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.m-card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:10px 12px;text-align:center}
+.m-val{font-size:20px;font-weight:600;color:#1a3a60}
+.m-lbl{font-size:10px;color:#888;margin-top:2px}
+
+/* ── Admin panel ──────────────────────────────────────────────────────────── */
+.adm-card{border:1px solid #ddd;border-radius:10px;padding:12px 14px;margin-bottom:12px;background:#fff}
+.adm-title{font-size:12px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px;color:#1a3a60}
+.adm-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:12px;gap:12px}
+.adm-row:last-child{border-bottom:none}
+.adm-key{color:#666;flex-shrink:0}
+.adm-mono{font-family:monospace;font-size:11px;color:#555;text-align:right;word-break:break-all}
+.svc-adm{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.svc-adm:last-child{border-bottom:none}
+.svc-left{display:flex;align-items:center;gap:7px}
+.svc-port{font-size:10px;color:#888;font-family:monospace}
+.svc-detail{font-size:11px;color:#888}
+.restart-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#333;transition:background .1s}
+.restart-btn:hover{background:#f0f0f0}
+.vol-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.vol-row:last-child{border-bottom:none}
+.vol-row i{font-size:16px}
+.vol-ok{color:#16a34a}.vol-warn{color:#d97706}
+.seq-badges{display:flex;gap:5px;flex-wrap:wrap;margin:4px 0 6px 24px}
+.seq-badge{font-size:10px;padding:2px 7px;border-radius:20px}
+.sb-ok{background:#dcfce7;color:#166534}
+.sb-warn{background:#fef3c7;color:#92400e}
