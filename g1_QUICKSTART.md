@@ -25,7 +25,7 @@ The script will ask two questions:
 1. **Where to store the data** — default: `~/g1-ami-data`
 2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
-It then downloads ~1.5 GB of pre-computed E2VID frames (Run 7, events_per_pixel=0.1) and optionally ~485 MB of HyperE2VID frames (Run 1, events_per_frame=46080), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
+It then downloads ~1.5 GB of pre-computed E2VID frames (Run 7, events_per_pixel=0.1) and optionally ~294 MB of HyperE2VID frames (Run 2, events_per_frame=46080, 5 sequences), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
 When it finishes:
 
@@ -78,12 +78,12 @@ curl -L -o /tmp/sequence_201.tar \
 mkdir -p $RECON/sequence_201 && tar xf /tmp/sequence_201.tar -C $RECON/sequence_201/
 ```
 
-### 3. Download HyperE2VID frames (optional, ~485 MB)
+### 3. Download HyperE2VID frames (optional, ~294 MB, Run 2)
 
 ```bash
-for seq in sequence_84 sequence_85 sequence_127 sequence_201; do
+for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
   curl -L -o /tmp/${seq}_hypere2vid.tar \
-    https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/${seq}_hypere2vid.tar
+    https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0/${seq}_hypere2vid.tar
   tar xf /tmp/${seq}_hypere2vid.tar -C $RECON/$seq/
 done
 ```
@@ -91,9 +91,15 @@ done
 ### 4. Download pre-cached detections
 
 ```bash
+# E2VID (Run 7 — YOLOv8s, mAP@0.5=93.6%)
 curl -L -o /tmp/detections_e2vid_run7.tar.gz \
   https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/detections_e2vid_run7.tar.gz
 tar xzf /tmp/detections_e2vid_run7.tar.gz -C $RECON/
+
+# HyperE2VID (Run 2 — YOLOv8n, mAP@0.5=56.7%) — only needed if you downloaded HyperE2VID frames above
+curl -L -o /tmp/detections_hypere2vid_run2.tar.gz \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0/detections_hypere2vid_run2.tar.gz
+tar xzf /tmp/detections_hypere2vid_run2.tar.gz -C $RECON/
 ```
 
 ### 5. Download the compose file and write `.env`

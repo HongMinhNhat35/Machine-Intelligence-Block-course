@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "model": "e2vid",
+  "detector": "YOLOv8s",
+  "run_id": "run_8",
+  "contributor": "Klaus",
+  "timestamp": "2026-06-30T15:17:52",
+  "note": "Run 8. New sequence set (44/45/46/47 train, 146 val) selected by annotation quality score. events_per_pixel=0.1. Training failed to converge: sequences 44–47 are event-sparse (13–23M events each, 75–128 MB events.zip vs 530–882 MB for Run 7 sequences). Only 736 train frames total at epp=0.1 — insufficient for YOLO. Early stopping at epoch 47 (patience=20, best at epoch 27, mAP50=0.022). Weights not deployed; Run 7 weights remain active. Lesson: sequence selection must include minimum event density (≥ 500 MB events.zip or ≥ 1M events/s) as a hard filter.",
+  "reconstruction": {
+    "sequences": [
+      "sequence_44",
+      "sequence_45",
+      "sequence_46",
+      "sequence_47",
+      "sequence_146"
+    ],
+    "events_per_pixel": 0.1,
+    "total_frames": 2416,
+    "total_runtime_s": null,
+    "avg_fps": null,
+    "gpu": "Tesla T4 x2"
+  },
+  "training": {
+    "train_sequences": [
+      "sequence_44",
+      "sequence_45",
+      "sequence_46",
+      "sequence_47"
+    ],
+    "val_sequences": [
+      "sequence_146"
+    ],
+    "n_train_images": 736,
+    "n_val_images": 1680,
+    "lr0": 0.01,
+    "epochs_requested": 100,
+    "epochs_completed": 47,
+    "best_epoch": 27,
+    "n_gpus": 2,
+    "batch_per_gpu": 8,
+    "effective_batch": 16,
+    "imgsz": 640,
+    "runtime_s": null,
+    "gpu": "Tesla T4 x2"
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.022,
+      "map50_95": 0.009,
+      "precision": 0.345,
+      "recall": 0.022
+    },
+    "challenging": {
+      "map50": null,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    }
+  }
+}

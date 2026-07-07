@@ -1,0 +1,60 @@
+{
+  "schema_version": "1.0",
+  "model": "hypere2vid",
+  "detector": "YOLOv8n",
+  "run_id": "run_2",
+  "contributor": "Kevin (kevinhong54385)",
+  "timestamp": "2026-07-02T13:48:26",
+  "note": "Run 2. Same reconstruction parameters as Run 1 (events_per_frame=46080) but adds sequence_124 (6,609 frames). Training on 4 sequences (84/85/201/124) vs 3 in Run 1. mAP50 improves from 0.132 to 0.567 — adding sequence_124 and doubling the training set is the likely driver. Best epoch 13, stopped at 54 (patience=20).",
+  "reconstruction": {
+    "sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_124",
+      "sequence_201",
+      "sequence_127"
+    ],
+    "events_per_frame": 46080,
+    "total_frames": 14681,
+    "total_runtime_s": 10041.9,
+    "avg_fps": 1.46,
+    "gpu": "Tesla T4"
+  },
+  "training": {
+    "train_sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_201",
+      "sequence_124"
+    ],
+    "val_sequences": [
+      "sequence_127"
+    ],
+    "n_train_images": 12523,
+    "n_val_images": 2158,
+    "lr0": 0.01,
+    "epochs_requested": 100,
+    "epochs_completed": 54,
+    "best_epoch": 13,
+    "n_gpus": 2,
+    "batch_per_gpu": 8,
+    "effective_batch": 16,
+    "imgsz": 640,
+    "runtime_s": 8478.2,
+    "gpu": "Tesla T4 x2"
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.5668,
+      "map50_95": 0.2128,
+      "precision": 0.8255,
+      "recall": 0.5263
+    },
+    "challenging": {
+      "map50": null,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    }
+  }
+}

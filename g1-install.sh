@@ -62,29 +62,35 @@ download_seq sequence_124 sequence_124.tar
 download_seq sequence_127 sequence_127.tar
 download_seq sequence_201 sequence_201.tar
 
-echo "Download HyperE2VID reconstruction frames? (~485 MB, 4 sequences, Run 1 — events_per_frame=46080)"
+echo "Download HyperE2VID reconstruction frames? (~294 MB, 5 sequences, Run 2 — events_per_frame=46080, mAP@0.5=56.7%)"
 read -rp "Download HyperE2VID frames? [y/N]: " DL_HYPER
 DL_HYPER="${DL_HYPER:-N}"
 if [[ "$DL_HYPER" =~ ^[Yy] ]]; then
   echo ""
-  echo "Downloading HyperE2VID frames ..."
-  for seq in sequence_84 sequence_85 sequence_127 sequence_201; do
+  echo "Downloading HyperE2VID frames (Run 2) ..."
+  RELEASE_V3="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0"
+  for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
     target="$RECON/$seq/reconstruction_hypere2vid"
     if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
       echo "  [skip] $seq hypere2vid — already exists"
       continue
     fi
     echo "  [$seq] Downloading HyperE2VID frames ..."
-    curl -L --progress-bar -o "/tmp/${seq}_hypere2vid.tar" "$RELEASE/${seq}_hypere2vid.tar"
+    curl -L --progress-bar -o "/tmp/${seq}_hypere2vid.tar" "$RELEASE_V3/${seq}_hypere2vid.tar"
     echo "  [$seq] Extracting ..."
     tar xf "/tmp/${seq}_hypere2vid.tar" -C "$RECON/$seq/"
     rm "/tmp/${seq}_hypere2vid.tar"
     echo "  [$seq] Done"
   done
   echo ""
+  echo "Downloading pre-cached HyperE2VID detections (Run 2 — YOLOv8n, mAP@0.5=56.7%) ..."
+  curl -L --progress-bar -o /tmp/detections_hypere2vid_run2.tar.gz "$RELEASE_V3/detections_hypere2vid_run2.tar.gz"
+  tar xzf /tmp/detections_hypere2vid_run2.tar.gz -C "$RECON/"
+  rm /tmp/detections_hypere2vid_run2.tar.gz
+  echo ""
 fi
 
-echo "Downloading pre-cached detections (Run 7 — YOLOv8s, mAP@0.5=93.6%) ..."
+echo "Downloading pre-cached E2VID detections (Run 7 — YOLOv8s, mAP@0.5=93.6%) ..."
 curl -L --progress-bar -o /tmp/detections_e2vid_run7.tar.gz "$RELEASE/detections_e2vid_run7.tar.gz"
 tar xzf /tmp/detections_e2vid_run7.tar.gz -C "$RECON/"
 rm /tmp/detections_e2vid_run7.tar.gz
