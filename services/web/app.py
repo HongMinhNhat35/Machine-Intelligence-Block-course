@@ -56,6 +56,9 @@ def get_sequences():
         frames       = list(e2vid_dir.glob("frame_*")) if e2vid_dir.exists() else []
         hyper_frames = list(hyper_dir.glob("frame_*")) if hyper_dir.exists() else []
 
+        rgb_dir      = fred_dir / "RGB"
+        fred_rgb_frames = list(rgb_dir.glob("*")) if rgb_dir.exists() else []
+
         # events.zip / events.h5 land in RECON_ROOT after preprocessing;
         # raw FRED extracts put the events in FRED_ROOT/seq/Event/ instead.
         has_events_zip = (recon_dir / "events.zip").exists()
@@ -72,6 +75,7 @@ def get_sequences():
             "frame_count":       len(frames),
             "hypere2vid_done":   len(hyper_frames) > 0,
             "hyper_frame_count": len(hyper_frames),
+            "fred_rgb_count":    len(fred_rgb_frames),
         })
     return result
 

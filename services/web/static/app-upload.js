@@ -42,6 +42,8 @@ function onSeqSelected(seq){
     set('sb-e2vid-dets', '—');
     set('sb-hyper-frames', seq.hypere2vid_done ? seq.hyper_frame_count : '—');
     set('sb-hyper-dets', '—');
+    set('sb-fusion-frames', seq.fred_rgb_count > 0 ? seq.fred_rgb_count : '—');
+    set('sb-fusion-dets', '—');
     getKpis().then(()=>{
       const e2vidRun=kpiCache?kpiCache.filter(r=>r.model==='e2vid').slice(-1)[0]:null;
       const hyperRun=kpiCache?kpiCache.filter(r=>r.model==='hypere2vid').slice(-1)[0]:null;
@@ -93,7 +95,10 @@ async function initBrowser(){
         const hyperTag=s.hypere2vid_done
           ? `<span class="b-tag ok">hyper ${s.hyper_frame_count}</span>`
           : `<span class="b-tag">hyper —</span>`;
-        return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${e2vidTag}${hyperTag}</div>`;
+        const fusionTag=s.fred_rgb_count>0
+          ? `<span class="b-tag ok">fusion ${s.fred_rgb_count}</span>`
+          : `<span class="b-tag">fusion —</span>`;
+        return `<div class="b-row" data-val="${s.id}"><i class="ti ti-folder-open" style="color:#f59e0b"></i> ${s.id}${e2vidTag}${hyperTag}${fusionTag}</div>`;
       }).join('');
   document.querySelectorAll('#browser-body .b-row').forEach(el=>{
     el.addEventListener('click',()=>{
@@ -137,9 +142,8 @@ async function checkPrecomputeStatus(seqId){
 // the same sequence is still loaded there.
 async function runPrecompute(btn, model){
   if(!selSeq) return;
-  // fusion uses FRED raw frames — pass e2vid frame count as upper bound;
-  // the fusion service caps at the actual number of paired RGB/event frames
-  const frameCount=model==='hypere2vid' ? selSeq.hyper_frame_count : selSeq.frame_count;
+  const frameCount=model==='fusion'     ? selSeq.fred_rgb_count :
+                   model==='hypere2vid' ? selSeq.hyper_frame_count : selSeq.frame_count;
   if(!frameCount){ alert('No '+model+' frames available for this sequence.'); return; }
   const prog=document.getElementById('precomp-progress');
   const statusEl=document.getElementById('precomp-cache-status');
