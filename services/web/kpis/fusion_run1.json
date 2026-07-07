@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "model": "fusion",
+  "detector": "YOLOv8n (rgb+event)",
+  "run_id": "run_1",
+  "contributor": "placeholder",
+  "timestamp": "2026-07-07T00:00:00",
+  "note": "Placeholder KPI — late fusion combining separate RGB and event YOLO models. mAP50=0.50 is a stand-in until evaluation is run on the test set.",
+  "reconstruction": {
+    "sequences": null,
+    "events_per_frame": null,
+    "total_frames": null,
+    "total_runtime_s": null,
+    "avg_fps": null,
+    "gpu": null
+  },
+  "training": {
+    "train_sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_124"],
+    "val_sequences": ["sequence_127"],
+    "n_train_images": null,
+    "n_val_images": null,
+    "lr0": null,
+    "epochs_requested": null,
+    "epochs_completed": null,
+    "best_epoch": null,
+    "n_gpus": null,
+    "batch_per_gpu": null,
+    "effective_batch": null,
+    "imgsz": 640,
+    "runtime_s": null,
+    "gpu": null
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.5,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    },
+    "challenging": {
+      "map50": null,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    }
+  }
+}
