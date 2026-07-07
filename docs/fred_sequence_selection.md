@@ -34,6 +34,9 @@ HTTP Range requests — no event data is needed. For 231 sequences this takes
 ```bash
 /home/bani/.local/share/pipx/venvs/kaggle/bin/python3 \
     scripts/analyze_fred_sequences.py --plot
+
+# Lower the event density threshold if you want to inspect sparse sequences too:
+python scripts/analyze_fred_sequences.py --min-event-mb 200
 ```
 
 ---
@@ -74,7 +77,30 @@ A training set dominated by tiny annotations is harder but more representative
 of real deployment. A mixed distribution (60–75% tiny, 25–40% small) gives
 the model exposure to multiple scales.
 
-### 6. Spatial spread (`cx_std + cy_std`)
+### 6. Event data size (`event_data_mb`)  ← **added after Run 8**
+
+Uncompressed size of `events.hdf5` inside the FRED sequence zip, read from the
+ZIP Central Directory in the same HTTP request as `coordinates.txt` — no extra download.
+Cached alongside coordinates.txt so re-runs are instant.
+
+This is the **critical filter** the original analysis was missing. Sequences 44–47 scored
+top-4 for training by annotation quality but yielded only 736 training frames at epp=0.1
+because their event streams are 10–18× sparser than the Run 7 sequences:
+
+| Sequence | events.hdf5 (est.) | Train frames at epp=0.1 |
+|---|---|---|
+| sequence_84  | ~2.2 GB | 1,539 |
+| sequence_201 | ~2.0 GB | 1,268 |
+| sequence_44  | ~0.12 GB | 193 |
+| sequence_47  | ~0.10 GB | 160 |
+
+**Hard filter:** sequences with `event_data_mb < 500` are excluded from the
+recommended split. The threshold can be adjusted with `--min-event-mb`.
+
+A minimum of ~500 MB (≈ 1,500+ frames at epp=0.1) ensures YOLO has enough examples
+to converge. Run 7 sequences ranged from 1.2–6.0 GB.
+
+### 7. Spatial spread (`cx_std + cy_std`)
 Standard deviation of drone centroid position (x and y separately, normalised
 to [0,1]). Low spread means the drone always appears in the same region of the
 frame — the model can cheat by using position rather than appearance.
@@ -89,11 +115,15 @@ characteristics differ meaningfully from training.
 
 ### Training score (higher = better)
 ```
-train_score = 0.4 × norm_ann + 0.4 × norm_spread + 0.2 × size_diversity
+train_score = 0.30 × norm_ann + 0.30 × norm_spread + 0.15 × size_diversity + 0.25 × norm_events
 ```
-- `norm_ann` = min(n_ann / 3000, 1)
+- `norm_ann`    = min(n_ann / 3000, 1)
 - `norm_spread` = min(spatial_spread / 0.4, 1)
 - `size_diversity` = min((small_pct + medium_pct) / 30, 1) — rewards mixed sizes
+- `norm_events` = min(event_data_mb / 500, 1) — **new**: penalises event-sparse sequences
+
+Sequences below `--min-event-mb` (default 500 MB) are excluded from recommendations
+entirely, regardless of score.
 
 ### Validation score (higher = better)
 ```
@@ -107,65 +137,74 @@ val_score = 0.4 × norm_ann + 0.3 × area_diff + 0.3 × hardness
 
 ## Results across all 231 sequences
 
-### Top training candidates
+Last run: 2026-06-30, all 231 sequences, `--min-event-mb 500`.
 
-| Seq | N_ann | Area% | Tiny% | Sm% | Spread | Score |
-|---|---|---|---|---|---|---|
-| sequence_47 | 5,066 | 0.323 | 62 | 36 | 0.431 | 1.000 |
-| sequence_44 | 2,925 | 0.299 | 68 | 30 | 0.428 | 0.990 |
-| sequence_45 | 4,989 | 0.247 | 74 | 26 | 0.428 | 0.973 |
-| sequence_46 | 5,073 | 0.293 | 72 | 27 | 0.381 | 0.971 |
-| sequence_20 | 2,993 | 0.355 | 59 | 38 | 0.364 | 0.963 |
+### Top training candidates (event-dense, ≥ 500 MB)
 
-Sequences 44–47 form a cluster: high annotation counts, good spatial spread,
-and mixed tiny/small distributions. They were likely recorded in the same
-session (similar scene/conditions), which is a mild concern for diversity but
-outweighed by their label richness.
+| Seq | N_ann | EvMB | Area% | Tiny% | Sm% | Spread | Score |
+|---|---|---|---|---|---|---|---|
+| sequence_201 | 2,846 | 2,114 | 0.325 | 55 | 45 | 0.338 | 0.938 |
+| sequence_215 | 5,790 |   612 | 0.661 | 24 | 65 | 0.316 | 0.937 |
+| sequence_212 | 6,769 |   553 | 0.405 | 28 | 72 | 0.311 | 0.933 |
+| sequence_214 | 6,288 |   622 | 0.527 | 26 | 68 | 0.293 | 0.920 |
+| sequence_213 | 6,900 |   571 | 0.497 | 22 | 74 | 0.264 | 0.898 |
+
+Sequences 212–216 form a new cluster with the highest annotation counts in the
+dataset (5,790–6,900 per sequence). All are event-dense (500–650 MB).
+
+Run 7 sequences for comparison: sequence_84 now ranks 17th (score 0.832),
+sequence_85 9th-best validation. The new top-4 offers ~2–3× more annotations
+per sequence than the Run 7 training set.
+
+### Excluded — event-sparse (< 500 MB)
+
+| Seq | N_ann | EvMB | Score | Notes |
+|---|---|---|---|---|
+| sequence_45 | 4,989 | 469 | 0.964 | Just below threshold; would rank #1 without filter |
+| sequence_44 | 2,925 | 356 | 0.921 | |
+| sequence_47 | 5,066 | 263 | 0.881 | |
+| sequence_46 | 5,073 | 272 | 0.864 | |
+
+These were selected for Run 8 (no event filter). At epp=0.1 they produced only
+736 training frames total → mAP50=0.022 (noise level). See `kpis/e2vid_run8.json`.
 
 ### Top validation candidates
 
-| Seq | N_ann | Area% | Tiny% | Spread | Score |
-|---|---|---|---|---|---|
-| sequence_146 | 2,910 | 0.076 | 98 | 0.171 | 0.876 |
-| sequence_147 | 3,369 | 0.088 | 98 | 0.225 | 0.860 |
-| sequence_151 | 3,059 | 0.089 | 98 | 0.178 | 0.858 |
-| sequence_220 | 3,281 | 0.093 | 100 | 0.201 | 0.848 |
-| sequence_148 | 2,862 | 0.090 | 98 | 0.172 | 0.836 |
+| Seq | N_ann | EvMB | Area% | Tiny% | Spread | Score |
+|---|---|---|---|---|---|---|
+| sequence_146 | 2,910 | 3,234 | 0.076 | 98 | 0.171 | 0.876 |
+| sequence_147 | 3,369 |   528 | 0.088 | 98 | 0.225 | 0.860 |
+| sequence_151 | 3,059 |   810 | 0.089 | 98 | 0.178 | 0.858 |
+| sequence_148 | 2,862 |   584 | 0.090 | 98 | 0.172 | 0.836 |
+| sequence_131 | 3,021 |   544 | 0.106 | 97 | 0.276 | 0.819 |
 
-These sequences have the smallest drones in the dataset (area 0.076–0.106%,
-97–100% tiny). They form a principled challenge set: the model must generalise
-to much harder detections than it saw in training.
+sequence_146 is confirmed as the best validation choice: 3,234 MB event data
+(most dense of all val candidates), 98% tiny drone — hardest challenge set.
 
-### Recommended split
+### Recommended split — Run 9
 
 ```
-Train : sequence_47, sequence_44, sequence_45, sequence_46
+Train : sequence_201, sequence_215, sequence_212, sequence_214
 Val   : sequence_146
 ```
 
+Estimated training frames at epp=0.1: ~10,000–15,000 (vs 6,264 in Run 7).
+
 ---
 
-## Current team selection — where it stands
+## Run history — where selections stand
 
-| Seq | Role | Train rank | Val rank | Notes |
+| Run | Train seqs | Val | mAP50 | Notes |
 |---|---|---|---|---|
-| sequence_84 | train | 108 / 231 | 44 | Mediocre for training; actually decent for val |
-| sequence_85 | train | 143 / 231 | 32 | Very similar to seq_84; redundant |
-| sequence_201 | train | **14** / 231 | 149 | Best of the current train set; large drone (0.325%) |
-| sequence_127 | val | 224 / 231 | 201 | One of the worst choices for both purposes |
+| Run 5–7 | 84, 85, 201, 124 | 127 | 0.936 (R7) | seq_127 worst val choice (rank 201/231); seq_84/85 redundant |
+| Run 8 | 44, 45, 46, 47 | 146 | 0.022 | Failed — seqs 44–47 event-sparse (263–469 MB), only 736 train frames |
+| Run 9 (planned) | 201, 212, 214, 215 | 146 | — | New event-dense sequences; ~10–15k estimated train frames |
 
-**seq_127 is the most problematic.** It is the shortest sequence (40s usable),
-has the fewest annotations (1,181), the worst spatial spread (0.236), and ranks
-201st out of 231 as a validation sequence. The mAP50=0.29 from the current run
-reflects both genuine model limitations *and* a poor measurement setup.
+**seq_201** is the only overlap between Run 7 and Run 9 — it remains the top-ranked
+sequence even with the event density filter (2,114 MB).
 
-**seq_84 and seq_85 are redundant.** Both have nearly identical area (0.141 vs
-0.132%), size distribution (95–98% tiny), and spatial spread. Using both in
-training provides minimal additional diversity.
-
-**seq_201 is the only solid choice** in the current set (train rank 14), but its
-large drone (0.325%) relative to the validation drone (0.145%) creates a
-scale mismatch that artificially deflates mAP on validation.
+**seqs 212, 214, 215** are newly identified — the highest annotation counts in the
+dataset (5,790–6,769 per sequence), not previously downloaded.
 
 ---
 

@@ -20,7 +20,7 @@ trap "rm -f $SCRIPT" EXIT
 
 DOWNLOAD_FRAMES_ARG=""
 DOWNLOAD_FRAMES_ZIP=false
-RUN_ID="run6"
+RUN_ID="run8"
 for arg in "$@"; do
     case "$arg" in
         --frames)      DOWNLOAD_FRAMES_ARG="--frames" ;;
@@ -162,7 +162,7 @@ if [ "$DOWNLOAD_FRAMES_ZIP" = true ]; then
     echo "=== Downloading frames_e2vid.zip ==="
     # Use Python paginator to find and download the zip (kernels output --file-pattern
     # is unreliable for large outputs; we use a direct API download instead).
-    ZIPFILE="$TMPDIR/frames_e2vid.zip"
+    ZIPFILE="$TMPDIR/frames_e2vid_run8.zip"
     if [ ! -f "$ZIPFILE" ]; then
         python3 - "$TMPDIR" << 'PYEOF'
 import sys
@@ -184,11 +184,11 @@ with api.build_kaggle_client() as kc:
         if token: req.page_token = token
         resp = kc.kernels.kernels_api_client.list_kernel_session_output(req)
         for item in (resp.files or []):
-            if item.file_name == "frames_e2vid.zip":
+            if item.file_name == "frames_e2vid_run8.zip":
                 print(f"Found: {item.file_name}")
                 r = requests.get(item.url, stream=True, timeout=300)
                 r.raise_for_status()
-                dest = out_dir / "frames_e2vid.zip"
+                dest = out_dir / "frames_e2vid_run8.zip"
                 total = 0
                 with open(dest, "wb") as f:
                     for chunk in r.iter_content(65536):
@@ -199,7 +199,7 @@ with api.build_kaggle_client() as kc:
                 sys.exit(0)
         token = resp.next_page_token
         if not token: break
-print("frames_e2vid.zip not found in output"); sys.exit(1)
+print("frames_e2vid_run8.zip not found in output"); sys.exit(1)
 PYEOF
     else
         echo "frames_e2vid.zip already present, skipping download."
@@ -208,7 +208,7 @@ PYEOF
     if [ -f "$ZIPFILE" ]; then
         echo "Unzipping frames ..."
         unzip -q "$ZIPFILE" -d "$TMPDIR/frames_unzipped"
-        for SEQ in 84 85 201 127 124; do
+        for SEQ in 44 45 46 47 146; do
             # zip stores: data/processed/sequence_N/reconstruction_e2vid/frame_*.jpg
             SRC="$TMPDIR/frames_unzipped/data/processed/sequence_${SEQ}/reconstruction_e2vid"
             DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
@@ -305,7 +305,7 @@ fi
 if [[ "${DOWNLOAD_FRAMES_ARG}" == "--frames" ]]; then
     echo ""
     echo "--- Reconstructed frames ---"
-    for SEQ in 84 85 201 124 127; do
+    for SEQ in 44 45 46 47 146; do
         SRC="$TMPDIR/data/processed/sequence_${SEQ}/reconstruction_e2vid"
         DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
         if [ -d "$SRC" ]; then

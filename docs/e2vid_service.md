@@ -111,7 +111,7 @@ what is displayed without any server call, giving instant visual feedback.
 
 | Path | Contents |
 |---|---|
-| `/app/weights/yolo_e2vid.pt` | YOLOv8s weights, Run 5, trained on FRED e2vid frames (mAP50=79.2%, best at epoch 5) |
+| `/app/weights/yolo_e2vid.pt` | YOLOv8s weights, **Run 7**, trained on FRED e2vid frames (mAP50=93.6%, best at epoch 20) |
 | `/data/recon/<sequence_id>/reconstruction_e2vid/` | input frames (mounted from host) |
 | `/data/recon/<sequence_id>/detections_e2vid.json` | cached detection output |
 
@@ -134,6 +134,17 @@ docker push ghcr.io/gennepy/ami-e2vid:latest
 # 3. Teammates pull the update
 docker compose pull e2vid && docker compose up -d e2vid
 ```
+
+---
+
+## Training run history
+
+| Run | Train seqs | Val seq | epp | Train frames | mAP50 | Notes |
+|---|---|---|---|---|---|---|
+| Run 5 | 84, 85, 201, 124 | 127 | 2.0 | ~3,000 | 0.792 | Baseline |
+| Run 6 | 84, 85, 201, 124 | 127 | 0.2 | ~5,000 | 0.856 | Denser frames |
+| Run 7 | 84, 85, 201, 124 | 127 | 0.1 | 6,264 | **0.936** | **Active weights** — best run |
+| Run 8 | 44, 45, 46, 47 | 146 | 0.1 | 736 | 0.022 | Failed: seqs 44–47 event-sparse (13–23M events, 75–128 MB); ≥500 MB events.zip needed for adequate frame count at epp=0.1 |
 
 ---
 
