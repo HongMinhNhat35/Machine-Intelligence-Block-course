@@ -169,6 +169,11 @@ async def _detect_stream(sequence_id: str, frame_count: int, model: str = "e2vid
                                 total = payload.get("total", frame_count) or frame_count
                                 pct   = int(frame / total * 100) if total else 0
                                 yield _sse("log", f"Processing… {frame}/{total} frames ({pct}%)")
+                        elif event_type == "error":
+                            msg = payload.get("message", str(payload))
+                            yield _sse("error", msg)
+                            yield _sse("done", "failed")
+                            return
                         elif event_type == "done":
                             n = payload.get("n", 0)
                             yield _sse("log", f"Done — {n} detections found")
