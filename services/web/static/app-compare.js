@@ -18,7 +18,7 @@
 /* ── State ────────────────────────────────────────────────────────────────── */
 
 let cpPlaying=false, cpTimer=null, cpFrame=0, cpMax=0, cpLoadedSeq=null;
-let cpDetections=null, cpHyperDetections=null, cpImgDebounce=null;
+let cpDetections=null, cpHyperDetections=null, cpFusionDetections=null, cpImgDebounce=null;
 let cpLiveE2vid=false, cpLiveHyper=false, cpLiveBoxes=[], cpLiveHyperBoxes=[];
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
@@ -53,6 +53,16 @@ function cpRenderHyperBboxes(){
   renderBboxes(boxes, document.getElementById('cp-hyper-img'), bboxDiv);
 }
 
+// Filters cached fusion boxes by confidence and draws them over cp-fusion-img.
+function cpRenderFusionBboxes(){
+  const bboxDiv=document.getElementById('cp-fusion-bboxes');
+  if(!bboxDiv) return;
+  if(!cpFusionDetections){ bboxDiv.innerHTML=''; return; }
+  const conf=getConf();
+  const boxes=cpFusionDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
+  renderBboxes(boxes, document.getElementById('cp-fusion-img'), bboxDiv);
+}
+
 /* ── Image loading ────────────────────────────────────────────────────────── */
 
 // Debounced frame loader — waits 60 ms before setting img.src. After each
@@ -75,6 +85,14 @@ function cpLoadImage(){
       hyperImg.onload=hyperOnload;
       hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
       if(hyperImg.complete) hyperOnload();
+    }
+    // Fusion column: reuse e2vid frame (same visual base), overlay fusion boxes
+    if(cpFusionDetections){
+      const fusionImg=document.getElementById('cp-fusion-img');
+      const fusionOnload=()=>cpRenderFusionBboxes();
+      fusionImg.onload=fusionOnload;
+      fusionImg.src='/frames/'+seq+'/'+n;
+      if(fusionImg.complete) fusionOnload();
     }
   }, 60);
 }
@@ -132,6 +150,25 @@ function cpUpdateMetricsHyper(){
   document.getElementById('cp-hyper-rec').textContent=pct(m.recall);
 }
 
+// Populates the fusion mAP cells from kpiCache (shows — until a fusion KPI file exists).
+function cpUpdateMetricsFusion(){
+  if(!kpiCache) return;
+  const runs=kpiCache.filter(r=>r.model==='fusion');
+  const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+  if(!runs.length){
+    ['cp-fusion-map50','cp-fusion-map5095','cp-fusion-prec','cp-fusion-rec'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent='—';
+    });
+    return;
+  }
+  const run=runs[runs.length-1];
+  const m=run.detection?.canonical||{};
+  document.getElementById('cp-fusion-map50').textContent=pct(m.map50);
+  document.getElementById('cp-fusion-map5095').textContent=pct(m.map50_95);
+  document.getElementById('cp-fusion-prec').textContent=pct(m.precision);
+  document.getElementById('cp-fusion-rec').textContent=pct(m.recall);
+}
+
 /* ── Screen load ──────────────────────────────────────────────────────────── */
 
 // Called by the tab navigation hook (app.js) when the Comparison screen becomes
@@ -147,7 +184,7 @@ async function compLoad(){
     cpStop();
     cpLoadedSeq=selSeq.id;
     cpMax=selSeq.frame_count-1;
-    cpDetections=null; cpHyperDetections=null;
+    cpDetections=null; cpHyperDetections=null; cpFusionDetections=null;
     cpLiveE2vid=false; cpLiveHyper=false; cpLiveBoxes=[]; cpLiveHyperBoxes=[];
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
@@ -161,11 +198,14 @@ async function compLoad(){
       cpHyperImg.src=''; cpHyperImg.style.display='none';
       if(cpHyperNoFrames) cpHyperNoFrames.style.display='flex';
     }
-    const [r1, r2] = await Promise.all([
+    const cpFusionNoCache=document.getElementById('cp-fusion-no-cache');
+    const cpFusionImg=document.getElementById('cp-fusion-img');
+    const [r1, r2, r3] = await Promise.all([
       fetch('/api/detections/'+selSeq.id).catch(()=>null),
       selSeq.hypere2vid_done
         ? fetch('/api/detections/'+selSeq.id+'?model=hypere2vid').catch(()=>null)
         : Promise.resolve(null),
+      fetch('/api/detections/'+selSeq.id+'?model=fusion').catch(()=>null),
     ]);
     const d1 = r1?.ok ? await r1.json().catch(()=>null) : null;
     if(d1){ cpDetections=d1.detections; cpLiveE2vid=false; }
@@ -175,12 +215,23 @@ async function compLoad(){
       if(d2){ cpHyperDetections=d2.detections; cpLiveHyper=false; }
       else { cpLiveHyper=true; cpLiveHyperBoxes=[]; }
     }
+    const d3 = r3?.ok ? await r3.json().catch(()=>null) : null;
+    if(d3){
+      cpFusionDetections=d3.detections;
+      if(cpFusionImg) cpFusionImg.style.display='block';
+      if(cpFusionNoCache) cpFusionNoCache.style.display='none';
+    } else {
+      cpFusionDetections=null;
+      if(cpFusionImg){ cpFusionImg.src=''; cpFusionImg.style.display='none'; }
+      if(cpFusionNoCache) cpFusionNoCache.style.display='flex';
+    }
   }
   panel.style.display='block';
   if(seqChanged) cpSetFrame(0);
   await getKpis();
   cpUpdateMetrics();
   cpUpdateMetricsHyper();
+  cpUpdateMetricsFusion();
 }
 
 /* ── Controls ─────────────────────────────────────────────────────────────── */
@@ -211,6 +262,7 @@ document.getElementById('cp-next-det').addEventListener('click',()=>{
   const frameSet=new Set();
   if(cpDetections) cpDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
   if(cpHyperDetections) cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
+  if(cpFusionDetections) cpFusionDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
   if(!frameSet.size) return;
   const frames=[...frameSet].sort((a,b)=>a-b);
   const next=frames.find(f=>f>cpFrame) ?? frames[0];

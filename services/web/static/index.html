@@ -71,9 +71,9 @@
         <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val" id="sb-hyper-map50">—</span></div>
         <div class="sb-divider"></div>
         <div class="sb-lbl">Late Fusion</div>
-        <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val">—</span></div>
-        <div class="sb-kv"><span class="sb-kv-key">Det <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val">—</span></div>
-        <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val">—</span></div>
+        <div class="sb-kv"><span class="sb-kv-key">Frames</span><span class="sb-kv-val" id="sb-fusion-frames">—</span></div>
+        <div class="sb-kv"><span class="sb-kv-key">Det <span style="font-size:9px;opacity:.65">@0.1</span></span><span class="sb-kv-val" id="sb-fusion-dets">—</span></div>
+        <div class="sb-kv"><span class="sb-kv-key">mAP50</span><span class="sb-kv-val" id="sb-fusion-map50">—</span></div>
         <div class="sb-divider"></div>
       </div>
 
@@ -118,7 +118,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
               <button class="run-btn" id="precomp-e2vid-btn" data-model="e2vid"><i class="ti ti-radar"></i> E2VID</button>
               <button class="run-btn" id="precomp-hyper-btn" data-model="hypere2vid"><i class="ti ti-radar"></i> HyperE2VID</button>
-              <button class="run-btn" id="precomp-fusion-btn" data-model="fusion" disabled title="Late Fusion not yet available" style="opacity:.4;cursor:not-allowed"><i class="ti ti-radar"></i> Late Fusion</button>
+              <button class="run-btn" id="precomp-fusion-btn" data-model="fusion" title="Run Late Fusion detection and cache results"><i class="ti ti-radar"></i> Late Fusion</button>
             </div>
             <div id="precomp-progress" style="font-size:11px;color:#888;margin-top:6px"></div>
           </div>
@@ -247,15 +247,19 @@
                 </div>
               </div>
 
-              <!-- Column 3: Late fusion — placeholder, not yet implemented -->
+              <!-- Column 3: Late fusion -->
               <div class="comp-card">
                 <div class="comp-hdr">Late fusion</div>
-                <div class="frame-img" style="min-height:160px"><i class="ti ti-clock" style="font-size:22px"></i><span>not yet available</span></div>
+                <div class="det-img" id="cp-fusion-wrap">
+                  <img id="cp-fusion-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
+                  <div id="cp-fusion-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+                  <div id="cp-fusion-no-cache" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>Run detection cache first</span></div>
+                </div>
                 <div class="comp-metric">
-                  <div class="c-row"><span class="c-key">mAP@0.5</span><span>—</span></div>
-                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span>—</span></div>
-                  <div class="c-row"><span class="c-key">Precision</span><span>—</span></div>
-                  <div class="c-row"><span class="c-key">Recall</span><span>—</span></div>
+                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-fusion-map50">—</span></div>
+                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp-fusion-map5095">—</span></div>
+                  <div class="c-row"><span class="c-key">Precision</span><span id="cp-fusion-prec">—</span></div>
+                  <div class="c-row"><span class="c-key">Recall</span><span id="cp-fusion-rec">—</span></div>
                 </div>
               </div>
 

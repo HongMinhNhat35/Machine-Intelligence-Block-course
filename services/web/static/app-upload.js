@@ -112,18 +112,18 @@ async function initBrowser(){
 async function checkPrecomputeStatus(seqId){
   const el=document.getElementById('precomp-cache-status');
   const parts=[];
-  for(const model of ['e2vid','hypere2vid']){
-    const sbKey=model==='hypere2vid'?'sb-hyper-dets':'sb-e2vid-dets';
+  const sbKeys={e2vid:'sb-e2vid-dets',hypere2vid:'sb-hyper-dets',fusion:'sb-fusion-dets'};
+  for(const model of ['e2vid','hypere2vid','fusion']){
     try{
       const r=await fetch('/api/detections/'+seqId+'?model='+model);
       if(r.ok){
         const data=await r.json();
         const n=data.detections?.length||0;
         parts.push(model+': '+n+' det');
-        const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent=n;
+        const sbD=document.getElementById(sbKeys[model]); if(sbD) sbD.textContent=n;
       } else {
         parts.push(model+': not cached');
-        const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent='—';
+        const sbD=document.getElementById(sbKeys[model]); if(sbD) sbD.textContent='—';
       }
     } catch(e){ parts.push(model+': —'); }
   }
@@ -137,6 +137,8 @@ async function checkPrecomputeStatus(seqId){
 // the same sequence is still loaded there.
 async function runPrecompute(btn, model){
   if(!selSeq) return;
+  // fusion uses FRED raw frames — pass e2vid frame count as upper bound;
+  // the fusion service caps at the actual number of paired RGB/event frames
   const frameCount=model==='hypere2vid' ? selSeq.hyper_frame_count : selSeq.frame_count;
   if(!frameCount){ alert('No '+model+' frames available for this sequence.'); return; }
   const prog=document.getElementById('precomp-progress');
@@ -175,6 +177,7 @@ async function runPrecompute(btn, model){
 
 document.getElementById('precomp-e2vid-btn').addEventListener('click',function(){ runPrecompute(this,'e2vid'); });
 document.getElementById('precomp-hyper-btn').addEventListener('click',function(){ runPrecompute(this,'hypere2vid'); });
+document.getElementById('precomp-fusion-btn').addEventListener('click',function(){ runPrecompute(this,'fusion'); });
 
 /* ── Startup ──────────────────────────────────────────────────────────────── */
 

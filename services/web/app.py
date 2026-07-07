@@ -134,11 +134,12 @@ def _sse(event: str, data: str) -> str:
 
 async def _detect_stream(sequence_id: str, frame_count: int, model: str = "e2vid"):
     yield _sse("log", f"Starting detection for {sequence_id} ({frame_count} frames)…")
-    recon_dir = RECON_ROOT / sequence_id / f"reconstruction_{model}"
-    if not recon_dir.exists() or not any(recon_dir.glob("frame_*")):
-        yield _sse("error", "No reconstructed frames found — reconstruction must be run first")
-        yield _sse("done", "failed")
-        return
+    if model != "fusion":
+        recon_dir = RECON_ROOT / sequence_id / f"reconstruction_{model}"
+        if not recon_dir.exists() or not any(recon_dir.glob("frame_*")):
+            yield _sse("error", "No reconstructed frames found — reconstruction must be run first")
+            yield _sse("done", "failed")
+            return
     service_url = {
         "e2vid":      E2VID_URL,
         "hypere2vid": HYPERE2VID_URL,
@@ -239,6 +240,6 @@ async def admin():
             "yolo_inference_size": "640 × 640 px",
             "e2vid_weights":       str(WEIGHTS_ROOT / "yolo_e2vid.pt"),
             "hypere2vid_weights":  str(WEIGHTS_ROOT / "hypere2vid_best.pt"),
-            "fusion_weights":      str(WEIGHTS_ROOT / "fusion_best.pt"),
+            "fusion_weights":      f"{WEIGHTS_ROOT / 'fusion_rgb.pt'}, {WEIGHTS_ROOT / 'fusion_event.pt'}",
         },
     }

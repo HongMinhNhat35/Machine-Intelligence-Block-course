@@ -57,13 +57,15 @@ function dtLoadImage(){
   }
   clearTimeout(dtImgDebounce);
   const seq=selSeq.id, n=dtFrame;
+  // fusion has no reconstruction_fusion — show e2vid frame with fusion boxes
+  const frameModel=model==='fusion'?'e2vid':model;
   if(dtLiveMode) dtLiveBoxes=[];
   dtImgDebounce=setTimeout(()=>{
     if(dtFrame!==n) return;
-    document.getElementById('det-img').src='/frames/'+seq+'/'+n+'?model='+model;
+    document.getElementById('det-img').src='/frames/'+seq+'/'+n+'?model='+frameModel;
     const img2=document.getElementById('det-img2');
     img2.onload=()=>{ dtRenderBboxes(); if(dtLiveMode) fetchLiveFrame(seq, n, model, (s,f)=>dtFrame===f&&dtLoadedSeq===s, boxes=>{dtLiveBoxes=boxes;dtRenderBboxes();}); };
-    img2.src='/frames/'+seq+'/'+n+'?model='+model;
+    img2.src='/frames/'+seq+'/'+n+'?model='+frameModel;
   }, 60);
 }
 
@@ -103,6 +105,7 @@ async function dtLoadDetections(seqId, model){
     dtRenderBboxes();
     return;
   }
+  const sbKeys={e2vid:'sb-e2vid-dets',hypere2vid:'sb-hyper-dets',fusion:'sb-fusion-dets'};
   try{
     const r=await fetch('/api/detections/'+seqId+'?model='+model);
     if(r.ok){
@@ -110,10 +113,17 @@ async function dtLoadDetections(seqId, model){
       dtDetections=data.detections;
       dtLiveMode=false; dtLiveBoxes=[];
       document.getElementById('det-status').textContent='Cached — '+dtDetections.length+' detections across all frames';
-      const sbKey=model==='hypere2vid'?'sb-hyper-dets':'sb-e2vid-dets';
-      const sbD=document.getElementById(sbKey); if(sbD) sbD.textContent=dtDetections.length;
+      const sbD=document.getElementById(sbKeys[model]||'sb-e2vid-dets'); if(sbD) sbD.textContent=dtDetections.length;
       dtRenderBboxes();
     } else {
+      if(model==='fusion'){
+        // Fusion cannot do live frame-by-frame detection — requires full-sequence inference
+        dtDetections=null; dtLiveMode=false; dtLiveBoxes=[];
+        document.getElementById('det-status').textContent='No fusion cache — run detection from Upload screen first';
+        dtRenderBboxes();
+        dtLoadImage();
+        return;
+      }
       dtDetections=null;
       dtLiveMode=true; dtLiveBoxes=[];
       document.getElementById('det-status').textContent='Live detection — running frame by frame (no cache)';
