@@ -36,6 +36,10 @@ def _sse(event: str, data: str) -> str:
     return f"event: {event}\ndata: {data}\n\n"
 
 
+def _err(message: str) -> str:
+    return _sse("error", json.dumps({"message": message}))
+
+
 @app.post("/detect")
 def detect(req: DetectRequest):
     cache_path = RECON_ROOT / req.sequence_id / "detections_fusion.json"
@@ -50,20 +54,20 @@ def detect(req: DetectRequest):
 
         from run_pipeline import _get_frame_files, process_frame, weights_available
         if not weights_available():
-            yield _sse("error", "Model weights not found — place fusion_rgb.pt and fusion_event.pt in /app/weights/")
+            yield _err("Model weights not found — place fusion_rgb.pt and fusion_event.pt in /app/weights/")
             yield _sse("done", json.dumps({"n": 0}))
             return
 
         try:
             rgb_files, event_files = _get_frame_files(req.sequence_id)
         except Exception as e:
-            yield _sse("error", f"Failed to list frame files: {e}")
+            yield _err(f"Failed to list frame files: {e}")
             yield _sse("done", json.dumps({"n": 0}))
             return
 
         n_total = min(len(rgb_files), len(event_files), req.frame_end)
         if n_total == 0:
-            yield _sse("error", "No paired RGB/event frames found for this sequence")
+            yield _err("No paired RGB/event frames found for this sequence")
             yield _sse("done", json.dumps({"n": 0}))
             return
 
@@ -87,7 +91,7 @@ def detect(req: DetectRequest):
                         "cached": False,
                     }))
         except Exception as e:
-            yield _sse("error", str(e))
+            yield _err(str(e))
             yield _sse("done", json.dumps({"n": len(detections)}))
             return
 
