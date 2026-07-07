@@ -144,9 +144,9 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 |---|---|
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
 | **Reconstruction** | Browse E2VID and HyperE2VID reconstructed frames side-by-side with playback controls. |
-| **Detection** | View YOLO bounding-box overlay for E2VID or HyperE2VID frames. Switch model with the radio buttons. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
-| **Comparison** | Side-by-side E2VID vs HyperE2VID view with bounding boxes and model KPIs. Late Fusion column not yet available. |
-| **KPIs** | Detection accuracy and training metrics table across all runs. |
+| **Detection** | View YOLO bounding-box overlay for E2VID, HyperE2VID, or Late Fusion. Switch model with the radio buttons. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
+| **Comparison** | Three-column view: E2VID · HyperE2VID · Late Fusion — synchronised playback with bounding box overlays and per-model KPI metrics. The Late Fusion column requires a detection cache for the sequence (run from the Upload tab). |
+| **KPIs** | Summary table (best run per model) plus full detail tables for detection accuracy, reconstruction, and training metrics across all runs. |
 | **Dataset** | Per-sequence notes: event counts, annotation timing, known reconstruction quirks. |
 | **Admin** | Live health status of all backend services. |
 
@@ -154,7 +154,7 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 
 ## Notes
 
-- Detection results are pre-cached (`detections_e2vid.json` in each sequence folder). They load instantly. Click **Run Detection** only to re-run inference (e.g. after new model weights).
+- Detection results are pre-cached (`detections_e2vid.json`, `detections_hypere2vid.json`, `detections_fusion.json` in each sequence folder). They load instantly. Use the **Run Detection** buttons on the Upload tab to rebuild a cache (e.g. after new model weights).
 - The confidence slider is a display filter only — the cache always holds all detections at confidence ≥ 0.1.
 - **Early frames (~first 250 frames per sequence):** YOLO bounding boxes may appear over a visually empty region. This is expected — the E2VID LSTM needs ~20 s to warm up from a cold start. The detections are geometrically correct (verified against ground truth, IoU 0.73–0.92); the drone is present but the reconstruction quality is too low for human visibility.
 - **Partial detection caches:** If a precompute run was interrupted, the cache may cover only part of the sequence. The Upload screen shows the cached detection count — if it looks low relative to the frame count, click **Run Detection** again to rebuild the cache from scratch. Detection and KPI metrics in the KPIs tab are computed over the full run, not the partial cache.
