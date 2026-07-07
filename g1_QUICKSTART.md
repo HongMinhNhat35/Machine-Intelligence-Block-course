@@ -100,6 +100,11 @@ tar xzf /tmp/detections_e2vid_run7.tar.gz -C $RECON/
 curl -L -o /tmp/detections_hypere2vid_run2.tar.gz \
   https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0/detections_hypere2vid_run2.tar.gz
 tar xzf /tmp/detections_hypere2vid_run2.tar.gz -C $RECON/
+
+# Late Fusion (Run 1 — YOLOv8n RGB+Event, mAP@0.5=50%)
+curl -L -o /tmp/detections_fusion_run1.tar.gz \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v4.0/detections_fusion_run1.tar.gz
+tar xzf /tmp/detections_fusion_run1.tar.gz -C $RECON/
 ```
 
 ### 5. Download the compose file and write `.env`

@@ -96,6 +96,13 @@ tar xzf /tmp/detections_e2vid_run7.tar.gz -C "$RECON/"
 rm /tmp/detections_e2vid_run7.tar.gz
 echo ""
 
+echo "Downloading pre-cached Late Fusion detections (Run 1 — YOLOv8n RGB+Event) ..."
+RELEASE_V4="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v4.0"
+curl -L --progress-bar -o /tmp/detections_fusion_run1.tar.gz "$RELEASE_V4/detections_fusion_run1.tar.gz"
+tar xzf /tmp/detections_fusion_run1.tar.gz -C "$RECON/"
+rm /tmp/detections_fusion_run1.tar.gz
+echo ""
+
 echo "Downloading docker-compose.yml ..."
 curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.yml"
 
