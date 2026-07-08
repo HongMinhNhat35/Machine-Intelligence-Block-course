@@ -295,6 +295,58 @@
               <tr class="paper"><td>ER-DETR (FRED paper)</td><td>—</td><td>—</td><td>78.6%</td><td>32.2%</td><td>—</td><td>—</td><td>—</td></tr>
             </tbody>
           </table></div>
+          <!-- note chips -->
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
+            <div class="kpi-note-chip">Colab &amp; Kaggle used: both have runtime constraints</div>
+            <div class="kpi-note-chip" style="flex:0 1 auto">Runtime independent of dataset selection</div>
+            <div class="kpi-note-chip" style="flex:0 1 auto">Accuracy will scale with the number of datasets</div>
+          </div>
+          <!-- prototyping story -->
+          <div style="margin-top:8px">
+            <div class="tbl-title" style="margin-top:0;margin-bottom:6px">
+              <span>e2vid prototyping story</span><span style="font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#888);font-size:inherit"> — Events_per_pixel brought major improvements in quality, compute and data size</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 56px 1fr 1fr 1fr;column-gap:8px;align-items:stretch;margin-bottom:14px">
+              <div class="kpi-stat-tile">
+                <div class="kpi-stat-val" style="color:var(--c-navy,#1e2d6b)">0.10</div>
+                <div class="kpi-stat-lbl">Optimal ev/px</div>
+                <div class="kpi-stat-sub">Run 7 · Kaggle 2×T4</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+                <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#888)">results in</span>
+                <span style="font-size:22px;color:var(--c-border,#dde0e8);line-height:1">→</span>
+              </div>
+              <div class="kpi-stat-tile kpi-stat-accent">
+                <div class="kpi-stat-val">7×</div>
+                <div class="kpi-stat-lbl">Faster total runtime</div>
+                <div class="kpi-stat-sub">11.2 h → 1.5 h</div>
+              </div>
+              <div class="kpi-stat-tile kpi-stat-accent">
+                <div class="kpi-stat-val">+30%</div>
+                <div class="kpi-stat-lbl">mAP@0.5</div>
+                <div class="kpi-stat-sub">63.4% → 93.6%</div>
+              </div>
+              <div class="kpi-stat-tile kpi-stat-accent">
+                <div class="kpi-stat-val">10×</div>
+                <div class="kpi-stat-lbl">Reduced file size</div>
+                <div class="kpi-stat-sub">73,416 → 7,344 frames</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+              <div class="kpi-obs-card">
+                <div class="kpi-obs-head">events_per_pixel is the key lever</div>
+                <p>Tuning a single parameter — <strong>events_per_pixel</strong> from 0.01 → 0.10 — reduced total runtime by <strong>7×</strong> and raised mAP@0.5 by <strong>30 percentage points</strong>. Sparser frames force the model to generalise; denser frames bury the signal.</p>
+              </div>
+              <div class="kpi-obs-card kpi-obs-warn">
+                <div class="kpi-obs-head">LSTM warm-up artefacts (first ~250 frames)</div>
+                <p>The E2VID LSTM requires ~20 s to warm up from a cold start. Bounding boxes in the first 250 frames are <strong>geometrically correct</strong> but the reconstruction appears visually empty to a human observer.</p>
+              </div>
+              <div class="kpi-obs-card kpi-obs-warn">
+                <div class="kpi-obs-head">Event camera settling noise</div>
+                <p>All sequences show elevated noise in the <strong>first few seconds</strong>, likely due to the event camera settling after power-on. This produces spurious detections at sequence start and is a sensor characteristic, not a model artefact.</p>
+              </div>
+            </div>
+          </div>
           <div class="tbl-title">Details</div>
           <div class="tbl-wrap"><table>
             <thead><tr><th>Model</th><th>Run</th><th>Val set</th><th>mAP@0.5</th><th>mAP@0.5:95</th><th>Precision</th><th>Recall</th><th>Total runtime</th></tr></thead>

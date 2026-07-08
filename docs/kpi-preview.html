@@ -1,0 +1,432 @@
+<title>KPI Screen Preview — AMI Hybrid Vision</title>
+<style>
+:root {
+  --bg:        #f4f5f8;
+  --surface:   #ffffff;
+  --border:    #dde0e8;
+  --navy:      #1e2d6b;
+  --orange:    #e8632b;
+  --text:      #1a1c2e;
+  --muted:     #6b6f85;
+  --paper:     #e8ecf8;
+  --paper-txt: #3a4280;
+  --best-bg:   #fff8f4;
+  --best-bdr:  #f5b08a;
+  --obs-bg:    #f0f3ff;
+  --obs-bdr:   #bcc5f0;
+  --warn:      #e8632b;
+  --good:      #1f7a4d;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0f1525;
+    --surface:   #1a2236;
+    --border:    #2a3350;
+    --navy:      #253778;
+    --orange:    #f07040;
+    --text:      #dde2f4;
+    --muted:     #7a82a8;
+    --paper:     #1e2848;
+    --paper-txt: #9aaad8;
+    --best-bg:   #1e1810;
+    --best-bdr:  #8a4820;
+    --obs-bg:    #141c38;
+    --obs-bdr:   #2a3a78;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#0f1525;--surface:#1a2236;--border:#2a3350;--navy:#253778;
+  --orange:#f07040;--text:#dde2f4;--muted:#7a82a8;--paper:#1e2848;
+  --paper-txt:#9aaad8;--best-bg:#1e1810;--best-bdr:#8a4820;
+  --obs-bg:#141c38;--obs-bdr:#2a3a78;
+}
+:root[data-theme="light"] {
+  --bg:#f4f5f8;--surface:#ffffff;--border:#dde0e8;--navy:#1e2d6b;
+  --orange:#e8632b;--text:#1a1c2e;--muted:#6b6f85;--paper:#e8ecf8;
+  --paper-txt:#3a4280;--best-bg:#fff8f4;--best-bdr:#f5b08a;
+  --obs-bg:#f0f3ff;--obs-bdr:#bcc5f0;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.screen {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Section label */
+.sec-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 560px;
+}
+thead th {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: .04em;
+  text-align: left;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); }
+tbody tr:last-child { border-bottom: none; }
+tbody td {
+  padding: 7px 10px;
+  background: var(--surface);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+tbody tr.paper td {
+  background: var(--paper);
+  color: var(--paper-txt);
+  font-style: italic;
+}
+tbody tr.best td { background: var(--best-bg); }
+tbody tr.best td:first-child {
+  border-left: 3px solid var(--orange);
+  font-weight: 700;
+}
+tbody tr.ours td:first-child { border-left: 3px solid var(--navy); }
+
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: .03em;
+}
+.badge-run { background: var(--navy); color: #fff; }
+.badge-best { background: var(--orange); color: #fff; }
+
+/* Stat tiles */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.stat-tile .val {
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+  line-height: 1.1;
+}
+.stat-tile.accent .val { color: var(--orange); }
+.stat-tile .lbl {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+.stat-tile .sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Observation cards */
+.obs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.obs-card {
+  background: var(--obs-bg);
+  border: 1px solid var(--obs-bdr);
+  border-left: 3px solid var(--navy);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+.obs-card.warn { border-left-color: var(--orange); }
+.obs-card .obs-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 4px;
+  letter-spacing: .02em;
+}
+.obs-card.warn .obs-head { color: var(--orange); }
+.obs-card p { font-size: 11.5px; color: var(--text); line-height: 1.55; }
+.obs-card strong { font-weight: 700; }
+
+/* Note chips (methodology notes) */
+.note-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.note-chip {
+  background: var(--obs-bg);
+  border: 1px solid var(--obs-bdr);
+  border-left: 3px solid var(--navy);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1 1 220px;
+}
+
+/* Stat tiles with arrow connector */
+.stat-causal {
+  display: grid;
+  grid-template-columns: 1fr 56px 1fr 1fr 1fr;
+  align-items: stretch;
+  column-gap: 8px;
+}
+.stat-cause {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.stat-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  gap: 2px;
+}
+.stat-arrow .arr-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stat-arrow .arr-glyph {
+  font-size: 22px;
+  color: var(--border);
+  line-height: 1;
+}
+.stat-effects {
+  display: contents;
+}
+
+/* Divider */
+hr { border: none; border-top: 1px solid var(--border); }
+</style>
+
+<div class="screen">
+
+  <!-- ── Best results summary ─────────────────────────────────────────────── -->
+  <div>
+    <div class="sec-label">Best results — AMI Group 1 vs. FRED paper baseline</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Model</th><th>Run</th><th>Val set</th>
+        <th>mAP@0.5</th><th>mAP@0.5:95</th>
+        <th>Precision</th><th>Recall</th><th>Total runtime</th>
+      </tr></thead>
+      <tbody>
+        <tr class="best ours">
+          <td>e2vid + YOLOv8s</td>
+          <td><span class="badge badge-best">Run 7</span></td>
+          <td>seq 127</td>
+          <td>93.6%</td><td>46.4%</td><td>97.9%</td><td>91.4%</td><td>1.5 h</td>
+        </tr>
+        <tr class="ours">
+          <td>HyperE2VID + YOLOv8n</td>
+          <td><span class="badge badge-run">Run 2</span></td>
+          <td>seq 127</td>
+          <td>56.7%</td><td>21.3%</td><td>82.6%</td><td>52.6%</td><td>5.4 h</td>
+        </tr>
+        <tr class="ours">
+          <td>Late Fusion + YOLOv8n</td>
+          <td><span class="badge badge-run">Run 1</span></td>
+          <td>seq 127</td>
+          <td>50.0%</td><td>—</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr class="paper">
+          <td>YOLOv11 (FRED paper)</td><td>—</td><td>full dataset</td>
+          <td>87.7%</td><td>49.3%</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr class="paper">
+          <td>ER-DETR (FRED paper)</td><td>—</td><td>full dataset</td>
+          <td>78.6%</td><td>32.2%</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="note-chips">
+      <div class="note-chip">Colab &amp; Kaggle used: both have runtime constraints</div>
+      <div class="note-chip" style="flex:0 1 auto">Runtime independent of dataset selection</div>
+      <div class="note-chip" style="flex:0 1 auto">Accuracy will scale with the number of datasets</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── e2vid prototyping story ──────────────────────────────────────────── -->
+  <div>
+    <div style="margin-bottom:16px">
+      <span class="sec-label" style="display:inline;margin-bottom:0">e2vid prototyping story</span><span style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)"> — Events_per_pixel brought major improvements in quality, compute and data size</span>
+    </div>
+
+    <div class="stat-causal" style="margin-bottom:16px">
+      <div class="stat-cause">
+        <div class="val" style="font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--navy);line-height:1.1">0.10</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">optimal ev/px</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Run 7 · Kaggle 2×T4</div>
+      </div>
+      <div class="stat-arrow">
+        <div class="arr-label">results in</div>
+        <div class="arr-glyph">→</div>
+      </div>
+      <div class="stat-effects">
+        <div class="stat-tile accent">
+          <div class="val">7×</div>
+          <div class="lbl">faster total runtime</div>
+          <div class="sub">11.2 h → 1.5 h</div>
+        </div>
+        <div class="stat-tile accent">
+          <div class="val">+30%</div>
+          <div class="lbl">mAP@0.5</div>
+          <div class="sub">63.4% → 93.6%</div>
+        </div>
+        <div class="stat-tile accent">
+          <div class="val">10×</div>
+          <div class="lbl">reduced file size</div>
+          <div class="sub">73,416 → 7,344 frames</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Run</th><th>ev/px</th><th>Total frames</th>
+        <th>Epochs</th><th>Best ep.</th>
+        <th>mAP@0.5</th><th>mAP@0.5:95</th>
+        <th>Recon (h)</th><th>Train (h)</th><th>Total (h)</th>
+      </tr></thead>
+      <tbody>
+        <tr class="ours"><td><span class="badge badge-run">2</span></td><td>0.01</td><td>73,416</td><td>23</td><td>3</td><td>63.4%</td><td>29.3%</td><td>5.3</td><td>5.9</td><td>11.2</td></tr>
+        <tr class="ours"><td><span class="badge badge-run">3</span></td><td>0.01</td><td>73,416</td><td>23</td><td>3</td><td>63.4%</td><td>29.3%</td><td>—</td><td>5.9</td><td>—</td></tr>
+        <tr class="ours"><td><span class="badge badge-run">4</span></td><td>0.01</td><td>73,416</td><td>23</td><td>3</td><td>63.4%</td><td>29.3%</td><td>—</td><td>5.9</td><td>—</td></tr>
+        <tr class="ours"><td><span class="badge badge-run">5</span></td><td>0.01</td><td>73,416</td><td>27</td><td>5</td><td>79.2%</td><td>39.5%</td><td>—</td><td>5.7</td><td>—</td></tr>
+        <tr class="ours"><td><span class="badge badge-run">6</span></td><td>0.05</td><td>14,686</td><td>54</td><td>34</td><td>85.6%</td><td>37.7%</td><td>1.2</td><td>2.3</td><td>3.5</td></tr>
+        <tr class="best ours"><td><span class="badge badge-best">7</span></td><td>0.10</td><td>7,344</td><td>39</td><td>20</td><td><strong>93.6%</strong></td><td><strong>46.4%</strong></td><td><strong>0.6</strong></td><td><strong>0.9</strong></td><td><strong>1.5</strong></td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="obs-grid" style="margin-top:14px">
+      <div class="obs-card">
+        <div class="obs-head">events_per_pixel is the key lever</div>
+        <p>Tuning a single parameter — <strong>events_per_pixel</strong> from 0.01 → 0.10 — reduced total runtime by <strong>7×</strong> and raised mAP@0.5 by <strong>30 percentage points</strong>. Sparser frames force the model to generalise; denser frames bury the signal.</p>
+      </div>
+      <div class="obs-card warn">
+        <div class="obs-head">LSTM warm-up artefacts (first ~250 frames)</div>
+        <p>The E2VID LSTM requires ~20 s to warm up from a cold start. Bounding boxes in the first 250 frames are <strong>geometrically correct</strong> but the reconstruction appears visually empty to a human observer.</p>
+      </div>
+      <div class="obs-card warn">
+        <div class="obs-head">Event camera settling noise</div>
+        <p>All sequences show elevated noise in the <strong>first few seconds</strong>, likely due to the event camera settling after power-on. This produces spurious detections at sequence start and is a sensor characteristic, not a model artefact.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── Detection detail ──────────────────────────────────────────────────── -->
+  <div>
+    <div class="sec-label">Detection accuracy — all runs</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Model</th><th>Run</th><th>Val set</th>
+        <th>mAP@0.5</th><th>mAP@0.5:95</th>
+        <th>Precision</th><th>Recall</th><th>Total runtime</th>
+      </tr></thead>
+      <tbody>
+        <tr class="best ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-best">Run 7</span></td><td>seq 127</td><td>93.6%</td><td>46.4%</td><td>97.9%</td><td>91.4%</td><td>1.5 h</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 6</span></td><td>seq 127</td><td>85.6%</td><td>37.7%</td><td>—</td><td>—</td><td>3.5 h</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 5</span></td><td>seq 127</td><td>79.2%</td><td>39.5%</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 4</span></td><td>seq 127</td><td>63.4%</td><td>29.3%</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 3</span></td><td>seq 127</td><td>63.4%</td><td>29.3%</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 2</span></td><td>seq 127</td><td>63.4%</td><td>29.3%</td><td>—</td><td>—</td><td>11.2 h</td></tr>
+        <tr class="ours"><td>HyperE2VID + YOLOv8n</td><td><span class="badge badge-run">Run 2</span></td><td>seq 127</td><td>56.7%</td><td>21.3%</td><td>82.6%</td><td>52.6%</td><td>5.4 h</td></tr>
+        <tr class="ours"><td>HyperE2VID + YOLOv8n</td><td><span class="badge badge-run">Run 1</span></td><td>seq 127</td><td>13.2%</td><td>2.8%</td><td>25.0%</td><td>20.5%</td><td>—</td></tr>
+        <tr class="ours"><td>Late Fusion + YOLOv8n</td><td><span class="badge badge-run">Run 1</span></td><td>seq 127</td><td>50.0%</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="paper"><td>YOLOv11 (FRED paper)</td><td>—</td><td>full dataset</td><td>87.7%</td><td>49.3%</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="paper"><td>ER-DETR (FRED paper)</td><td>—</td><td>full dataset</td><td>78.6%</td><td>32.2%</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <hr>
+
+  <!-- ── Reconstruction ───────────────────────────────────────────────────── -->
+  <div>
+    <div class="sec-label">Reconstruction</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Model</th><th>Run</th><th>Dataset</th>
+        <th>events/px</th><th>Total frames</th><th>Runtime</th><th>Avg FPS</th><th>GPU</th>
+      </tr></thead>
+      <tbody>
+        <tr class="best ours"><td>e2vid</td><td><span class="badge badge-best">Run 7</span></td><td>84,85,124,127,201</td><td>0.10</td><td>7,344</td><td>0.6 h</td><td>3.4 fps</td><td>Tesla T4</td></tr>
+        <tr class="ours"><td>e2vid</td><td><span class="badge badge-run">Run 6</span></td><td>84,85,124,127,201</td><td>0.05</td><td>14,686</td><td>1.2 h</td><td>—</td><td>Tesla T4</td></tr>
+        <tr class="ours"><td>e2vid</td><td><span class="badge badge-run">Run 2</span></td><td>84,85,124,127,201</td><td>0.01</td><td>73,416</td><td>5.3 h</td><td>—</td><td>Tesla T4</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <hr>
+
+  <!-- ── Training ──────────────────────────────────────────────────────────── -->
+  <div>
+    <div class="sec-label">Training</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Model</th><th>Run</th><th>Train seqs</th>
+        <th>Train images</th><th>Runtime</th>
+        <th>Epochs</th><th>Best ep.</th><th>LR</th><th>Eff. batch</th><th>GPU</th>
+      </tr></thead>
+      <tbody>
+        <tr class="best ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-best">Run 7</span></td><td>84,85,124,201</td><td>6,264</td><td>0.9 h</td><td>39 / 100</td><td>20</td><td>0.01</td><td>32</td><td>T4 ×2</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 6</span></td><td>84,85,124,201</td><td>—</td><td>2.3 h</td><td>54 / 100</td><td>34</td><td>—</td><td>—</td><td>T4 ×2</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 5</span></td><td>84,85,124,201</td><td>—</td><td>5.7 h</td><td>27 / 100</td><td>5</td><td>—</td><td>—</td><td>T4 ×2</td></tr>
+        <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 2</span></td><td>84,85,124,201</td><td>—</td><td>5.9 h</td><td>23 / 100</td><td>3</td><td>—</td><td>—</td><td>T4 ×2</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+</div>

@@ -18,7 +18,15 @@ echo "If not, press Enter — the demo works without it for e2vid/hypere2vid det
 read -rp "Path to FRED raw dataset [${RECON}]: " FRED
 FRED="${FRED:-$RECON}"
 
-mkdir -p "$RECON"
+if ! mkdir -p "$RECON" 2>/dev/null; then
+  echo "Error: cannot create '$RECON' — permission denied."
+  echo "Choose a path inside your home directory (e.g. ~/g1-ami-data) or run with sudo."
+  exit 1
+fi
+if [ ! -w "$RECON" ]; then
+  echo "Error: '$RECON' exists but is not writable — check ownership/permissions."
+  exit 1
+fi
 
 echo ""
 echo "Downloading pre-computed E2VID reconstruction frames to $RECON ..."

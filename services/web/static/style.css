@@ -146,3 +146,16 @@ tr.paper td{color:#888}
 .seq-badge{font-size:10px;padding:2px 7px;border-radius:20px}
 .sb-ok{background:#dcfce7;color:#166534}
 .sb-warn{background:#fef3c7;color:#92400e}
+
+/* ── KPI screen — prototyping story additions ──────────────────────────────── */
+.kpi-note-chip{background:#edf2ff;border:1px solid #c5d0f5;border-left:3px solid #1e2d6b;border-radius:4px;padding:10px 14px;font-size:13px;font-weight:600;color:#222;display:flex;align-items:center;flex:1 1 220px}
+.kpi-stat-tile{background:#fff;border:1px solid #dde0e8;border-radius:8px;padding:12px 14px;text-align:center;display:flex;flex-direction:column;justify-content:center}
+.kpi-stat-val{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;color:#1e2d6b;line-height:1.1}
+.kpi-stat-lbl{font-size:13px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.kpi-stat-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+.kpi-stat-accent{border-color:#c5d0f5}
+.kpi-stat-accent .kpi-stat-val{color:#1e2d6b}
+.kpi-obs-card{background:#fff;border:1px solid #dde0e8;border-radius:8px;padding:14px 16px;font-size:13px;color:#374151;line-height:1.55}
+.kpi-obs-card.kpi-obs-warn{border-left:3px solid #f59e0b;background:#fffbeb}
+.kpi-obs-head{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1e2d6b;margin-bottom:6px}
+.kpi-obs-warn .kpi-obs-head{color:#92400e}
