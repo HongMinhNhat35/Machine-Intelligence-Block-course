@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from fusion_layer import fuse_detections
 
@@ -23,18 +24,27 @@ def _get_models():
     return _rgb_model, _event_model
 
 
+def _numeric_ts(p: Path) -> int:
+    """Sort key: extract the trailing integer timestamp from the filename."""
+    m = re.search(r'_(\d+)\.(png|jpg)$', p.name, re.IGNORECASE)
+    return int(m.group(1)) if m else 0
+
+
 def _get_frame_files(sequence_id: str):
     seq_dir = FRED_ROOT / sequence_id
     rgb_dir = seq_dir / "RGB"
     event_dir = seq_dir / "Event" / "Frames"
     if not event_dir.exists():
         event_dir = seq_dir / "Event" / "images"
+    # RGB filenames contain HH_MM_SS.microseconds — lexicographic sort is chronological.
+    # Event filenames contain a plain integer timestamp (μs) without zero-padding —
+    # must sort numerically to avoid e.g. "100032333" sorting before "19999800".
     rgb_files = sorted(rgb_dir.glob("*.jpg")) if rgb_dir.exists() else []
     if not rgb_files:
         rgb_files = sorted(rgb_dir.glob("*.png")) if rgb_dir.exists() else []
-    event_files = sorted(event_dir.glob("*.jpg")) if event_dir.exists() else []
+    event_files = sorted(event_dir.glob("*.jpg"), key=_numeric_ts) if event_dir.exists() else []
     if not event_files:
-        event_files = sorted(event_dir.glob("*.png")) if event_dir.exists() else []
+        event_files = sorted(event_dir.glob("*.png"), key=_numeric_ts) if event_dir.exists() else []
     return rgb_files, event_files
 
 
