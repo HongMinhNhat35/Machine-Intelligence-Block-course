@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0",
-  "model": "fusion",
-  "detector": "YOLOv8n (rgb+event)",
+  "model": "fusion_rgb",
+  "detector": "YOLOv8n (rgb)",
   "run_id": "run_1",
   "contributor": "AMI Group 1",
   "timestamp": "2026-07-09T00:00:00",
-  "note": "Late Fusion — combined RGB+event system. Combined mAP50 evaluation pending; values shown are the lower bound (RGB component, the stronger individual model). Runtime lower bound = RGB training only.",
+  "note": "Late Fusion — RGB-camera component model. Trained on standard RGB frames from FRED sequences.",
   "reconstruction": {
     "sequences": null,
     "events_per_pixel": null,
@@ -32,10 +32,10 @@
   },
   "detection": {
     "canonical": {
-      "map50": 0.9905,
-      "map50_95": 0.6264,
-      "precision": 0.9888,
-      "recall": 0.9830
+      "map50": 0.80036,
+      "map50_95": 0.28625,
+      "precision": 0.77884,
+      "recall": 0.77334
     },
     "challenging": {
       "map50": null,

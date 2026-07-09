@@ -48,11 +48,14 @@ function onSeqSelected(seq){
       const bestRun=runs=>runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
       const e2vidRuns=kpiCache?kpiCache.filter(r=>r.model==='e2vid'):[];
       const hyperRuns=kpiCache?kpiCache.filter(r=>r.model==='hypere2vid'):[];
+      const fusionRuns=kpiCache?kpiCache.filter(r=>r.model==='fusion'):[];
       const e2vidRun=e2vidRuns.length?bestRun(e2vidRuns):null;
       const hyperRun=hyperRuns.length?bestRun(hyperRuns):null;
+      const fusionRun=fusionRuns.length?bestRun(fusionRuns):null;
       const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
       set('sb-e2vid-map50', e2vidRun ? pct(e2vidRun.detection?.canonical?.map50) : '—');
       set('sb-hyper-map50', hyperRun ? pct(hyperRun.detection?.canonical?.map50) : '—');
+      set('sb-fusion-map50', fusionRun ? '>'+pct(fusionRun.detection?.canonical?.map50) : '—');
     });
   }
   if(seq){

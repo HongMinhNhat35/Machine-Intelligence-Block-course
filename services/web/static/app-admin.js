@@ -88,42 +88,64 @@ function kpiNum(v){ return (v===null||v===undefined) ? '—' : (+v).toLocaleStri
 function kpiRun(id){ return id ? id.replace(/^run_?/i,'') : '—'; }
 function kpiSeqs(seqs){ return Array.isArray(seqs) && seqs.length ? seqs.map(s=>s.replace('sequence_','')).join(', ') : '—'; }
 
+const MODEL_LABELS = {
+  'e2vid':        'e2vid + YOLOv8s',
+  'hypere2vid':   'HyperE2VID + YOLOv8n',
+  'fusion':       'Late Fusion — Combined',
+  'fusion_event': 'Late Fusion — Event',
+  'fusion_rgb':   'Late Fusion — RGB',
+};
+function modelLabel(r){ return MODEL_LABELS[r.model] || ((r.model||'')+(r.detector?' + '+r.detector:'')); }
+
 // Fetches /api/kpis and populates the summary table and three detail tables.
 async function loadKpis(){
   try{
     const runs = (await fetch('/api/kpis').then(r=>r.json())).filter(r=>r.model);
 
-    // ── Summary: best run per model (highest canonical mAP50) ────────────────
-    const modelOrder = ['e2vid','hypere2vid','fusion'];
+    // ── Summary: best run per model; fusion shows combined + components ───────
+    const modelOrder = ['e2vid','hypere2vid','fusion','fusion_event','fusion_rgb'];
+    const gt = s => `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}`;
     const summaryRows = modelOrder.map(model => {
       const modelRuns = runs.filter(r => r.model === model);
-      if (!modelRuns.length) return `<tr class="ours"><td>${model} + YOLO</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+      if (!modelRuns.length) return '';
       const best = modelRuns.reduce((b,r) => ((r.detection?.canonical?.map50||0) > (b.detection?.canonical?.map50||0) ? r : b));
       const c = best.detection?.canonical || {};
       const rc = best.reconstruction || {};
       const tr = best.training || {};
-      const lbl = (best.model||'') + (best.detector ? ' + '+best.detector : '');
+      const lbl = modelLabel(best);
       const valSeqs = kpiSeqs(tr.val_sequences);
       const totalS = (rc.total_runtime_s||0) + (tr.runtime_s||0);
       const runtime = totalS > 0 ? kpiHrs(totalS) : '—';
-      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(best.run_id)}</td><td>${valSeqs}</td>
-        <td>${kpiPct(c.map50)}</td><td>${kpiPct(c.map50_95)}</td>
-        <td>${kpiPct(c.precision)}</td><td>${kpiPct(c.recall)}</td>
+      const isCombined = model === 'fusion';
+      const cls = isCombined ? 'best ours' : 'ours';
+      const wrap = v => isCombined ? gt(v) : v;
+      return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(best.run_id)}</td><td>${valSeqs}</td>
+        <td>${wrap(kpiPct(c.map50))}</td><td>${wrap(kpiPct(c.map50_95))}</td>
+        <td>${wrap(kpiPct(c.precision))}</td><td>${wrap(kpiPct(c.recall))}</td>
         <td>${runtime}</td></tr>`;
     });
     document.getElementById('kpi-summary-body').innerHTML = summaryRows.join('');
 
     // ── Detection detail table ────────────────────────────────────────────────
-    document.getElementById('kpi-det-body').innerHTML = runs.length ? runs.map(r=>{
+    const detOrder = ['e2vid','hypere2vid','fusion','fusion_event','fusion_rgb'];
+    const orderedRuns = [...runs].sort((a,b) => {
+      const ai = detOrder.indexOf(a.model), bi = detOrder.indexOf(b.model);
+      if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+      return (b.detection?.canonical?.map50||0) - (a.detection?.canonical?.map50||0);
+    });
+    const isCombined = r => r.model === 'fusion';
+    document.getElementById('kpi-det-body').innerHTML = orderedRuns.length ? orderedRuns.map(r=>{
       const c=r.detection?.canonical||{};
       const rc=r.reconstruction||{}, tr=r.training||{};
-      const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
+      const lbl=modelLabel(r);
       const valSeqs=kpiSeqs(tr.val_sequences);
       const totalS=(rc.total_runtime_s||0)+(tr.runtime_s||0);
       const runtime=totalS>0?kpiHrs(totalS):'—';
-      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${valSeqs}</td>
-        <td>${kpiPct(c.map50)}</td><td>${kpiPct(c.map50_95)}</td>
-        <td>${kpiPct(c.precision)}</td><td>${kpiPct(c.recall)}</td>
+      const cls=isCombined(r)?'best ours':'ours';
+      const gt2 = s => isCombined(r) ? `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}` : s;
+      return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${valSeqs}</td>
+        <td>${gt2(kpiPct(c.map50))}</td><td>${gt2(kpiPct(c.map50_95))}</td>
+        <td>${gt2(kpiPct(c.precision))}</td><td>${gt2(kpiPct(c.recall))}</td>
         <td>${runtime}</td></tr>`;
     }).join('') : '<tr><td colspan="8" style="color:#aaa">No KPI files found.</td></tr>';
 

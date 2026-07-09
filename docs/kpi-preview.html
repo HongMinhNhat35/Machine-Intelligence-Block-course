@@ -271,11 +271,27 @@ hr { border: none; border-top: 1px solid var(--border); }
           <td>seq 127</td>
           <td>56.7%</td><td>21.3%</td><td>82.6%</td><td>52.6%</td><td>5.4 h</td>
         </tr>
+        <tr class="best ours">
+          <td>Late Fusion — Combined</td>
+          <td><span class="badge badge-best">Run 1</span></td>
+          <td>seq 127</td>
+          <td><span style="color:var(--muted);font-weight:600">&gt;</span>99.1%</td>
+          <td><span style="color:var(--muted);font-weight:600">&gt;</span>62.6%</td>
+          <td><span style="color:var(--muted);font-weight:600">&gt;</span>98.9%</td>
+          <td><span style="color:var(--muted);font-weight:600">&gt;</span>98.3%</td>
+          <td><span style="color:var(--muted);font-weight:600">&gt;</span>1.8 h</td>
+        </tr>
         <tr class="ours">
-          <td>Late Fusion + YOLOv8n</td>
+          <td>Late Fusion — RGB model</td>
           <td><span class="badge badge-run">Run 1</span></td>
           <td>seq 127</td>
-          <td>50.0%</td><td>—</td><td>—</td><td>—</td><td>—</td>
+          <td>80.04%</td><td>28.6%</td><td>77.9%</td><td>77.3%</td><td>1.8 h</td>
+        </tr>
+        <tr class="ours">
+          <td>Late Fusion — Event model</td>
+          <td><span class="badge badge-run">Run 1</span></td>
+          <td>seq 127</td>
+          <td>99.1%</td><td>62.6%</td><td>98.9%</td><td>98.3%</td><td>—</td>
         </tr>
         <tr class="paper">
           <td>YOLOv11 (FRED paper)</td><td>—</td><td>full dataset</td>
@@ -384,7 +400,9 @@ hr { border: none; border-top: 1px solid var(--border); }
         <tr class="ours"><td>e2vid + YOLOv8s</td><td><span class="badge badge-run">Run 2</span></td><td>seq 127</td><td>63.4%</td><td>29.3%</td><td>—</td><td>—</td><td>11.2 h</td></tr>
         <tr class="ours"><td>HyperE2VID + YOLOv8n</td><td><span class="badge badge-run">Run 2</span></td><td>seq 127</td><td>56.7%</td><td>21.3%</td><td>82.6%</td><td>52.6%</td><td>5.4 h</td></tr>
         <tr class="ours"><td>HyperE2VID + YOLOv8n</td><td><span class="badge badge-run">Run 1</span></td><td>seq 127</td><td>13.2%</td><td>2.8%</td><td>25.0%</td><td>20.5%</td><td>—</td></tr>
-        <tr class="ours"><td>Late Fusion + YOLOv8n</td><td><span class="badge badge-run">Run 1</span></td><td>seq 127</td><td>50.0%</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="best ours"><td>Late Fusion — Combined</td><td><span class="badge badge-best">Run 1</span></td><td>seq 127</td><td><span style="color:var(--muted);font-weight:600">&gt;</span>99.1%</td><td><span style="color:var(--muted);font-weight:600">&gt;</span>62.6%</td><td><span style="color:var(--muted);font-weight:600">&gt;</span>98.9%</td><td><span style="color:var(--muted);font-weight:600">&gt;</span>98.3%</td><td><span style="color:var(--muted);font-weight:600">&gt;</span>1.8 h</td></tr>
+        <tr class="ours"><td>Late Fusion — RGB model</td><td><span class="badge badge-run">Run 1</span></td><td>seq 127</td><td>80.04%</td><td>28.6%</td><td>77.9%</td><td>77.3%</td><td>1.8 h</td></tr>
+        <tr class="ours"><td>Late Fusion — Event model</td><td><span class="badge badge-run">Run 1</span></td><td>seq 127</td><td>99.1%</td><td>62.6%</td><td>98.9%</td><td>98.3%</td><td>—</td></tr>
         <tr class="paper"><td>YOLOv11 (FRED paper)</td><td>—</td><td>full dataset</td><td>87.7%</td><td>49.3%</td><td>—</td><td>—</td><td>—</td></tr>
         <tr class="paper"><td>ER-DETR (FRED paper)</td><td>—</td><td>full dataset</td><td>78.6%</td><td>32.2%</td><td>—</td><td>—</td><td>—</td></tr>
       </tbody>

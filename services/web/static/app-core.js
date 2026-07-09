@@ -88,6 +88,12 @@ function updateSidebarMap50(){
     const v=hyperRuns.length ? bestRun(hyperRuns).detection?.canonical?.map50 : undefined;
     hyperEl.textContent=pct(v);
   }
+  const fusionRuns=kpiCache.filter(r=>r.model==='fusion');
+  const fusionEl=document.getElementById('sb-fusion-map50');
+  if(fusionEl){
+    const v=fusionRuns.length ? bestRun(fusionRuns).detection?.canonical?.map50 : undefined;
+    fusionEl.textContent=v!==undefined ? '>'+pct(v) : '—';
+  }
 }
 
 // Screen-specific hooks on navigation
