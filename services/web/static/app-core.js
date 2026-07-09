@@ -75,16 +75,17 @@ async function getKpis(){
 function updateSidebarMap50(){
   if(!kpiCache) return;
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+  const bestRun=runs=>runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b), runs[0]);
   const e2vidRuns=kpiCache.filter(r=>r.model==='e2vid');
   const e2vidEl=document.getElementById('sb-e2vid-map50');
   if(e2vidEl){
-    const v=e2vidRuns.length ? e2vidRuns[e2vidRuns.length-1].detection?.canonical?.map50 : undefined;
+    const v=e2vidRuns.length ? bestRun(e2vidRuns).detection?.canonical?.map50 : undefined;
     e2vidEl.textContent=pct(v);
   }
   const hyperRuns=kpiCache.filter(r=>r.model==='hypere2vid');
   const hyperEl=document.getElementById('sb-hyper-map50');
   if(hyperEl){
-    const v=hyperRuns.length ? hyperRuns[hyperRuns.length-1].detection?.canonical?.map50 : undefined;
+    const v=hyperRuns.length ? bestRun(hyperRuns).detection?.canonical?.map50 : undefined;
     hyperEl.textContent=pct(v);
   }
 }

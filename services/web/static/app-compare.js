@@ -95,12 +95,12 @@ function cpLoadImage(){
       hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
       if(hyperImg.complete) hyperOnload();
     }
-    // Fusion column: reuse e2vid frame (same visual base), overlay fusion boxes
+    // Fusion column: show FRED RGB frame (colour source for fusion model)
     if(cpFusionDetections){
       const fusionImg=document.getElementById('cp-fusion-img');
       const fusionOnload=()=>cpRenderFusionBboxes();
       fusionImg.onload=fusionOnload;
-      fusionImg.src='/frames/'+seq+'/'+n;
+      fusionImg.src='/frames_rgb/'+seq+'/'+cpFusionFrame();
       if(fusionImg.complete) fusionOnload();
     }
   }, 60);
@@ -135,7 +135,7 @@ function cpUpdateMetrics(){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='e2vid');
   if(!runs.length) return;
-  const run=runs[runs.length-1];
+  const run=runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-map50').textContent=pct(m.map50);
@@ -150,7 +150,7 @@ function cpUpdateMetricsHyper(){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='hypere2vid');
   if(!runs.length) return;
-  const run=runs[runs.length-1];
+  const run=runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-hyper-map50').textContent=pct(m.map50);

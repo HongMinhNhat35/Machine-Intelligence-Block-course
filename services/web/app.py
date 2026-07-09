@@ -91,6 +91,24 @@ def get_frame(seq: str, n: int, model: str = "e2vid"):
             return FileResponse(str(p), media_type=f"image/{ext}")
     raise HTTPException(status_code=404, detail=f"Frame {n} not found for {seq} ({model})")
 
+_rgb_file_cache: dict[str, list[Path]] = {}
+
+@app.get("/frames_rgb/{seq}/{n}")
+def get_frame_rgb(seq: str, n: int):
+    if seq not in _rgb_file_cache:
+        rgb_dir = FRED_ROOT / seq / "RGB"
+        if not rgb_dir.exists():
+            raise HTTPException(status_code=404, detail="No RGB frames for this sequence")
+        files = sorted(rgb_dir.glob("*.jpg")) or sorted(rgb_dir.glob("*.png"))
+        _rgb_file_cache[seq] = files
+    files = _rgb_file_cache.get(seq, [])
+    if not files:
+        raise HTTPException(status_code=404, detail="No RGB frames found")
+    if n >= len(files):
+        raise HTTPException(status_code=404, detail=f"Frame {n} out of range ({len(files)} total)")
+    p = files[n]
+    return FileResponse(str(p), media_type=f"image/{p.suffix.lstrip('.')}")
+
 
 @app.get("/api/kpis")
 def get_kpis():
