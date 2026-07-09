@@ -20,7 +20,8 @@
 let cpPlaying=false, cpTimer=null, cpFrame=0, cpMax=0, cpLoadedSeq=null;
 let cpDetections=null, cpHyperDetections=null, cpFusionDetections=null, cpImgDebounce=null;
 let cpLiveE2vid=false, cpLiveHyper=false, cpLiveBoxes=[], cpLiveHyperBoxes=[];
-let cpFusionFrameCount=0; // total paired RGB/event frames; used to map e2vid index → fusion index
+let cpFusionFrameCount=0;  // total FRED RGB frames; used to map e2vid index → fusion index
+let cpHyperFrameCount=0;   // total hypere2vid frames; used to map e2vid index → hyper index
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
@@ -49,13 +50,18 @@ function cpRenderHyperBboxes(){
     boxes=(cpLiveHyperBoxes||[]).filter(d=>d.confidence>=conf);
   } else {
     if(!cpHyperDetections){ bboxDiv.innerHTML=''; return; }
-    boxes=cpHyperDetections.filter(d=>d.frame===cpFrame && d.confidence>=conf);
+    boxes=cpHyperDetections.filter(d=>d.frame===cpHyperFrame() && d.confidence>=conf);
   }
   renderBboxes(boxes, document.getElementById('cp-hyper-img'), bboxDiv);
 }
 
-// Maps the current e2vid frame index to the corresponding fusion frame index
-// using a simple ratio (fusion uses FRED raw frames at a different rate than e2vid).
+// Maps the current e2vid frame index to the corresponding hypere2vid frame index.
+function cpHyperFrame(){
+  if(!cpHyperFrameCount || !cpMax) return cpFrame;
+  return Math.round(cpFrame * cpHyperFrameCount / (cpMax + 1));
+}
+
+// Maps the current e2vid frame index to the corresponding fusion (FRED RGB) frame index.
 function cpFusionFrame(){
   if(!cpFusionFrameCount || !cpMax) return cpFrame;
   return Math.round(cpFrame * cpFusionFrameCount / (cpMax + 1));
@@ -92,7 +98,7 @@ function cpLoadImage(){
       const hyperImg=document.getElementById('cp-hyper-img');
       const hyperOnload=()=>{ cpRenderHyperBboxes(); if(cpLiveHyper) fetchLiveFrame(seq, n, 'hypere2vid', (s,f)=>cpFrame===f&&cpLoadedSeq===s, boxes=>{cpLiveHyperBoxes=boxes;cpRenderHyperBboxes();}); };
       hyperImg.onload=hyperOnload;
-      hyperImg.src='/frames/'+seq+'/'+n+'?model=hypere2vid';
+      hyperImg.src='/frames/'+seq+'/'+cpHyperFrame()+'?model=hypere2vid';
       if(hyperImg.complete) hyperOnload();
     }
     // Fusion column: show FRED RGB frame (colour source for fusion model)
@@ -170,7 +176,7 @@ function cpUpdateMetricsFusion(){
     });
     return;
   }
-  const run=runs[runs.length-1];
+  const run=runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   document.getElementById('cp-fusion-map50').textContent=pct(m.map50);
   document.getElementById('cp-fusion-map5095').textContent=pct(m.map50_95);
@@ -193,7 +199,9 @@ async function compLoad(){
     cpStop();
     cpLoadedSeq=selSeq.id;
     cpMax=selSeq.frame_count-1;
-    cpDetections=null; cpHyperDetections=null; cpFusionDetections=null; cpFusionFrameCount=0;
+    cpDetections=null; cpHyperDetections=null; cpFusionDetections=null;
+    cpFusionFrameCount=selSeq.fred_rgb_count||0;
+    cpHyperFrameCount=selSeq.hyper_frame_count||0;
     cpLiveE2vid=false; cpLiveHyper=false; cpLiveBoxes=[]; cpLiveHyperBoxes=[];
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
@@ -227,9 +235,6 @@ async function compLoad(){
     const d3 = r3?.ok ? await r3.json().catch(()=>null) : null;
     if(d3){
       cpFusionDetections=d3.detections;
-      cpFusionFrameCount=cpFusionDetections.length > 0
-        ? cpFusionDetections.reduce((m,d)=>Math.max(m,d.frame), -1) + 1
-        : 0;
       if(cpFusionImg) cpFusionImg.style.display='block';
       if(cpFusionNoCache) cpFusionNoCache.style.display='none';
     } else {
@@ -273,8 +278,11 @@ document.getElementById('cp-next-det').addEventListener('click',()=>{
   const conf=getConf();
   const frameSet=new Set();
   if(cpDetections) cpDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
-  if(cpHyperDetections) cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
-  // Fusion frames are on a different axis — convert back to e2vid frame index
+  // Hyper and fusion frames are on different axes — convert back to e2vid frame index
+  if(cpHyperDetections && cpHyperFrameCount && cpMax){
+    const scale=(cpMax+1)/cpHyperFrameCount;
+    cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(Math.round(d.frame*scale)));
+  }
   if(cpFusionDetections && cpFusionFrameCount && cpMax){
     const scale=(cpMax+1)/cpFusionFrameCount;
     cpFusionDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(Math.round(d.frame*scale)));
