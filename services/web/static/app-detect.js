@@ -57,15 +57,15 @@ function dtLoadImage(){
   }
   clearTimeout(dtImgDebounce);
   const seq=selSeq.id, n=dtFrame;
-  // fusion has no reconstruction_fusion — show e2vid frame with fusion boxes
-  const frameModel=model==='fusion'?'e2vid':model;
+  const isFusion=model==='fusion';
   if(dtLiveMode) dtLiveBoxes=[];
   dtImgDebounce=setTimeout(()=>{
     if(dtFrame!==n) return;
-    document.getElementById('det-img').src='/frames/'+seq+'/'+n+'?model='+frameModel;
+    const src=isFusion ? '/frames_rgb/'+seq+'/'+n : '/frames/'+seq+'/'+n+'?model='+model;
+    document.getElementById('det-img').src=src;
     const img2=document.getElementById('det-img2');
     img2.onload=()=>{ dtRenderBboxes(); if(dtLiveMode) fetchLiveFrame(seq, n, model, (s,f)=>dtFrame===f&&dtLoadedSeq===s, boxes=>{dtLiveBoxes=boxes;dtRenderBboxes();}); };
-    img2.src='/frames/'+seq+'/'+n+'?model='+frameModel;
+    img2.src=src;
   }, 60);
 }
 
