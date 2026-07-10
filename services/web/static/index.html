@@ -165,12 +165,6 @@
           <div id="det-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
           <div id="det-no-frames" style="display:none;color:#aaa;font-size:12px;padding:20px 0">Reconstruction not available for this sequence — frames have not been generated yet.</div>
           <div id="det-panel" style="display:none">
-            <!-- View toggle — only visible when Late Fusion is selected -->
-            <div id="det-view-toggle" style="display:none;align-items:center;gap:6px;margin-bottom:8px">
-              <span style="font-size:11px;color:#888;font-weight:600">View:</span>
-              <button class="pb-btn" id="det-view-rgb" style="padding:3px 12px;font-size:11px">RGB</button>
-              <button class="pb-btn" id="det-view-event" style="padding:3px 12px;font-size:11px">Event</button>
-            </div>
             <div class="row2" style="margin-bottom:10px">
               <!-- Left: raw reconstruction frame; header label updated on model change -->
               <div class="frame-box">
@@ -201,12 +195,14 @@
               <div class="pb-range"><span>0</span><span id="det-max2">0</span></div>
             </div>
             <div class="sb-divider" style="margin:12px 0"></div>
-            <!-- Model selector — drives dtLoadDetections() and dtLoadImage() -->
+            <!-- Model / view selector -->
             <div class="sb-lbl">Model</div>
-            <div class="radio-group" style="flex-direction:row;flex-wrap:wrap;gap:2px 6px;margin-bottom:10px">
-              <label class="radio-row"><input type="radio" name="dm" checked data-m="e2vid"> e2vid + YOLO</label>
-              <label class="radio-row"><input type="radio" name="dm" data-m="hypere2vid"> HyperE2VID + YOLO</label>
-              <label class="radio-row"><input type="radio" name="dm" data-m="fusion"> Late fusion</label>
+            <div id="det-mode-btns" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+              <button class="pb-btn" data-dm="e2vid" style="font-size:11px;padding:3px 10px">e2vid</button>
+              <button class="pb-btn" data-dm="hypere2vid" style="font-size:11px;padding:3px 10px">HyperE2VID</button>
+              <button class="pb-btn" data-dm="fusion_rgb" style="font-size:11px;padding:3px 10px">RGB</button>
+              <button class="pb-btn" data-dm="fusion_event" style="font-size:11px;padding:3px 10px">Event</button>
+              <button class="pb-btn" data-dm="fusion" style="font-size:11px;padding:3px 10px">Late Fusion</button>
             </div>
             <!-- Status line: "Cached — N detections" or "Live detection — frame by frame" -->
             <div id="det-status" style="font-size:11px;color:#888"></div>

@@ -17,11 +17,13 @@
 
 let dtPlaying=false, dtTimer=null, dtFrame=0, dtMax=0, dtLoadedSeq=null;
 let dtDetections=null, dtImgDebounce=null, dtLiveMode=false, dtLiveBoxes=[];
-let dtFusionView='rgb'; // 'rgb' | 'event' — active when Late Fusion model is selected
+let dtMode='e2vid'; // 'e2vid' | 'hypere2vid' | 'fusion_rgb' | 'fusion_event' | 'fusion'
+let dtAllFusionDets=null; // raw fusion detections, filtered per mode in dtRenderBboxes
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
 // Filters stored or live boxes by confidence and draws them over det-img2.
+// For fusion_rgb/fusion_event modes, filters the fusion cache by source field.
 function dtRenderBboxes(){
   const bboxDiv=document.getElementById('det-bboxes');
   if(!bboxDiv) return;
@@ -30,26 +32,33 @@ function dtRenderBboxes(){
   if(dtLiveMode){
     boxes=(dtLiveBoxes||[]).filter(d=>d.confidence>=conf);
   } else {
-    if(!dtDetections){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
-    boxes=dtDetections.filter(d=>d.frame===dtFrame && d.confidence>=conf);
+    const src=dtMode==='fusion_rgb'?'rgb':dtMode==='fusion_event'?'event':null;
+    const pool=src ? dtAllFusionDets : dtDetections;
+    if(!pool){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
+    boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf && (!src||d.source===src));
   }
   document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
   renderBboxes(boxes, document.getElementById('det-img2'), bboxDiv);
 }
 
-// Returns the dataset-m value of the currently selected model radio button.
-function dtGetModel(){
-  const c=document.querySelector('[name="dm"]:checked'); return c?c.dataset.m:'e2vid';
-}
+// Returns the active mode string.
+function dtGetModel(){ return dtMode; }
 
 /* ── Image loading ────────────────────────────────────────────────────────── */
+
+// Returns the frame URL for the current mode.
+function dtFrameSrc(seq, n){
+  if(dtMode==='hypere2vid') return '/frames/'+seq+'/'+n+'?model=hypere2vid';
+  if(dtMode==='fusion_rgb' || dtMode==='fusion') return '/frames_rgb/'+seq+'/'+n;
+  // e2vid, fusion_event
+  return '/frames/'+seq+'/'+n+'?model=e2vid';
+}
 
 // Debounced frame loader — waits 60 ms before setting img.src to avoid
 // flooding the server during rapid scrubbing. In live mode, triggers a
 // YOLO inference request after the image loads.
 function dtLoadImage(){
-  const model=dtGetModel();
-  if(model==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
+  if(dtMode==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
     document.getElementById('det-img').src='';
     document.getElementById('det-img2').src='';
     document.getElementById('det-bboxes').innerHTML='';
@@ -58,16 +67,14 @@ function dtLoadImage(){
   }
   clearTimeout(dtImgDebounce);
   const seq=selSeq.id, n=dtFrame;
-  const isFusion=model==='fusion';
   if(dtLiveMode) dtLiveBoxes=[];
   dtImgDebounce=setTimeout(()=>{
     if(dtFrame!==n) return;
-    const src=isFusion
-      ? (dtFusionView==='event' ? '/frames/'+seq+'/'+n+'?model=e2vid' : '/frames_rgb/'+seq+'/'+n)
-      : '/frames/'+seq+'/'+n+'?model='+model;
+    const src=dtFrameSrc(seq, n);
     document.getElementById('det-img').src=src;
     const img2=document.getElementById('det-img2');
-    img2.onload=()=>{ dtRenderBboxes(); if(dtLiveMode) fetchLiveFrame(seq, n, model, (s,f)=>dtFrame===f&&dtLoadedSeq===s, boxes=>{dtLiveBoxes=boxes;dtRenderBboxes();}); };
+    const liveModel=dtMode==='fusion'||dtMode==='fusion_rgb'||dtMode==='fusion_event'?'fusion':dtMode;
+    img2.onload=()=>{ dtRenderBboxes(); if(dtLiveMode) fetchLiveFrame(seq, n, liveModel, (s,f)=>dtFrame===f&&dtLoadedSeq===s, boxes=>{dtLiveBoxes=boxes;dtRenderBboxes();}); };
     img2.src=src;
   }, 60);
 }
@@ -97,40 +104,44 @@ function dtStop(){
 
 /* ── Detection cache ──────────────────────────────────────────────────────── */
 
-// Fetches cached detections from the API; falls back to live mode on 404.
-// Sets dtDetections, dtLiveMode, and dtLiveBoxes, then calls dtRenderBboxes.
-// In live mode also calls dtLoadImage to trigger the first inference.
-async function dtLoadDetections(seqId, model){
-  if(!model){ const c=document.querySelector('[name="dm"]:checked'); model=c?c.dataset.m:'e2vid'; }
-  if(model==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
-    dtDetections=null; dtLiveMode=false; dtLiveBoxes=[];
+// Fetches cached detections for the current mode; falls back to live for e2vid/hyper.
+// fusion_rgb and fusion_event use the fusion cache filtered by source.
+async function dtLoadDetections(seqId, mode){
+  if(mode) dtMode=mode;
+  dtDetections=null; dtAllFusionDets=null; dtLiveMode=false; dtLiveBoxes=[];
+  const isFusionVariant=dtMode==='fusion'||dtMode==='fusion_rgb'||dtMode==='fusion_event';
+  if(dtMode==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
     document.getElementById('det-status').textContent='No HyperE2VID reconstruction frames for this sequence';
-    dtRenderBboxes();
-    return;
+    dtRenderBboxes(); return;
   }
   const sbKeys={e2vid:'sb-e2vid-dets',hypere2vid:'sb-hyper-dets',fusion:'sb-fusion-dets'};
   try{
-    const r=await fetch('/api/detections/'+seqId+'?model='+model);
+    const apiModel=isFusionVariant?'fusion':dtMode;
+    const r=await fetch('/api/detections/'+seqId+'?model='+apiModel);
     if(r.ok){
       const data=await r.json();
-      dtDetections=data.detections;
-      dtLiveMode=false; dtLiveBoxes=[];
-      document.getElementById('det-status').textContent='Cached — '+dtDetections.length+' detections across all frames';
-      const sbD=document.getElementById(sbKeys[model]||'sb-e2vid-dets'); if(sbD) sbD.textContent=dtDetections.length;
+      if(isFusionVariant){
+        dtAllFusionDets=data.detections;
+        dtDetections=data.detections; // also set for compat
+      } else {
+        dtDetections=data.detections;
+      }
+      dtLiveMode=false;
+      const visible=isFusionVariant
+        ? (dtMode==='fusion_rgb'?data.detections.filter(d=>d.source==='rgb')
+          :dtMode==='fusion_event'?data.detections.filter(d=>d.source==='event')
+          :data.detections)
+        : data.detections;
+      document.getElementById('det-status').textContent='Cached — '+data.detections.length+' detections ('+visible.length+' shown)';
+      const sbD=document.getElementById(sbKeys[apiModel]||'sb-e2vid-dets'); if(sbD) sbD.textContent=data.detections.length;
       dtRenderBboxes();
     } else {
-      if(model==='fusion'){
-        // Fusion cannot do live frame-by-frame detection — requires full-sequence inference
-        dtDetections=null; dtLiveMode=false; dtLiveBoxes=[];
+      if(isFusionVariant){
         document.getElementById('det-status').textContent='No fusion cache — run detection from Upload screen first';
-        dtRenderBboxes();
-        dtLoadImage();
-        return;
+        dtRenderBboxes(); dtLoadImage(); return;
       }
-      dtDetections=null;
-      dtLiveMode=true; dtLiveBoxes=[];
+      dtLiveMode=true;
       document.getElementById('det-status').textContent='Live detection — running frame by frame (no cache)';
-      const sbD=document.getElementById('sb-dets'); if(sbD) sbD.textContent='live';
       dtLoadImage();
     }
   } catch(e){}
@@ -164,7 +175,6 @@ function detLoad(){
     dtLoadDetections(selSeq.id);
   }
   panel.style.display='block';
-  dtUpdateViewToggle();
   if(seqChanged) dtSetFrame(0);
 }
 
@@ -200,27 +210,29 @@ document.getElementById('det-next-det').addEventListener('click',()=>{
 });
 document.getElementById('det-goto').addEventListener('change',function(){ dtStop(); dtSetFrame(parseInt(this.value)||0); });
 
-/* ── Fusion view toggle (RGB / Event) ────────────────────────────────────── */
+/* ── Mode buttons ────────────────────────────────────────────────────────── */
 
-function dtSetFusionView(v){
-  dtFusionView=v;
-  document.getElementById('det-view-rgb').style.background=v==='rgb'?'#1a3a60':'';
-  document.getElementById('det-view-rgb').style.color=v==='rgb'?'#fff':'';
-  document.getElementById('det-view-event').style.background=v==='event'?'#1a3a60':'';
-  document.getElementById('det-view-event').style.color=v==='event'?'#fff':'';
-  dtLoadImage();
+const MODE_LABELS={
+  e2vid:'e2vid',hypere2vid:'HyperE2VID',
+  fusion_rgb:'RGB',fusion_event:'Event',fusion:'Late Fusion'
+};
+
+function dtSetMode(m){
+  dtMode=m;
+  document.querySelectorAll('#det-mode-btns button').forEach(b=>{
+    const active=b.dataset.dm===m;
+    b.style.background=active?'#1a3a60':'';
+    b.style.color=active?'#fff':'';
+    b.style.borderColor=active?'#1a3a60':'';
+  });
+  const lbl=document.getElementById('det-left-lbl');
+  const pill=document.getElementById('det-pill');
+  if(lbl){ lbl.textContent=(MODE_LABELS[m]||m)+' '; if(pill) lbl.appendChild(pill); }
+  document.getElementById('tb').textContent=MODE_LABELS[m]||m;
+  if(selSeq){ dtLoadDetections(selSeq.id); dtLoadImage(); }
 }
 
-document.getElementById('det-view-rgb').addEventListener('click',()=>dtSetFusionView('rgb'));
-document.getElementById('det-view-event').addEventListener('click',()=>dtSetFusionView('event'));
-dtSetFusionView('rgb'); // initialise button highlight
-
-// Show/hide the view toggle based on whether Late Fusion is the active model.
-// Called from app-core.js model change handler and detLoad().
-function dtUpdateViewToggle(){
-  const isFusion=dtGetModel()==='fusion';
-  const tog=document.getElementById('det-view-toggle');
-  if(tog) tog.style.display=isFusion?'flex':'none';
-  if(!isFusion){ dtFusionView='rgb'; }
-}
-window.dtUpdateViewToggle=dtUpdateViewToggle;
+document.querySelectorAll('#det-mode-btns button').forEach(b=>{
+  b.addEventListener('click',()=>dtSetMode(b.dataset.dm));
+});
+dtSetMode('e2vid'); // initialise

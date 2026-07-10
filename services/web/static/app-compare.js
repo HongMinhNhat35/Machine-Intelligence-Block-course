@@ -23,6 +23,70 @@ let cpLiveE2vid=false, cpLiveHyper=false, cpLiveBoxes=[], cpLiveHyperBoxes=[];
 let cpFusionFrameCount=0;  // total FRED RGB frames; used to map e2vid index → fusion index
 let cpHyperFrameCount=0;   // total hypere2vid frames; used to map e2vid index → hyper index
 
+// Two-anchor linear calibration: slope + offset per secondary stream.
+// Computed from the first/last SUSTAINED detection frames, not first/last
+// single detections (which are noise). Falls back to ratio when unavailable.
+let cpFusionSlope=0, cpFusionOffset=0, cpFusionCalibrated=false;
+let cpHyperSlope=0,  cpHyperOffset=0,  cpHyperCalibrated=false;
+
+// Returns the first frame where at least minCount of the next `window` frames
+// have a detection — i.e., the start of a sustained detection cluster.
+function cpFirstSustained(frames, window=10, minCount=5){
+  const s=new Set(frames);
+  for(const f of frames){
+    let c=0; for(let x=f;x<f+window;x++) if(s.has(x)) c++;
+    if(c>=minCount) return f;
+  }
+  return frames[0];
+}
+
+// Returns the last frame where at least minCount of the previous `window`
+// frames have a detection — i.e., the end of a sustained detection cluster.
+function cpLastSustained(frames, window=10, minCount=5){
+  const s=new Set(frames);
+  for(let i=frames.length-1;i>=0;i--){
+    const f=frames[i];
+    let c=0; for(let x=f-window+1;x<=f;x++) if(s.has(x)) c++;
+    if(c>=minCount) return f;
+  }
+  return frames[frames.length-1];
+}
+
+// Calibrates slope+offset for each secondary stream using sustained detection
+// anchors. These mark the true drone appearing/disappearing and correspond
+// to the same real-world event across all streams (unlike first/last single
+// detections, which are often noise or reflect different model sensitivities).
+function cpCalibrate(){
+  const CAL_CONF=0.05;
+  const detFrames=dets=>[...new Set(dets.filter(d=>d.confidence>=CAL_CONF).map(d=>d.frame))].sort((a,b)=>a-b);
+  const eF=cpDetections ? detFrames(cpDetections) : [];
+  cpFusionCalibrated=false; cpHyperCalibrated=false;
+  if(eF.length<10) return;
+  const eFirst=cpFirstSustained(eF), eLast=cpLastSustained(eF);
+  if(eLast<=eFirst) return;
+  if(cpFusionDetections && cpFusionFrameCount){
+    const fF=detFrames(cpFusionDetections);
+    if(fF.length>=10){
+      const fFirst=cpFirstSustained(fF), fLast=cpLastSustained(fF);
+      if(fLast>fFirst){
+        cpFusionSlope=(fLast-fFirst)/(eLast-eFirst);
+        cpFusionOffset=fFirst-cpFusionSlope*eFirst;
+        cpFusionCalibrated=true;
+      }
+    }
+  }
+  if(cpHyperDetections && cpHyperFrameCount){
+    const hF=detFrames(cpHyperDetections);
+    if(hF.length>=10){
+      const hFirst=cpFirstSustained(hF), hLast=cpLastSustained(hF);
+      if(hLast>hFirst){
+        cpHyperSlope=(hLast-hFirst)/(eLast-eFirst);
+        cpHyperOffset=hFirst-cpHyperSlope*eFirst;
+        cpHyperCalibrated=true;
+      }
+    }
+  }
+}
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
@@ -59,12 +123,16 @@ function cpRenderHyperBboxes(){
 // Maps the current e2vid frame index to the corresponding hypere2vid frame index.
 function cpHyperFrame(){
   if(!cpHyperFrameCount || !cpMax) return cpFrame;
+  if(cpHyperCalibrated)
+    return Math.max(0,Math.min(cpHyperFrameCount-1, Math.round(cpHyperSlope*cpFrame+cpHyperOffset)));
   return Math.round(cpFrame * cpHyperFrameCount / (cpMax + 1));
 }
 
 // Maps the current e2vid frame index to the corresponding fusion (FRED RGB) frame index.
 function cpFusionFrame(){
   if(!cpFusionFrameCount || !cpMax) return cpFrame;
+  if(cpFusionCalibrated)
+    return Math.max(0,Math.min(cpFusionFrameCount-1, Math.round(cpFusionSlope*cpFrame+cpFusionOffset)));
   return Math.round(cpFrame * cpFusionFrameCount / (cpMax + 1));
 }
 
@@ -203,7 +271,7 @@ async function compLoad(){
     cpDetections=null; cpHyperDetections=null; cpFusionDetections=null;
     cpFusionFrameCount=selSeq.fred_rgb_count||0;
     cpHyperFrameCount=selSeq.hyper_frame_count||0;
-
+    cpFusionCalibrated=false; cpHyperCalibrated=false;
     cpLiveE2vid=false; cpLiveHyper=false; cpLiveBoxes=[]; cpLiveHyperBoxes=[];
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
@@ -244,6 +312,7 @@ async function compLoad(){
       if(cpFusionImg){ cpFusionImg.src=''; cpFusionImg.style.display='none'; }
       if(cpFusionNoCache) cpFusionNoCache.style.display='flex';
     }
+    cpCalibrate();
   }
   panel.style.display='block';
   if(seqChanged) cpSetFrame(0);

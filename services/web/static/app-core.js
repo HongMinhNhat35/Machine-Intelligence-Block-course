@@ -30,8 +30,7 @@ function go(k){
         dtRenderBboxes();
       });
     }
-    const checked=document.querySelector('[name="dm"]:checked');
-    if(checked) document.getElementById('tb').textContent=checked.closest('label').textContent.trim();
+    // tb label is kept in sync by dtSetMode()
   }
   if(k==='compare'){
     const cs2=document.getElementById('csl2'),cv2=document.getElementById('cval2');
@@ -47,16 +46,7 @@ function go(k){
   }
 }
 document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('click',()=>go(el.dataset.s)));
-document.querySelectorAll('[name="dm"]').forEach(r=>r.addEventListener('change',function(){
-  document.getElementById('tb').textContent=this.closest('label').textContent.trim();
-  const lbl=document.getElementById('det-left-lbl');
-  if(lbl){ const pill=document.getElementById('det-pill'); lbl.innerHTML=this.closest('label').textContent.trim()+' '; if(pill) lbl.appendChild(pill); }
-  if(typeof dtUpdateViewToggle==='function') dtUpdateViewToggle();
-  if(selSeq){
-    dtLoadDetections(selSeq.id, this.dataset.m);
-    dtLoadImage();
-  }
-}));
+// Mode buttons are handled in app-detect.js (dtSetMode)
 let allSeqs=[], selSeq=null;
 let sharedConfPct=20, kpiCache=null;
 
