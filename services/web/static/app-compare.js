@@ -23,6 +23,41 @@ let cpLiveE2vid=false, cpLiveHyper=false, cpLiveBoxes=[], cpLiveHyperBoxes=[];
 let cpFusionFrameCount=0;  // total FRED RGB frames; used to map e2vid index → fusion index
 let cpHyperFrameCount=0;   // total hypere2vid frames; used to map e2vid index → hyper index
 
+// Detection-based sync calibration: slope + offset for each secondary stream.
+// Computed from first/last detection frames once both caches are loaded.
+// Falls back to ratio formula when calibration is unavailable.
+let cpFusionSlope=0, cpFusionOffset=0, cpFusionCalibrated=false;
+let cpHyperSlope=0,  cpHyperOffset=0,  cpHyperCalibrated=false;
+
+// Recomputes sync calibration from detection anchor frames at a low confidence
+// threshold, so the calibration is independent of the display conf slider.
+function cpCalibrate(){
+  const CAL_CONF=0.05;
+  const anchors=dets=>{
+    const frames=[...new Set(dets.filter(d=>d.confidence>=CAL_CONF).map(d=>d.frame))].sort((a,b)=>a-b);
+    return frames.length>=2 ? {first:frames[0], last:frames[frames.length-1]} : null;
+  };
+  const eA=cpDetections ? anchors(cpDetections) : null;
+  cpFusionCalibrated=false;
+  if(eA && cpFusionDetections){
+    const fA=anchors(cpFusionDetections);
+    if(fA && eA.last>eA.first){
+      cpFusionSlope=(fA.last-fA.first)/(eA.last-eA.first);
+      cpFusionOffset=fA.first-eA.first*cpFusionSlope;
+      cpFusionCalibrated=true;
+    }
+  }
+  cpHyperCalibrated=false;
+  if(eA && cpHyperDetections){
+    const hA=anchors(cpHyperDetections);
+    if(hA && eA.last>eA.first){
+      cpHyperSlope=(hA.last-hA.first)/(eA.last-eA.first);
+      cpHyperOffset=hA.first-eA.first*cpHyperSlope;
+      cpHyperCalibrated=true;
+    }
+  }
+}
+
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
 // Filters stored or live e2vid boxes by confidence and draws them over cp-e2vid-img.
@@ -58,12 +93,16 @@ function cpRenderHyperBboxes(){
 // Maps the current e2vid frame index to the corresponding hypere2vid frame index.
 function cpHyperFrame(){
   if(!cpHyperFrameCount || !cpMax) return cpFrame;
+  if(cpHyperCalibrated)
+    return Math.max(0,Math.min(cpHyperFrameCount-1, Math.round(cpHyperSlope*cpFrame+cpHyperOffset)));
   return Math.round(cpFrame * cpHyperFrameCount / (cpMax + 1));
 }
 
 // Maps the current e2vid frame index to the corresponding fusion (FRED RGB) frame index.
 function cpFusionFrame(){
   if(!cpFusionFrameCount || !cpMax) return cpFrame;
+  if(cpFusionCalibrated)
+    return Math.max(0,Math.min(cpFusionFrameCount-1, Math.round(cpFusionSlope*cpFrame+cpFusionOffset)));
   return Math.round(cpFrame * cpFusionFrameCount / (cpMax + 1));
 }
 
@@ -202,6 +241,7 @@ async function compLoad(){
     cpDetections=null; cpHyperDetections=null; cpFusionDetections=null;
     cpFusionFrameCount=selSeq.fred_rgb_count||0;
     cpHyperFrameCount=selSeq.hyper_frame_count||0;
+    cpFusionCalibrated=false; cpHyperCalibrated=false;
     cpLiveE2vid=false; cpLiveHyper=false; cpLiveBoxes=[]; cpLiveHyperBoxes=[];
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
@@ -242,6 +282,7 @@ async function compLoad(){
       if(cpFusionImg){ cpFusionImg.src=''; cpFusionImg.style.display='none'; }
       if(cpFusionNoCache) cpFusionNoCache.style.display='flex';
     }
+    cpCalibrate();
   }
   panel.style.display='block';
   if(seqChanged) cpSetFrame(0);
@@ -280,12 +321,20 @@ document.getElementById('cp-next-det').addEventListener('click',()=>{
   if(cpDetections) cpDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
   // Hyper and fusion frames are on different axes — convert back to e2vid frame index
   if(cpHyperDetections && cpHyperFrameCount && cpMax){
-    const scale=(cpMax+1)/cpHyperFrameCount;
-    cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(Math.round(d.frame*scale)));
+    const toE2vid=cpHyperCalibrated
+      ? f=>Math.round((f-cpHyperOffset)/cpHyperSlope)
+      : f=>Math.round(f*(cpMax+1)/cpHyperFrameCount);
+    cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>{
+      const e=toE2vid(d.frame); if(e>=0&&e<=cpMax) frameSet.add(e);
+    });
   }
   if(cpFusionDetections && cpFusionFrameCount && cpMax){
-    const scale=(cpMax+1)/cpFusionFrameCount;
-    cpFusionDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(Math.round(d.frame*scale)));
+    const toE2vid=cpFusionCalibrated
+      ? f=>Math.round((f-cpFusionOffset)/cpFusionSlope)
+      : f=>Math.round(f*(cpMax+1)/cpFusionFrameCount);
+    cpFusionDetections.filter(d=>d.confidence>=conf).forEach(d=>{
+      const e=toE2vid(d.frame); if(e>=0&&e<=cpMax) frameSet.add(e);
+    });
   }
   if(!frameSet.size) return;
   const frames=[...frameSet].sort((a,b)=>a-b);
