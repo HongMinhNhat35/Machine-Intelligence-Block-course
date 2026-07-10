@@ -29,18 +29,27 @@ let cpHyperFrameCount=0;   // total hypere2vid frames; used to map e2vid index â
 let cpFusionPairs=null, cpFusionCalibrated=false;
 let cpHyperPairs=null,  cpHyperCalibrated=false;
 
-// Returns N evenly-spaced (eFrame, sFrame) anchor pairs by matching detection
-// rank percentiles across both streams.
-function cpBuildPairs(eFrames, sFrames, N=12){
-  if(eFrames.length<4 || sFrames.length<4) return null;
+// Builds anchor pairs by dividing the e2vid frame range into N equal temporal
+// bins, then finding the median detection frame in each bin for both streams.
+// The corresponding fusion bin is located using the global frame-count ratio,
+// so pairs reflect real-world time position rather than detection-count rank.
+// This avoids systematic offset when one stream detects more densely than the
+// other at certain points in the sequence.
+function cpBuildPairs(eFrames, fFrames, eTotal, fTotal, N=16){
+  if(eFrames.length<4 || fFrames.length<4 || !eTotal || !fTotal) return null;
+  const ratio=fTotal/eTotal;
   const pairs=[];
-  for(let i=0;i<N;i++){
-    const t=i/(N-1);
-    const eF=eFrames[Math.round(t*(eFrames.length-1))];
-    const sF=sFrames[Math.round(t*(sFrames.length-1))];
-    pairs.push([eF,sF]);
+  for(let k=0;k<N;k++){
+    const eMin=k*eTotal/N, eMax=(k+1)*eTotal/N;
+    const eBin=eFrames.filter(f=>f>=eMin&&f<eMax);
+    if(!eBin.length) continue;
+    const eAnchor=eBin[Math.floor(eBin.length/2)];
+    const fMin=eMin*ratio, fMax=eMax*ratio;
+    const fBin=fFrames.filter(f=>f>=fMin&&f<fMax);
+    if(!fBin.length) continue;
+    const fAnchor=fBin[Math.floor(fBin.length/2)];
+    pairs.push([eAnchor,fAnchor]);
   }
-  // Ensure strict monotonicity in the e-axis (remove duplicates)
   const mono=[]; let last=-1;
   for(const p of pairs){ if(p[0]>last){mono.push(p);last=p[0];} }
   return mono.length>=2 ? mono : null;
@@ -101,16 +110,17 @@ function cpCalibrate(){
   const CAL_CONF=0.05;
   const detFrames=dets=>[...new Set(dets.filter(d=>d.confidence>=CAL_CONF).map(d=>d.frame))].sort((a,b)=>a-b);
   const eF=cpDetections ? detFrames(cpDetections) : [];
+  const eTotal=cpMax+1;
   cpFusionCalibrated=false; cpFusionPairs=null;
-  if(eF.length>=4 && cpFusionDetections){
+  if(eF.length>=4 && cpFusionDetections && cpFusionFrameCount){
     const fF=detFrames(cpFusionDetections);
-    cpFusionPairs=cpBuildPairs(eF,fF);
+    cpFusionPairs=cpBuildPairs(eF,fF,eTotal,cpFusionFrameCount);
     cpFusionCalibrated=cpFusionPairs!==null;
   }
   cpHyperCalibrated=false; cpHyperPairs=null;
-  if(eF.length>=4 && cpHyperDetections){
+  if(eF.length>=4 && cpHyperDetections && cpHyperFrameCount){
     const hF=detFrames(cpHyperDetections);
-    cpHyperPairs=cpBuildPairs(eF,hF);
+    cpHyperPairs=cpBuildPairs(eF,hF,eTotal,cpHyperFrameCount);
     cpHyperCalibrated=cpHyperPairs!==null;
   }
 }
