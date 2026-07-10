@@ -23,107 +23,6 @@ let cpLiveE2vid=false, cpLiveHyper=false, cpLiveBoxes=[], cpLiveHyperBoxes=[];
 let cpFusionFrameCount=0;  // total FRED RGB frames; used to map e2vid index → fusion index
 let cpHyperFrameCount=0;   // total hypere2vid frames; used to map e2vid index → hyper index
 
-// Detection-based sync calibration: piecewise linear map built from N percentile
-// anchor pairs sampled from the sorted detection-frame lists of each stream.
-// Falls back to ratio formula when calibration is unavailable.
-let cpFusionPairs=null, cpFusionCalibrated=false;
-let cpHyperPairs=null,  cpHyperCalibrated=false;
-
-// Builds anchor pairs by dividing the e2vid frame range into N equal temporal
-// bins, then finding the median detection frame in each bin for both streams.
-// The corresponding fusion bin is located using the global frame-count ratio,
-// so pairs reflect real-world time position rather than detection-count rank.
-// This avoids systematic offset when one stream detects more densely than the
-// other at certain points in the sequence.
-function cpBuildPairs(eFrames, fFrames, eTotal, fTotal, N=16){
-  if(eFrames.length<4 || fFrames.length<4 || !eTotal || !fTotal) return null;
-  const ratio=fTotal/eTotal;
-  const pairs=[];
-  for(let k=0;k<N;k++){
-    const eMin=k*eTotal/N, eMax=(k+1)*eTotal/N;
-    const eBin=eFrames.filter(f=>f>=eMin&&f<eMax);
-    if(!eBin.length) continue;
-    const eAnchor=eBin[Math.floor(eBin.length/2)];
-    const fMin=eMin*ratio, fMax=eMax*ratio;
-    const fBin=fFrames.filter(f=>f>=fMin&&f<fMax);
-    if(!fBin.length) continue;
-    const fAnchor=fBin[Math.floor(fBin.length/2)];
-    pairs.push([eAnchor,fAnchor]);
-  }
-  const mono=[]; let last=-1;
-  for(const p of pairs){ if(p[0]>last){mono.push(p);last=p[0];} }
-  return mono.length>=2 ? mono : null;
-}
-
-// Piecewise-linear lookup: given sorted anchor pairs, interpolate sFrame for eFrame.
-// Extrapolates beyond the first/last anchor using that terminal segment's slope
-// so frames past the last detection stay in sync rather than freezing.
-function cpInterpolate(pairs, x){
-  if(!pairs||!pairs.length) return x;
-  const n=pairs.length;
-  if(x<=pairs[0][0]){
-    if(n<2) return pairs[0][1];
-    const slope=(pairs[1][1]-pairs[0][1])/(pairs[1][0]-pairs[0][0]);
-    return Math.round(pairs[0][1]+slope*(x-pairs[0][0]));
-  }
-  if(x>=pairs[n-1][0]){
-    if(n<2) return pairs[n-1][1];
-    const slope=(pairs[n-1][1]-pairs[n-2][1])/(pairs[n-1][0]-pairs[n-2][0]);
-    return Math.round(pairs[n-1][1]+slope*(x-pairs[n-1][0]));
-  }
-  for(let i=0;i<n-1;i++){
-    if(x>=pairs[i][0]&&x<=pairs[i+1][0]){
-      const t=(x-pairs[i][0])/(pairs[i+1][0]-pairs[i][0]);
-      return Math.round(pairs[i][1]+t*(pairs[i+1][1]-pairs[i][1]));
-    }
-  }
-  return pairs[n-1][1];
-}
-
-// Inverse lookup: given sFrame, find the e2vid frame via the anchor pairs.
-// Also extrapolates beyond the anchor range.
-function cpInterpolateInv(pairs, y){
-  if(!pairs||!pairs.length) return y;
-  const n=pairs.length;
-  if(y<=pairs[0][1]){
-    if(n<2) return pairs[0][0];
-    const slope=(pairs[1][0]-pairs[0][0])/(pairs[1][1]-pairs[0][1]);
-    return Math.round(pairs[0][0]+slope*(y-pairs[0][1]));
-  }
-  if(y>=pairs[n-1][1]){
-    if(n<2) return pairs[n-1][0];
-    const slope=(pairs[n-1][0]-pairs[n-2][0])/(pairs[n-1][1]-pairs[n-2][1]);
-    return Math.round(pairs[n-1][0]+slope*(y-pairs[n-1][1]));
-  }
-  for(let i=0;i<n-1;i++){
-    if(y>=pairs[i][1]&&y<=pairs[i+1][1]){
-      const t=(y-pairs[i][1])/(pairs[i+1][1]-pairs[i][1]);
-      return Math.round(pairs[i][0]+t*(pairs[i+1][0]-pairs[i][0]));
-    }
-  }
-  return pairs[n-1][0];
-}
-
-// Recomputes piecewise calibration from detection frames at a low confidence
-// threshold, independent of the display conf slider.
-function cpCalibrate(){
-  const CAL_CONF=0.05;
-  const detFrames=dets=>[...new Set(dets.filter(d=>d.confidence>=CAL_CONF).map(d=>d.frame))].sort((a,b)=>a-b);
-  const eF=cpDetections ? detFrames(cpDetections) : [];
-  const eTotal=cpMax+1;
-  cpFusionCalibrated=false; cpFusionPairs=null;
-  if(eF.length>=4 && cpFusionDetections && cpFusionFrameCount){
-    const fF=detFrames(cpFusionDetections);
-    cpFusionPairs=cpBuildPairs(eF,fF,eTotal,cpFusionFrameCount);
-    cpFusionCalibrated=cpFusionPairs!==null;
-  }
-  cpHyperCalibrated=false; cpHyperPairs=null;
-  if(eF.length>=4 && cpHyperDetections && cpHyperFrameCount){
-    const hF=detFrames(cpHyperDetections);
-    cpHyperPairs=cpBuildPairs(eF,hF,eTotal,cpHyperFrameCount);
-    cpHyperCalibrated=cpHyperPairs!==null;
-  }
-}
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
@@ -160,16 +59,12 @@ function cpRenderHyperBboxes(){
 // Maps the current e2vid frame index to the corresponding hypere2vid frame index.
 function cpHyperFrame(){
   if(!cpHyperFrameCount || !cpMax) return cpFrame;
-  if(cpHyperCalibrated)
-    return Math.max(0,Math.min(cpHyperFrameCount-1, cpInterpolate(cpHyperPairs, cpFrame)));
   return Math.round(cpFrame * cpHyperFrameCount / (cpMax + 1));
 }
 
 // Maps the current e2vid frame index to the corresponding fusion (FRED RGB) frame index.
 function cpFusionFrame(){
   if(!cpFusionFrameCount || !cpMax) return cpFrame;
-  if(cpFusionCalibrated)
-    return Math.max(0,Math.min(cpFusionFrameCount-1, cpInterpolate(cpFusionPairs, cpFrame)));
   return Math.round(cpFrame * cpFusionFrameCount / (cpMax + 1));
 }
 
@@ -308,8 +203,7 @@ async function compLoad(){
     cpDetections=null; cpHyperDetections=null; cpFusionDetections=null;
     cpFusionFrameCount=selSeq.fred_rgb_count||0;
     cpHyperFrameCount=selSeq.hyper_frame_count||0;
-    cpFusionCalibrated=false; cpFusionPairs=null;
-    cpHyperCalibrated=false;  cpHyperPairs=null;
+
     cpLiveE2vid=false; cpLiveHyper=false; cpLiveBoxes=[]; cpLiveHyperBoxes=[];
     document.getElementById('cp-sl').max=cpMax;
     document.getElementById('cp-max').textContent=cpMax;
@@ -350,7 +244,6 @@ async function compLoad(){
       if(cpFusionImg){ cpFusionImg.src=''; cpFusionImg.style.display='none'; }
       if(cpFusionNoCache) cpFusionNoCache.style.display='flex';
     }
-    cpCalibrate();
   }
   panel.style.display='block';
   if(seqChanged) cpSetFrame(0);
@@ -388,22 +281,14 @@ document.getElementById('cp-next-det').addEventListener('click',()=>{
   const frameSet=new Set();
   if(cpDetections) cpDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
   // Hyper and fusion frames are on different axes — convert back to e2vid frame index
-  if(cpHyperDetections && cpHyperFrameCount && cpMax){
-    const toE2vid=cpHyperCalibrated
-      ? f=>Math.max(0,Math.min(cpMax, cpInterpolateInv(cpHyperPairs, f)))
-      : f=>Math.round(f*(cpMax+1)/cpHyperFrameCount);
+  if(cpHyperDetections && cpHyperFrameCount && cpMax)
     cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>{
-      const e=toE2vid(d.frame); if(e>=0&&e<=cpMax) frameSet.add(e);
+      const e=Math.round(d.frame*(cpMax+1)/cpHyperFrameCount); if(e>=0&&e<=cpMax) frameSet.add(e);
     });
-  }
-  if(cpFusionDetections && cpFusionFrameCount && cpMax){
-    const toE2vid=cpFusionCalibrated
-      ? f=>Math.max(0,Math.min(cpMax, cpInterpolateInv(cpFusionPairs, f)))
-      : f=>Math.round(f*(cpMax+1)/cpFusionFrameCount);
+  if(cpFusionDetections && cpFusionFrameCount && cpMax)
     cpFusionDetections.filter(d=>d.confidence>=conf).forEach(d=>{
-      const e=toE2vid(d.frame); if(e>=0&&e<=cpMax) frameSet.add(e);
+      const e=Math.round(d.frame*(cpMax+1)/cpFusionFrameCount); if(e>=0&&e<=cpMax) frameSet.add(e);
     });
-  }
   if(!frameSet.size) return;
   const frames=[...frameSet].sort((a,b)=>a-b);
   const next=frames.find(f=>f>cpFrame) ?? frames[0];
