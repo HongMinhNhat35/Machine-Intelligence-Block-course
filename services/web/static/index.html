@@ -165,6 +165,12 @@
           <div id="det-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
           <div id="det-no-frames" style="display:none;color:#aaa;font-size:12px;padding:20px 0">Reconstruction not available for this sequence — frames have not been generated yet.</div>
           <div id="det-panel" style="display:none">
+            <!-- View toggle — only visible when Late Fusion is selected -->
+            <div id="det-view-toggle" style="display:none;align-items:center;gap:6px;margin-bottom:8px">
+              <span style="font-size:11px;color:#888;font-weight:600">View:</span>
+              <button class="pb-btn" id="det-view-rgb" style="padding:3px 12px;font-size:11px">RGB</button>
+              <button class="pb-btn" id="det-view-event" style="padding:3px 12px;font-size:11px">Event</button>
+            </div>
             <div class="row2" style="margin-bottom:10px">
               <!-- Left: raw reconstruction frame; header label updated on model change -->
               <div class="frame-box">

@@ -17,6 +17,7 @@
 
 let dtPlaying=false, dtTimer=null, dtFrame=0, dtMax=0, dtLoadedSeq=null;
 let dtDetections=null, dtImgDebounce=null, dtLiveMode=false, dtLiveBoxes=[];
+let dtFusionView='rgb'; // 'rgb' | 'event' — active when Late Fusion model is selected
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
@@ -61,7 +62,9 @@ function dtLoadImage(){
   if(dtLiveMode) dtLiveBoxes=[];
   dtImgDebounce=setTimeout(()=>{
     if(dtFrame!==n) return;
-    const src=isFusion ? '/frames_rgb/'+seq+'/'+n : '/frames/'+seq+'/'+n+'?model='+model;
+    const src=isFusion
+      ? (dtFusionView==='event' ? '/frames/'+seq+'/'+n+'?model=e2vid' : '/frames_rgb/'+seq+'/'+n)
+      : '/frames/'+seq+'/'+n+'?model='+model;
     document.getElementById('det-img').src=src;
     const img2=document.getElementById('det-img2');
     img2.onload=()=>{ dtRenderBboxes(); if(dtLiveMode) fetchLiveFrame(seq, n, model, (s,f)=>dtFrame===f&&dtLoadedSeq===s, boxes=>{dtLiveBoxes=boxes;dtRenderBboxes();}); };
@@ -161,6 +164,7 @@ function detLoad(){
     dtLoadDetections(selSeq.id);
   }
   panel.style.display='block';
+  dtUpdateViewToggle();
   if(seqChanged) dtSetFrame(0);
 }
 
@@ -195,3 +199,28 @@ document.getElementById('det-next-det').addEventListener('click',()=>{
   if(next!=null){ dtStop(); dtSetFrame(next); }
 });
 document.getElementById('det-goto').addEventListener('change',function(){ dtStop(); dtSetFrame(parseInt(this.value)||0); });
+
+/* ── Fusion view toggle (RGB / Event) ────────────────────────────────────── */
+
+function dtSetFusionView(v){
+  dtFusionView=v;
+  document.getElementById('det-view-rgb').style.background=v==='rgb'?'#1a3a60':'';
+  document.getElementById('det-view-rgb').style.color=v==='rgb'?'#fff':'';
+  document.getElementById('det-view-event').style.background=v==='event'?'#1a3a60':'';
+  document.getElementById('det-view-event').style.color=v==='event'?'#fff':'';
+  dtLoadImage();
+}
+
+document.getElementById('det-view-rgb').addEventListener('click',()=>dtSetFusionView('rgb'));
+document.getElementById('det-view-event').addEventListener('click',()=>dtSetFusionView('event'));
+dtSetFusionView('rgb'); // initialise button highlight
+
+// Show/hide the view toggle based on whether Late Fusion is the active model.
+// Called from app-core.js model change handler and detLoad().
+function dtUpdateViewToggle(){
+  const isFusion=dtGetModel()==='fusion';
+  const tog=document.getElementById('det-view-toggle');
+  if(tog) tog.style.display=isFusion?'flex':'none';
+  if(!isFusion){ dtFusionView='rgb'; }
+}
+window.dtUpdateViewToggle=dtUpdateViewToggle;

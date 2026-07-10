@@ -51,6 +51,7 @@ document.querySelectorAll('[name="dm"]').forEach(r=>r.addEventListener('change',
   document.getElementById('tb').textContent=this.closest('label').textContent.trim();
   const lbl=document.getElementById('det-left-lbl');
   if(lbl){ const pill=document.getElementById('det-pill'); lbl.innerHTML=this.closest('label').textContent.trim()+' '; if(pill) lbl.appendChild(pill); }
+  if(typeof dtUpdateViewToggle==='function') dtUpdateViewToggle();
   if(selSeq){
     dtLoadDetections(selSeq.id, this.dataset.m);
     dtLoadImage();
