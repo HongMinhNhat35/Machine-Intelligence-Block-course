@@ -47,31 +47,52 @@ function cpBuildPairs(eFrames, sFrames, N=12){
 }
 
 // Piecewise-linear lookup: given sorted anchor pairs, interpolate sFrame for eFrame.
+// Extrapolates beyond the first/last anchor using that terminal segment's slope
+// so frames past the last detection stay in sync rather than freezing.
 function cpInterpolate(pairs, x){
   if(!pairs||!pairs.length) return x;
-  if(x<=pairs[0][0]) return pairs[0][1];
-  if(x>=pairs[pairs.length-1][0]) return pairs[pairs.length-1][1];
-  for(let i=0;i<pairs.length-1;i++){
+  const n=pairs.length;
+  if(x<=pairs[0][0]){
+    if(n<2) return pairs[0][1];
+    const slope=(pairs[1][1]-pairs[0][1])/(pairs[1][0]-pairs[0][0]);
+    return Math.round(pairs[0][1]+slope*(x-pairs[0][0]));
+  }
+  if(x>=pairs[n-1][0]){
+    if(n<2) return pairs[n-1][1];
+    const slope=(pairs[n-1][1]-pairs[n-2][1])/(pairs[n-1][0]-pairs[n-2][0]);
+    return Math.round(pairs[n-1][1]+slope*(x-pairs[n-1][0]));
+  }
+  for(let i=0;i<n-1;i++){
     if(x>=pairs[i][0]&&x<=pairs[i+1][0]){
       const t=(x-pairs[i][0])/(pairs[i+1][0]-pairs[i][0]);
       return Math.round(pairs[i][1]+t*(pairs[i+1][1]-pairs[i][1]));
     }
   }
-  return pairs[pairs.length-1][1];
+  return pairs[n-1][1];
 }
 
 // Inverse lookup: given sFrame, find the e2vid frame via the anchor pairs.
+// Also extrapolates beyond the anchor range.
 function cpInterpolateInv(pairs, y){
   if(!pairs||!pairs.length) return y;
-  if(y<=pairs[0][1]) return pairs[0][0];
-  if(y>=pairs[pairs.length-1][1]) return pairs[pairs.length-1][0];
-  for(let i=0;i<pairs.length-1;i++){
+  const n=pairs.length;
+  if(y<=pairs[0][1]){
+    if(n<2) return pairs[0][0];
+    const slope=(pairs[1][0]-pairs[0][0])/(pairs[1][1]-pairs[0][1]);
+    return Math.round(pairs[0][0]+slope*(y-pairs[0][1]));
+  }
+  if(y>=pairs[n-1][1]){
+    if(n<2) return pairs[n-1][0];
+    const slope=(pairs[n-1][0]-pairs[n-2][0])/(pairs[n-1][1]-pairs[n-2][1]);
+    return Math.round(pairs[n-1][0]+slope*(y-pairs[n-1][1]));
+  }
+  for(let i=0;i<n-1;i++){
     if(y>=pairs[i][1]&&y<=pairs[i+1][1]){
       const t=(y-pairs[i][1])/(pairs[i+1][1]-pairs[i][1]);
       return Math.round(pairs[i][0]+t*(pairs[i+1][0]-pairs[i][0]));
     }
   }
-  return pairs[pairs.length-1][0];
+  return pairs[n-1][0];
 }
 
 // Recomputes piecewise calibration from detection frames at a low confidence
