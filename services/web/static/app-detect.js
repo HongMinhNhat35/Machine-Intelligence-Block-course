@@ -32,10 +32,9 @@ function dtRenderBboxes(){
   if(dtLiveMode){
     boxes=(dtLiveBoxes||[]).filter(d=>d.confidence>=conf);
   } else {
-    const src=dtMode==='fusion_rgb'?'rgb':dtMode==='fusion_event'?'event':null;
-    const pool=src ? dtAllFusionDets : dtDetections;
+    const pool=(dtMode==='fusion_rgb'||dtMode==='fusion_event') ? dtAllFusionDets : dtDetections;
     if(!pool){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
-    boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf && (!src||d.source===src));
+    boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf);
   }
   document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
   renderBboxes(boxes, document.getElementById('det-img2'), bboxDiv);
@@ -127,12 +126,7 @@ async function dtLoadDetections(seqId, mode){
         dtDetections=data.detections;
       }
       dtLiveMode=false;
-      const visible=isFusionVariant
-        ? (dtMode==='fusion_rgb'?data.detections.filter(d=>d.source==='rgb')
-          :dtMode==='fusion_event'?data.detections.filter(d=>d.source==='event')
-          :data.detections)
-        : data.detections;
-      document.getElementById('det-status').textContent='Cached — '+data.detections.length+' detections ('+visible.length+' shown)';
+      document.getElementById('det-status').textContent='Cached — '+data.detections.length+' detections across all frames';
       const sbD=document.getElementById(sbKeys[apiModel]||'sb-e2vid-dets'); if(sbD) sbD.textContent=data.detections.length;
       dtRenderBboxes();
     } else {
