@@ -352,45 +352,6 @@ async function compLoad(){
 
 /* ── Controls ─────────────────────────────────────────────────────────────── */
 
-// Slider drag-tracking — onDrag updates goto input only; onCommit also loads the frame.
-const cpSlider = bindSlider('cp-sl',
-  v => { cpFrame=Math.max(0,Math.min(v,cpMax)); const gi=document.getElementById('cp-goto'); if(gi) gi.value=cpFrame; },
-  v => { cpFrame=Math.max(0,Math.min(v,cpMax)); const gi=document.getElementById('cp-goto'); if(gi) gi.value=cpFrame; cpLoadImage(); }
-);
-
-document.getElementById('cp-play').addEventListener('click',function(){
-  if(!selSeq||!selSeq.e2vid_done) return;
-  cpPlaying=!cpPlaying;
-  clearInterval(cpTimer); cpTimer=null;
-  if(cpPlaying){
-    this.innerHTML='<i class="ti ti-player-pause"></i> Pause';
-    cpTimer=setInterval(()=>{ if(!cpSlider.isDragging()) cpSetFrame(cpFrame>=cpMax?0:cpFrame+1); },150);
-  } else {
-    this.innerHTML='<i class="ti ti-player-play"></i> Play';
-  }
-});
-document.getElementById('cp-stop').addEventListener('click',()=>{ cpStop(); cpSetFrame(0); });
-document.getElementById('cp-prev').addEventListener('click',()=>{ cpStop(); cpSetFrame(cpFrame-1); });
-document.getElementById('cp-next').addEventListener('click',()=>{ cpStop(); cpSetFrame(cpFrame+1); });
-document.getElementById('cp-goto').addEventListener('change',function(){ cpStop(); cpSetFrame(parseInt(this.value)||0); });
-document.getElementById('cp-next-det').addEventListener('click',()=>{
-  const conf=getConf();
-  const frameSet=new Set();
-  if(cpDetections) cpDetections.filter(d=>d.confidence>=conf).forEach(d=>frameSet.add(d.frame));
-  // Hyper and fusion frames are on different axes — convert back to e2vid frame index
-  if(cpHyperDetections && cpHyperFrameCount && cpMax)
-    cpHyperDetections.filter(d=>d.confidence>=conf).forEach(d=>{
-      const e=Math.round(d.frame*(cpMax+1)/cpHyperFrameCount); if(e>=0&&e<=cpMax) frameSet.add(e);
-    });
-  if(cpFusionDetections && cpFusionFrameCount && cpMax)
-    cpFusionDetections.filter(d=>d.confidence>=conf).forEach(d=>{
-      const e=Math.round(d.frame*(cpMax+1)/cpFusionFrameCount); if(e>=0&&e<=cpMax) frameSet.add(e);
-    });
-  if(!frameSet.size) return;
-  const frames=[...frameSet].sort((a,b)=>a-b);
-  const next=frames.find(f=>f>cpFrame) ?? frames[0];
-  if(next!=null){ cpStop(); cpSetFrame(next); }
-});
 
 /* ══ NEW COMPARISON SCREEN (compare2) ══════════════════════════════════════ */
 
