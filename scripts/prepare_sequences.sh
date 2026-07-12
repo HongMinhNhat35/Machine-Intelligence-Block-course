@@ -1,28 +1,45 @@
 #!/usr/bin/env bash
-# Prepare new FRED sequences for the e2vid pipeline.
+# Prepare FRED sequences for the e2vid pipeline.
 # For each sequence: extract events.hdf5 + coordinates.txt from the downloaded zip,
-# verify the HDF5 structure, then run reconstruct.py to generate events.zip + frames.
+# verify the HDF5 structure, then generate events.zip for Kaggle reconstruction.
 #
 # Usage:
-#   bash scripts/prepare_sequences.sh 2 3 8
+#   bash scripts/prepare_sequences.sh 44 45 46 47   # specific sequences
+#   bash scripts/prepare_sequences.sh --all          # all zips in data/raw/zips/
 
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ZIPS_DIR="${ROOT}/data/raw/zips"
-SEQUENCES=("${@:-2 3 8}")
 
-echo "=== Preparing sequences: ${SEQUENCES[*]} ==="
+# Per-sequence start_s overrides (default 5.0 for all others)
+declare -A START_S_MAP=([47]=7.0)
+
+if [ "${1:-}" = "--all" ]; then
+    mapfile -t SEQUENCES < <(ls "$ZIPS_DIR"/*.zip 2>/dev/null | xargs -n1 basename | sed 's/\.zip//' | sort -n)
+else
+    SEQUENCES=("$@")
+fi
+
+if [ ${#SEQUENCES[@]} -eq 0 ]; then
+    echo "Usage: $0 <seq_id> [seq_id ...] | --all"
+    exit 1
+fi
+
+echo "=== Preparing ${#SEQUENCES[@]} sequence(s): ${SEQUENCES[*]} ==="
+
+FAILED=()
 
 for SEQ in "${SEQUENCES[@]}"; do
     ZIP="${ZIPS_DIR}/${SEQ}.zip"
     SEQ_NAME="sequence_${SEQ}"
     RAW_DIR="${ROOT}/data/raw/${SEQ_NAME}"
     PROC_DIR="${ROOT}/data/processed/${SEQ_NAME}"
+    START_S="${START_S_MAP[$SEQ]:-5.0}"
 
     echo ""
     echo "──────────────────────────────────────────"
-    echo "  ${SEQ_NAME}"
+    echo "  ${SEQ_NAME}  (start_s=${START_S})"
     echo "──────────────────────────────────────────"
 
     if [ ! -f "$ZIP" ]; then
@@ -37,43 +54,49 @@ for SEQ in "${SEQUENCES[@]}"; do
         echo "  Step 1: Already extracted — skipping"
     else
         echo "  Step 1: Extracting from ${ZIP} ..."
-        unzip -p "$ZIP" "${SEQ}/Event/events.hdf5" > "${PROC_DIR}/events.h5"
-        unzip -p "$ZIP" "${SEQ}/coordinates.txt"   > "${RAW_DIR}/coordinates.txt"
+        if ! unzip -p "$ZIP" "${SEQ}/Event/events.hdf5" > "${PROC_DIR}/events.h5"; then
+            echo "  ✗ Failed to extract events.hdf5 — skipping sequence"
+            FAILED+=("$SEQ")
+            continue
+        fi
+        if ! unzip -p "$ZIP" "${SEQ}/coordinates.txt" > "${RAW_DIR}/coordinates.txt"; then
+            echo "  ✗ Failed to extract coordinates.txt — skipping sequence"
+            FAILED+=("$SEQ")
+            continue
+        fi
         echo "    events.h5       : $(du -h "${PROC_DIR}/events.h5" | cut -f1)"
         echo "    coordinates.txt : $(wc -l < "${RAW_DIR}/coordinates.txt") lines"
     fi
 
     # ── Step 2: Verify HDF5 structure ─────────────────────────────────────────
     echo "  Step 2: Verifying HDF5 structure ..."
-    python3 - << PYEOF
-import h5py, os, sys
+    if ! python3 - << PYEOF
+import h5py, sys
 path = "${PROC_DIR}/events.h5"
 try:
     with h5py.File(path, 'r') as f:
         if 'CD/events' not in f:
-            print(f"  ✗ 'CD/events' path not found. Keys: {list(f.keys())}")
+            print(f"  ✗ 'CD/events' not found. Keys: {list(f.keys())}")
             sys.exit(1)
         ev = f['CD/events']
         fields = list(ev.dtype.names) if hasattr(ev.dtype, 'names') and ev.dtype.names else list(ev.keys()) if hasattr(ev, 'keys') else []
-        n = len(ev)
-        print(f"  ✓ CD/events found: {n:,} events, fields: {fields}")
+        print(f"  ✓ CD/events: {len(ev):,} events, fields: {fields}")
 except Exception as e:
     print(f"  ✗ Failed to read HDF5: {e}")
     sys.exit(1)
 PYEOF
-    if [ $? -ne 0 ]; then
-        echo "  HDF5 verification failed for ${SEQ_NAME} — stopping"
-        exit 1
+    then
+        echo "  ✗ HDF5 verification failed for ${SEQ_NAME} — skipping"
+        FAILED+=("$SEQ")
+        continue
     fi
 
     # ── Step 3: Generate events.zip (h5 → text format for rpg_e2vid) ──────────
-    # Reconstruction runs on Colab (GPU). Locally we only need the zip to upload.
     if [ -f "${PROC_DIR}/events.zip" ]; then
         echo "  Step 3: events.zip already exists — skipping"
-        echo "    (delete ${PROC_DIR}/events.zip to force re-run)"
     else
-        echo "  Step 3: Converting HDF5 → events.zip ..."
-        python3 - << PYEOF
+        echo "  Step 3: Converting HDF5 → events.zip (start_s=${START_S}) ..."
+        if ! python3 - << PYEOF
 import sys
 sys.path.insert(0, '${ROOT}/scripts')
 from reconstruct import convert_h5_to_zip
@@ -83,13 +106,14 @@ convert_h5_to_zip(
     zip_path   = Path('${PROC_DIR}/events.zip'),
     width      = 1280,
     height     = 720,
-    start_s    = 5.0,
+    start_s    = ${START_S},
     duration_s = None,
 )
 PYEOF
-        if [ $? -ne 0 ]; then
+        then
             echo "  ✗ events.zip generation failed for ${SEQ_NAME}"
-            exit 1
+            FAILED+=("$SEQ")
+            continue
         fi
         echo "    events.zip: $(du -h "${PROC_DIR}/events.zip" | cut -f1)"
     fi
@@ -98,5 +122,10 @@ PYEOF
 done
 
 echo ""
-echo "=== All sequences prepared. ==="
-echo "Next step: bash scripts/sync_to_drive.sh"
+echo "=== All done. ==="
+if [ ${#FAILED[@]} -gt 0 ]; then
+    echo "Failed sequences (${#FAILED[@]}): ${FAILED[*]}"
+    echo "Re-run with: bash scripts/prepare_sequences.sh ${FAILED[*]}"
+    exit 1
+fi
+echo "Next step: bash scripts/sync_to_kaggle.sh"
