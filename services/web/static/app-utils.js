@@ -55,6 +55,52 @@ function bindSlider(slId, onDrag, onCommit) {
   return { isDragging: () => dragging };
 }
 
+/* ── Detection trail ─────────────────────────────────────────────────────── */
+
+const TRAIL_LEN = 30;
+
+// Appends normalised bbox centres for one frame to a trail array (mutates arr).
+// boxes: [{bbox:[x,y,w,h]}, ...]  imgEl: the image element for dimensions.
+function trailPush(arr, boxes, imgEl) {
+  const imgW = imgEl.naturalWidth || 1280, imgH = imgEl.naturalHeight || 720;
+  arr.push(boxes.map(d => { const [x,y,w,h]=d.bbox; return {cx:(x+w/2)/imgW, cy:(y+h/2)/imgH}; }));
+  if (arr.length > TRAIL_LEN) arr.shift();
+}
+
+// Draws trail arr onto canvas. Pass an empty array to clear.
+function drawTrail(canvas, arr) {
+  if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  if (!rect.width) return;
+  canvas.width = rect.width; canvas.height = rect.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!arr || !arr.length) return;
+  const W = canvas.width, H = canvas.height, n = arr.length;
+  for (let i = 0; i < n; i++) {
+    const t = (i+1)/n;
+    const frame = arr[i];
+    if (!frame?.length) continue;
+    if (i < n-1 && arr[i+1]?.length) {
+      ctx.lineWidth = 1.5;
+      frame.forEach(pt => {
+        let bestDist = Infinity, bestPt = null;
+        arr[i+1].forEach(np => { const d=Math.hypot(np.cx-pt.cx,np.cy-pt.cy); if(d<bestDist){bestDist=d;bestPt=np;} });
+        if (bestPt && bestDist < 0.3) {
+          ctx.strokeStyle = `rgba(255,180,0,${(t*0.7).toFixed(2)})`;
+          ctx.beginPath(); ctx.moveTo(pt.cx*W, pt.cy*H); ctx.lineTo(bestPt.cx*W, bestPt.cy*H); ctx.stroke();
+        }
+      });
+    }
+    ctx.fillStyle = `rgba(255,200,0,${(t*0.9).toFixed(2)})`;
+    frame.forEach(pt => {
+      ctx.beginPath();
+      ctx.arc(pt.cx*W, pt.cy*H, i===n-1 ? 4 : 2.5, 0, 2*Math.PI);
+      ctx.fill();
+    });
+  }
+}
+
 /* ── Confidence timeline ──────────────────────────────────────────────────── */
 
 // Builds a Float32Array[N] of max confidence per e2vid frame index.

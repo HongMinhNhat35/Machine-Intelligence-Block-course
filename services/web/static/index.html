@@ -177,6 +177,7 @@
                 <div class="det-img" id="det-overlay-wrap">
                   <img id="det-img2" src="" style="width:100%;display:block;min-height:180px">
                   <div id="det-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+                  <canvas id="det-trail" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></canvas>
                 </div>
               </div>
             </div>
@@ -189,6 +190,7 @@
                 <button class="pb-btn" id="det-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
                 <!-- Jump to next frame that has a detection (cached mode only) -->
                 <button class="pb-btn" id="det-next-det" title="Jump to next detection" style="padding:4px 9px"><i class="ti ti-crosshair"></i></button>
+                <button class="pb-btn" id="det-trail-btn" title="Toggle detection trail" style="padding:4px 9px"><i class="ti ti-route"></i> Trail</button>
                 <input type="number" id="det-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
                 <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="det-max">0</span></span>
               </div>

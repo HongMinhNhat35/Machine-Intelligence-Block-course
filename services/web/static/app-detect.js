@@ -20,6 +20,8 @@ let dtDetections=null, dtImgDebounce=null, dtLiveMode=false, dtLiveBoxes=[];
 let dtMode='e2vid'; // 'e2vid' | 'hypere2vid' | 'fusion_rgb' | 'fusion_event' | 'fusion'
 let dtAllFusionDets=null; // raw fusion detections, filtered per mode in dtRenderBboxes
 let dtConfArr=null; // Float32Array for confidence timeline
+let dtTrailOn=false;
+const dtTrail=[];
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
@@ -29,16 +31,25 @@ function dtRenderBboxes(){
   const bboxDiv=document.getElementById('det-bboxes');
   if(!bboxDiv) return;
   const conf=getConf();
+  const imgEl=document.getElementById('det-img2');
+  const trailCanvas=document.getElementById('det-trail');
   let boxes;
   if(dtLiveMode){
     boxes=(dtLiveBoxes||[]).filter(d=>d.confidence>=conf);
   } else {
     const pool=(dtMode==='fusion_rgb'||dtMode==='fusion_event') ? dtAllFusionDets : dtDetections;
-    if(!pool){ bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—'; return; }
+    if(!pool){
+      bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—';
+      if(dtTrailOn) trailPush(dtTrail, [], imgEl);
+      drawTrail(trailCanvas, dtTrailOn ? dtTrail : []);
+      return;
+    }
     boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf);
   }
   document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
-  renderBboxes(boxes, document.getElementById('det-img2'), bboxDiv);
+  renderBboxes(boxes, imgEl, bboxDiv);
+  if(dtTrailOn) trailPush(dtTrail, boxes, imgEl);
+  drawTrail(trailCanvas, dtTrailOn ? dtTrail : []);
 }
 
 // Returns the active mode string.
@@ -118,6 +129,7 @@ function dtStop(){
 async function dtLoadDetections(seqId, mode){
   if(mode) dtMode=mode;
   dtDetections=null; dtAllFusionDets=null; dtLiveMode=false; dtLiveBoxes=[];
+  dtTrail.length=0; drawTrail(document.getElementById('det-trail'),[]);
   const isFusionVariant=dtMode==='fusion'||dtMode==='fusion_rgb'||dtMode==='fusion_event';
   if(dtMode==='hypere2vid' && selSeq && !selSeq.hypere2vid_done){
     document.getElementById('det-status').textContent='No HyperE2VID reconstruction frames for this sequence';
@@ -170,6 +182,7 @@ function detLoad(){
     dtLoadedSeq=selSeq.id;
     dtMax=selSeq.frame_count-1;
     dtDetections=null; dtConfArr=null;
+    dtTrail.length=0; drawTrail(document.getElementById('det-trail'),[]);
     document.getElementById('det-sl').max=dtMax;
     document.getElementById('det-max').textContent=dtMax;
     document.getElementById('det-max2').textContent=dtMax;
@@ -241,4 +254,12 @@ function dtSetMode(m){
 document.querySelectorAll('#det-mode-btns button').forEach(b=>{
   b.addEventListener('click',()=>dtSetMode(b.dataset.dm));
 });
+document.getElementById('det-trail-btn').addEventListener('click', function(){
+  dtTrailOn=!dtTrailOn;
+  this.style.background=dtTrailOn?'#1a3a60':'';
+  this.style.color=dtTrailOn?'#fff':'';
+  this.style.borderColor=dtTrailOn?'#1a3a60':'';
+  if(!dtTrailOn){ dtTrail.length=0; drawTrail(document.getElementById('det-trail'),[]); }
+});
+
 dtSetMode('e2vid'); // initialise

@@ -367,7 +367,6 @@ let cp2HyperSlope=0,  cp2HyperOffset=0,  cp2HyperCalibrated=false;
 
 // Detection trail state
 let cp2TrailOn=false;
-const TRAIL_LEN=30;
 const cp2Trails={left:[],rgb:[],fusion:[]};
 
 // Confidence timeline state (Float32Array per e2vid frame index)
@@ -377,44 +376,11 @@ let cp2ConfLeft=null, cp2ConfFusion=null;
 
 function cp2TrailPush(key, boxes, imgEl){
   if(!cp2TrailOn) return;
-  const imgW=imgEl.naturalWidth||1280, imgH=imgEl.naturalHeight||720;
-  const centers=boxes.map(d=>{const [x,y,w,h]=d.bbox; return {cx:(x+w/2)/imgW, cy:(y+h/2)/imgH};});
-  const trail=cp2Trails[key];
-  trail.push(centers);
-  if(trail.length>TRAIL_LEN) trail.shift();
+  trailPush(cp2Trails[key], boxes, imgEl);
 }
 
 function cp2DrawTrail(canvas, key){
-  if(!canvas) return;
-  const rect=canvas.parentElement.getBoundingClientRect();
-  if(!rect.width) return;
-  canvas.width=rect.width; canvas.height=rect.height;
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(!cp2TrailOn) return;
-  const trail=cp2Trails[key], W=canvas.width, H=canvas.height, n=trail.length;
-  for(let i=0;i<n;i++){
-    const t=(i+1)/n;
-    const frame=trail[i];
-    if(!frame?.length) continue;
-    if(i<n-1 && trail[i+1]?.length){
-      ctx.lineWidth=1.5;
-      frame.forEach(pt=>{
-        let bestDist=Infinity, bestPt=null;
-        trail[i+1].forEach(np=>{const d=Math.hypot(np.cx-pt.cx,np.cy-pt.cy); if(d<bestDist){bestDist=d;bestPt=np;}});
-        if(bestPt && bestDist<0.3){
-          ctx.strokeStyle=`rgba(255,180,0,${(t*0.7).toFixed(2)})`;
-          ctx.beginPath(); ctx.moveTo(pt.cx*W,pt.cy*H); ctx.lineTo(bestPt.cx*W,bestPt.cy*H); ctx.stroke();
-        }
-      });
-    }
-    ctx.fillStyle=`rgba(255,200,0,${(t*0.9).toFixed(2)})`;
-    frame.forEach(pt=>{
-      ctx.beginPath();
-      ctx.arc(pt.cx*W, pt.cy*H, i===n-1?4:2.5, 0, 2*Math.PI);
-      ctx.fill();
-    });
-  }
+  drawTrail(canvas, cp2TrailOn ? cp2Trails[key] : []);
 }
 
 function cp2ClearTrails(){
