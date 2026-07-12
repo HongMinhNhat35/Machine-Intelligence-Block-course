@@ -34,8 +34,7 @@
     <div class="tab active" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
     <div class="tab" data-s="recon"><i class="ti ti-movie"></i> Reconstruction</div>
     <div class="tab" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
-    <div class="tab" data-s="compare2"><i class="ti ti-layout-columns-filled"></i> Comparison</div>
-    <div class="tab" data-s="compare"><i class="ti ti-layout-columns"></i> Compare v1</div>
+    <div class="tab" data-s="compare2"><i class="ti ti-layout-columns"></i> Comparison</div>
     <div class="tab" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
     <div class="tab" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
     <div class="tab" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
@@ -51,8 +50,7 @@
       <div class="nav-item" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
       <div class="nav-item" data-s="recon"><i class="ti ti-movie"></i> Reconstruction</div>
       <div class="nav-item" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
-      <div class="nav-item" data-s="compare2"><i class="ti ti-layout-columns-filled"></i> Comparison</div>
-      <div class="nav-item" data-s="compare"><i class="ti ti-layout-columns"></i> Compare v1</div>
+      <div class="nav-item" data-s="compare2"><i class="ti ti-layout-columns"></i> Comparison</div>
       <div class="nav-item" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
       <div class="nav-item" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
       <div class="nav-item" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
@@ -214,77 +212,6 @@
         <!-- ── COMPARISON ───────────────────────────────────────────────────── -->
         <!-- Three columns: e2vid+YOLO | HyperE2VID+YOLO | Late fusion (stub)  -->
         <!-- All three views are synced to the same frame index (cpFrame)       -->
-        <div class="screen" id="s-compare">
-          <div id="comp-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
-          <div id="comp-panel" style="display:none">
-            <div class="row3" style="margin-bottom:10px">
-
-              <!-- Column 1: e2vid + YOLO -->
-              <div class="comp-card">
-                <div class="comp-hdr">e2vid + YOLO</div>
-                <div class="det-img" id="cp-e2vid-wrap">
-                  <img id="cp-e2vid-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
-                  <div id="cp-e2vid-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
-                </div>
-                <div class="comp-metric">
-                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-map50">—</span></div>
-                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp-map5095">—</span></div>
-                  <div class="c-row"><span class="c-key">Precision</span><span id="cp-prec">—</span></div>
-                  <div class="c-row"><span class="c-key">Recall</span><span id="cp-rec">—</span></div>
-                </div>
-              </div>
-
-              <!-- Column 2: HyperE2VID + YOLO -->
-              <!-- cp-hyper-no-frames shown when selSeq.hypere2vid_done is false -->
-              <div class="comp-card">
-                <div class="comp-hdr">HyperE2VID + YOLO</div>
-                <div class="det-img" id="cp-hyper-wrap">
-                  <img id="cp-hyper-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
-                  <div id="cp-hyper-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
-                  <div id="cp-hyper-no-frames" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>No frames for this sequence</span></div>
-                </div>
-                <div class="comp-metric">
-                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-hyper-map50">—</span></div>
-                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp-hyper-map5095">—</span></div>
-                  <div class="c-row"><span class="c-key">Precision</span><span id="cp-hyper-prec">—</span></div>
-                  <div class="c-row"><span class="c-key">Recall</span><span id="cp-hyper-rec">—</span></div>
-                </div>
-              </div>
-
-              <!-- Column 3: Late fusion -->
-              <div class="comp-card">
-                <div class="comp-hdr">Late fusion</div>
-                <div class="det-img" id="cp-fusion-wrap">
-                  <img id="cp-fusion-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
-                  <div id="cp-fusion-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
-                  <div id="cp-fusion-no-cache" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>Run detection cache first</span></div>
-                </div>
-                <div class="comp-metric">
-                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp-fusion-map50">—</span></div>
-                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp-fusion-map5095">—</span></div>
-                  <div class="c-row"><span class="c-key">Precision</span><span id="cp-fusion-prec">—</span></div>
-                  <div class="c-row"><span class="c-key">Recall</span><span id="cp-fusion-rec">—</span></div>
-                </div>
-              </div>
-
-            </div><!-- /row3 -->
-            <div class="playback">
-              <div class="pb-row">
-                <button class="pb-btn" id="cp-play"><i class="ti ti-player-play"></i> Play</button>
-                <button class="pb-btn" id="cp-stop"><i class="ti ti-player-stop"></i> Stop</button>
-                <button class="pb-btn" id="cp-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
-                <button class="pb-btn" id="cp-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
-                <!-- Jump to next frame detected by either model (union of both caches) -->
-                <button class="pb-btn" id="cp-next-det" title="Jump to next detection (either model)" style="padding:4px 9px"><i class="ti ti-crosshair"></i></button>
-                <input type="number" id="cp-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
-                <span class="pb-note">All views synced</span>
-                <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="cp-max">0</span></span>
-              </div>
-              <input type="range" class="pb-slider" min="0" max="0" value="0" id="cp-sl">
-              <div class="pb-range"><span>0</span><span id="cp-max2">0</span></div>
-            </div>
-          </div>
-        </div><!-- /s-compare -->
 
         <!-- ── COMPARISON v2 ───────────────────────────────────────────────── -->
         <!-- Left: e2vid or HyperE2VID (toggleable) + respective detections    -->
