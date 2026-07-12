@@ -92,6 +92,46 @@ def get_frame(seq: str, n: int, model: str = "e2vid"):
     raise HTTPException(status_code=404, detail=f"Frame {n} not found for {seq} ({model})")
 
 _rgb_file_cache: dict[str, list[Path]] = {}
+_sync_cache:     dict[str, dict]       = {}
+
+_RGB_TS_RE = re.compile(r'_(\d+)_(\d+)_(\d+)\.(\d+)\.')
+
+def _parse_rgb_ts(filename: str) -> float | None:
+    m = _RGB_TS_RE.search(filename)
+    if not m:
+        return None
+    hh, mm, ss, frac = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)
+    return hh * 3600 + mm * 60 + ss + int(frac) / (10 ** len(frac))
+
+@app.get("/api/sync/{seq}")
+def get_sync(seq: str):
+    """Return e2vid frame timestamps and RGB frame timestamps (both in seconds,
+    relative to recording start) so the GUI can map frames exactly by time."""
+    if seq in _sync_cache:
+        return _sync_cache[seq]
+
+    ts_path = RECON_ROOT / seq / "reconstruction_e2vid" / "timestamps.txt"
+    if not ts_path.exists():
+        raise HTTPException(status_code=404, detail="No timestamps.txt for this sequence")
+
+    e2vid_ts = [float(l) for l in ts_path.read_text().splitlines() if l.strip()]
+
+    rgb_dir = FRED_ROOT / seq / "RGB"
+    if not rgb_dir.exists():
+        raise HTTPException(status_code=404, detail="No RGB frames for this sequence")
+    files = sorted(rgb_dir.glob("*.jpg")) or sorted(rgb_dir.glob("*.png"))
+    if not files:
+        raise HTTPException(status_code=404, detail="No RGB files found")
+
+    abs_ts = [_parse_rgb_ts(f.name) for f in files]
+    abs_ts = [t if t is not None else 0.0 for t in abs_ts]
+    t0 = abs_ts[0]
+    rgb_ts = [t - t0 for t in abs_ts]
+
+    result = {"e2vid_ts": e2vid_ts, "rgb_ts": rgb_ts}
+    _sync_cache[seq] = result
+    return result
+
 
 @app.get("/frames_rgb/{seq}/{n}")
 def get_frame_rgb(seq: str, n: int):

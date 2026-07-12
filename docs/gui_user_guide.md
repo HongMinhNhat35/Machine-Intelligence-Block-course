@@ -80,17 +80,23 @@ Side-by-side player showing E2VID (left) and HyperE2VID (right) reconstructed fr
 
 ## Detection
 
-Shows one model's detection overlay at a time. Switch models with the radio buttons.
+Shows one model's detection overlay at a time. Switch models with the five buttons at the bottom.
 
-### Model radio buttons
+### Model buttons
 
-- **e2vid + YOLO** — Run 7, YOLOv8s, mAP@0.5 = 93.6%
-- **HyperE2VID + YOLO** — Run 2, YOLOv8n, mAP@0.5 = 56.7%
-- **Late fusion** — Run 1 (YOLOv8n × 2); shows E2VID frame as background with fusion bounding boxes overlaid. Falls back to "run cache first" when no cache exists — live frame-by-frame inference is not supported for fusion because it requires two separate models running simultaneously.
+| Button | Source frames | Detection cache |
+|--------|--------------|-----------------|
+| **e2vid** | E2VID reconstruction | `detections_e2vid.json` |
+| **HyperE2VID** | HyperE2VID reconstruction | `detections_hypere2vid.json` |
+| **RGB** | FRED RGB frame | `detections_fusion.json` (all fusion detections) |
+| **Event** | E2VID reconstruction | `detections_fusion.json` (all fusion detections) |
+| **Late Fusion** | FRED RGB frame | `detections_fusion.json` (all fusion detections) |
+
+RGB and Event modes show the full fusion detection cache because separate per-source caches are not yet available. They differ only in the background frame shown.
 
 ### Left panel — source frame
 
-Shows the raw reconstructed frame. For the fusion model this is the E2VID frame (fusion has no separate reconstruction).
+Shows the raw reconstructed frame (or FRED RGB frame for RGB / Late Fusion mode).
 
 ### Right panel — detection overlay
 
@@ -118,33 +124,43 @@ Detection is slow (minutes per sequence on CPU). Results are saved to
 
 ---
 
-## Comparison
+## Compare v1
 
-Three-column side-by-side view with synchronised playback:
+Original three-column side-by-side view kept for reference:
 
 | Column | Source frames | Detection source |
 |--------|--------------|-----------------|
 | E2VID + YOLO | `reconstruction_e2vid/` | `detections_e2vid.json` |
 | HyperE2VID + YOLO | `reconstruction_hypere2vid/` | `detections_hypere2vid.json` |
-| Late Fusion | E2VID frames (background only) | `detections_fusion.json` |
+| Late Fusion | FRED RGB frames | `detections_fusion.json` |
 
-Model KPI metrics (mAP@0.5, mAP@0.5:95, Precision, Recall) are shown below each column. The **next detection** button (crosshair icon) jumps to the nearest frame where any model has a detection.
+Model KPI metrics (mAP@0.5, mAP@0.5:95, Precision, Recall) are shown below each column.
+
+---
+
+## Comparison
+
+Three-column view where the **left column** is the master time axis:
+
+| Column | Source frames | Detection source |
+|--------|--------------|-----------------|
+| Left (e2vid or HyperE2VID) | Reconstruction frames | Respective detection cache |
+| Middle — RGB | FRED RGB frames | `detections_fusion.json` |
+| Right — Late Fusion | FRED RGB frames | `detections_fusion.json` |
+
+Toggle the left column between e2vid and HyperE2VID with the buttons at the bottom. Middle and right columns always show FRED RGB frames with fusion detections. The **next detection** button (crosshair icon) jumps to the next frame in the left column that has a detection.
 
 ### Frame synchronisation
 
-**E2VID and HyperE2VID** are produced from the same event stream at the same output rate, so frame N in both columns is exactly the same moment in time.
+The left column drives the E2VID frame index. The slider position maps to middle/right (FRED RGB) frames via **cluster-based linear calibration**:
 
-**Late Fusion** runs on FRED raw frames (the physical RGB camera and event camera), which are captured at a different rate than the E2VID reconstruction. The frame indices in `detections_fusion.json` are FRED frame indices, not E2VID frame indices.
+1. Detection clusters (sustained bursts of ≥ 5 detections in any 10-frame window) are identified in both the e2vid and fusion detection caches.
+2. Cluster starts are paired by rank (1st cluster in e2vid → 1st cluster in fusion, etc.).
+3. A least-squares linear regression through all matched pairs gives `fusion_frame = slope × e2vid_frame + offset`.
 
-To keep the three columns visually aligned, the GUI uses a **ratio mapping**:
+This handles the e2vid burst-skip (where early e2vid frames have no detections and thus map differently from the ratio formula) and improves alignment throughout the sequence, not just at the endpoints. Falls back to a ratio formula when fewer than two clusters can be matched.
 
-```
-fusion_frame = round(slider_position × N_fusion / N_e2vid)
-```
-
-where `N_fusion` is the total number of paired FRED frames (derived from the detection cache) and `N_e2vid` is the total number of E2VID frames. This gives approximate temporal alignment proportional to the sequence duration. It is not exact per-frame, but the error is small (typically less than one RGB frame period) when both cameras cover the same recording window.
-
-The "next detection" jump button applies the inverse mapping so the slider always lands on an E2VID frame index.
+The same calibration applies to the HyperE2VID column when left mode is HyperE2VID.
 
 ---
 

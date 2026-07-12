@@ -7,7 +7,8 @@ const cfg={
   upload:{title:'Upload sequence',badge:'no sequence selected',extra:''},
   recon:{title:'Reconstruction viewer',badge:'seq_0 · 871 frames',extra:''},
   detect:{title:'Detection',badge:'e2vid + YOLO',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl"></div>`},
-  compare:{title:'Comparison',badge:'',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval2">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl2"></div>`},
+  compare:{title:'Compare v1',badge:'',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval2">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl2"></div>`},
+  compare2:{title:'Comparison',badge:'',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval3">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl3"></div>`},
   kpis:{title:'KPIs',badge:'',extra:''},
   dataset:{title:'Dataset',badge:'5 sequences · FRED',extra:''},
   admin:{title:'Admin',badge:'',extra:''}
@@ -41,6 +42,18 @@ function go(k){
         sharedConfPct=+cs2.value;
         if(cv2) cv2.textContent=(sharedConfPct/100).toFixed(2);
         cpRenderBboxes();
+      });
+    }
+  }
+  if(k==='compare2'){
+    const cs3=document.getElementById('csl3'),cv3=document.getElementById('cval3');
+    if(cs3){
+      cs3.value=sharedConfPct;
+      if(cv3) cv3.textContent=(sharedConfPct/100).toFixed(2);
+      cs3.addEventListener('input',()=>{
+        sharedConfPct=+cs3.value;
+        if(cv3) cv3.textContent=(sharedConfPct/100).toFixed(2);
+        cp2RenderAllBboxes();
       });
     }
   }
@@ -92,9 +105,11 @@ document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('cli
   if(el.dataset.s!=='recon')    pbStop();
   if(el.dataset.s!=='detect')   dtStop();
   if(el.dataset.s!=='compare')  cpStop();
+  if(el.dataset.s!=='compare2') cp2Stop();
   if(el.dataset.s==='recon')    reconLoad();
   if(el.dataset.s==='detect')   detLoad();
   if(el.dataset.s==='compare')  compLoad();
+  if(el.dataset.s==='compare2') comp2Load();
   if(el.dataset.s==='kpis')     loadKpis();
   if(el.dataset.s==='admin')    loadAdmin();
 }));

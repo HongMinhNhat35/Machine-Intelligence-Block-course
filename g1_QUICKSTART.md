@@ -149,8 +149,9 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 |---|---|
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
 | **Reconstruction** | Browse E2VID and HyperE2VID reconstructed frames side-by-side with playback controls. |
-| **Detection** | View YOLO bounding-box overlay for E2VID, HyperE2VID, or Late Fusion. Switch model with the radio buttons. Adjust confidence threshold with the sidebar slider. Detection results are pre-cached — no need to run inference. |
-| **Comparison** | Three-column view: E2VID · HyperE2VID · Late Fusion — synchronised playback with bounding box overlays and per-model KPI metrics. The Late Fusion column requires a detection cache for the sequence (run from the Upload tab). |
+| **Detection** | View YOLO bounding-box overlay. Choose from five models with the bottom buttons: e2vid, HyperE2VID, RGB (FRED RGB frame + fusion detections), Event (E2VID frame + fusion detections), Late Fusion (FRED RGB frame + fusion detections). Adjust confidence with the sidebar slider. Detection results are pre-cached — no inference needed. |
+| **Compare v1** | Original three-column view: E2VID · HyperE2VID · Late Fusion — synchronised playback with bounding box overlays and per-model KPI metrics. Kept for reference. |
+| **Comparison** | New three-column view: left column shows e2vid or HyperE2VID (toggle at bottom) — middle and right show FRED RGB frames with fusion detection overlay. Left column is the master time axis; middle/right are mapped via cluster-based calibration that matches detection bursts across streams for accurate sync. |
 | **KPIs** | Summary table (best run per model) plus full detail tables for detection accuracy, reconstruction, and training metrics across all runs. |
 | **Dataset** | Per-sequence notes: event counts, annotation timing, known reconstruction quirks. |
 | **Admin** | Live health status of all backend services. |

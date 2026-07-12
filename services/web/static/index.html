@@ -34,7 +34,8 @@
     <div class="tab active" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
     <div class="tab" data-s="recon"><i class="ti ti-movie"></i> Reconstruction</div>
     <div class="tab" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
-    <div class="tab" data-s="compare"><i class="ti ti-layout-columns"></i> Comparison</div>
+    <div class="tab" data-s="compare2"><i class="ti ti-layout-columns-filled"></i> Comparison</div>
+    <div class="tab" data-s="compare"><i class="ti ti-layout-columns"></i> Compare v1</div>
     <div class="tab" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
     <div class="tab" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
     <div class="tab" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
@@ -50,7 +51,8 @@
       <div class="nav-item" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
       <div class="nav-item" data-s="recon"><i class="ti ti-movie"></i> Reconstruction</div>
       <div class="nav-item" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
-      <div class="nav-item" data-s="compare"><i class="ti ti-layout-columns"></i> Comparison</div>
+      <div class="nav-item" data-s="compare2"><i class="ti ti-layout-columns-filled"></i> Comparison</div>
+      <div class="nav-item" data-s="compare"><i class="ti ti-layout-columns"></i> Compare v1</div>
       <div class="nav-item" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
       <div class="nav-item" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
       <div class="nav-item" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
@@ -283,6 +285,88 @@
             </div>
           </div>
         </div><!-- /s-compare -->
+
+        <!-- ── COMPARISON v2 ───────────────────────────────────────────────── -->
+        <!-- Left: e2vid or HyperE2VID (toggleable) + respective detections    -->
+        <!-- Middle: FRED RGB frame + all fusion detections (labeled "RGB")    -->
+        <!-- Right : FRED RGB frame + all fusion detections (labeled "Fusion") -->
+        <!-- Master time axis: left column (e2vid frame index)                 -->
+        <div class="screen" id="s-compare2">
+          <div id="comp2-no-seq" style="color:#aaa;font-size:12px;padding:20px 0">No sequence selected — go to Upload and select one first.</div>
+          <div id="comp2-panel" style="display:none">
+            <div class="row3" style="margin-bottom:10px">
+
+              <!-- Column 1: toggleable event model -->
+              <div class="comp-card">
+                <div class="comp-hdr" id="cp2-left-hdr">e2vid + YOLO</div>
+                <div class="det-img">
+                  <img id="cp2-left-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
+                  <div id="cp2-left-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+                  <div id="cp2-left-no-frames" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>No frames for this sequence</span></div>
+                </div>
+                <div class="comp-metric">
+                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp2-left-map50">—</span></div>
+                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp2-left-map5095">—</span></div>
+                  <div class="c-row"><span class="c-key">Precision</span><span id="cp2-left-prec">—</span></div>
+                  <div class="c-row"><span class="c-key">Recall</span><span id="cp2-left-rec">—</span></div>
+                </div>
+              </div>
+
+              <!-- Column 2: RGB -->
+              <div class="comp-card">
+                <div class="comp-hdr">RGB</div>
+                <div class="det-img">
+                  <img id="cp2-rgb-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
+                  <div id="cp2-rgb-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+                  <div id="cp2-rgb-no-cache" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>Run detection cache first</span></div>
+                </div>
+                <div class="comp-metric">
+                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp2-fusion-map50">—</span></div>
+                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp2-fusion-map5095">—</span></div>
+                  <div class="c-row"><span class="c-key">Precision</span><span id="cp2-fusion-prec">—</span></div>
+                  <div class="c-row"><span class="c-key">Recall</span><span id="cp2-fusion-rec">—</span></div>
+                </div>
+              </div>
+
+              <!-- Column 3: Late Fusion -->
+              <div class="comp-card">
+                <div class="comp-hdr">Late Fusion</div>
+                <div class="det-img">
+                  <img id="cp2-fusion-img" src="" style="width:100%;display:block;min-height:160px;object-fit:contain;background:#e8ecf0">
+                  <div id="cp2-fusion-bboxes" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+                  <div id="cp2-fusion-no-cache2" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#aaa;font-size:11px;background:#e8ecf0"><i class="ti ti-clock" style="font-size:20px"></i><span>Run detection cache first</span></div>
+                </div>
+                <div class="comp-metric">
+                  <div class="c-row"><span class="c-key">mAP@0.5</span><span id="cp2-fusion2-map50">—</span></div>
+                  <div class="c-row"><span class="c-key">mAP@0.5:95</span><span id="cp2-fusion2-map5095">—</span></div>
+                  <div class="c-row"><span class="c-key">Precision</span><span id="cp2-fusion2-prec">—</span></div>
+                  <div class="c-row"><span class="c-key">Recall</span><span id="cp2-fusion2-rec">—</span></div>
+                </div>
+              </div>
+
+            </div><!-- /row3 -->
+            <div class="playback">
+              <div class="pb-row">
+                <button class="pb-btn" id="cp2-play"><i class="ti ti-player-play"></i> Play</button>
+                <button class="pb-btn" id="cp2-stop"><i class="ti ti-player-stop"></i> Stop</button>
+                <button class="pb-btn" id="cp2-prev" title="Previous frame" style="padding:4px 9px"><i class="ti ti-chevron-left"></i></button>
+                <button class="pb-btn" id="cp2-next" title="Next frame" style="padding:4px 9px"><i class="ti ti-chevron-right"></i></button>
+                <button class="pb-btn" id="cp2-next-det" title="Jump to next detection (left column)" style="padding:4px 9px"><i class="ti ti-crosshair"></i></button>
+                <input type="number" id="cp2-goto" min="0" max="0" value="0" style="width:62px;padding:3px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px;text-align:center" title="Go to frame">
+                <span class="pb-note">All views synced</span>
+                <span style="margin-left:auto;font-size:11px;color:#aaa">/ <span id="cp2-max">0</span></span>
+              </div>
+              <input type="range" class="pb-slider" min="0" max="0" value="0" id="cp2-sl">
+              <div class="pb-range"><span>0</span><span id="cp2-max2">0</span></div>
+            </div>
+            <div class="sb-divider" style="margin:10px 0 8px"></div>
+            <div class="sb-lbl">Left view</div>
+            <div id="cp2-mode-btns" style="display:flex;gap:4px;margin-bottom:4px">
+              <button class="pb-btn" data-cp2m="e2vid" style="font-size:11px;padding:3px 10px">e2vid</button>
+              <button class="pb-btn" data-cp2m="hypere2vid" style="font-size:11px;padding:3px 10px">HyperE2VID</button>
+            </div>
+          </div>
+        </div><!-- /s-compare2 -->
 
         <!-- ── KPIs ─────────────────────────────────────────────────────────── -->
         <!-- Tables populated from /api/kpis (JSON files in /app/kpis/)         -->
