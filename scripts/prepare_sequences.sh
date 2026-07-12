@@ -118,6 +118,12 @@ PYEOF
         echo "    events.zip: $(du -h "${PROC_DIR}/events.zip" | cut -f1)"
     fi
 
+    # Delete events.h5 — no longer needed once events.zip exists
+    if [ -f "${PROC_DIR}/events.h5" ]; then
+        rm -f "${PROC_DIR}/events.h5"
+        echo "  Deleted events.h5 (temp file)"
+    fi
+
     echo "  ✓ ${SEQ_NAME} done."
 done
 

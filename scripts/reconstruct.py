@@ -121,7 +121,7 @@ def convert_h5_to_zip(h5_path: Path, zip_path: Path,
         t_first = t_last = None
 
         import io as _io
-        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_STORED, allowZip64=True) as zf:
+        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=1, allowZip64=True) as zf:
             with zf.open('events.txt', 'w', force_zip64=True) as out:
                 out.write(header.encode())
                 idx = start_idx
