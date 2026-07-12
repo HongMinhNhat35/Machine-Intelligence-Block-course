@@ -87,9 +87,9 @@ function drawTrail(canvas, arr) {
     const frame = arr[i];
     if (!frame?.length) continue;
     frame.forEach(pt => {
-      ctx.fillStyle   = `rgba(255,200,0,${(t * 0.22).toFixed(2)})`;
-      ctx.strokeStyle = `rgba(255,180,0,${(t * 0.75).toFixed(2)})`;
-      ctx.lineWidth = 1.5;
+      ctx.fillStyle   = `rgba(255,200,0,${(t * 0.10).toFixed(2)})`;
+      ctx.strokeStyle = `rgba(255,180,0,${(t * 0.40).toFixed(2)})`;
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.rect(pt.bx*W, pt.by*H, pt.bw*W, pt.bh*H);
       ctx.fill();
