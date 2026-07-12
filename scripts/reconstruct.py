@@ -120,7 +120,8 @@ def convert_h5_to_zip(h5_path: Path, zip_path: Path,
         n_written  = 0
         t_first = t_last = None
 
-        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+        import io as _io
+        with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_STORED, allowZip64=True) as zf:
             with zf.open('events.txt', 'w', force_zip64=True) as out:
                 out.write(header.encode())
                 idx = start_idx
@@ -128,18 +129,18 @@ def convert_h5_to_zip(h5_path: Path, zip_path: Path,
                     chunk = ev[idx: idx + chunk_size]
                     t_s   = chunk['t'].astype(np.float64) / 1e6
                     if t_end is not None:
-                        chunk = chunk[t_s <= t_end]
-                        t_s   = t_s[t_s <= t_end]
+                        mask  = t_s <= t_end
+                        chunk = chunk[mask]
+                        t_s   = t_s[mask]
                         if len(chunk) == 0:
                             break
                     x = chunk['x'].astype(np.int32)
                     y = chunk['y'].astype(np.int32)
                     p = (chunk['p'] > 0).astype(np.int32)
-                    lines = '\n'.join(
-                        f'{ti:.9f} {xi} {yi} {pi}'
-                        for ti, xi, yi, pi in zip(t_s, x, y, p)
-                    ) + '\n'
-                    out.write(lines.encode())
+                    buf = _io.BytesIO()
+                    np.savetxt(buf, np.column_stack([t_s, x, y, p]),
+                               fmt=['%.9f', '%d', '%d', '%d'])
+                    out.write(buf.getvalue())
                     n_written += len(chunk)
                     if t_first is None:
                         t_first = t_s[0]
