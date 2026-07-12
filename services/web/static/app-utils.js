@@ -87,11 +87,14 @@ function drawTrail(canvas, arr) {
     const frame = arr[i];
     if (!frame?.length) continue;
     frame.forEach(pt => {
+      const s = 0.55; // shrink factor relative to detection bbox
+      const w = pt.bw*W*s, h = pt.bh*H*s;
+      const cx = (pt.bx + pt.bw/2)*W, cy = (pt.by + pt.bh/2)*H;
       ctx.fillStyle   = `rgba(255,200,0,${(t * 0.10).toFixed(2)})`;
       ctx.strokeStyle = `rgba(255,180,0,${(t * 0.40).toFixed(2)})`;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.rect(pt.bx*W, pt.by*H, pt.bw*W, pt.bh*H);
+      ctx.rect(cx - w/2, cy - h/2, w, h);
       ctx.fill();
       ctx.stroke();
     });
