@@ -59,15 +59,19 @@ function bindSlider(slId, onDrag, onCommit) {
 
 const TRAIL_LEN = 30;
 
-// Appends normalised bbox centres for one frame to a trail array (mutates arr).
+// Appends normalised bbox data for one frame to a trail array (mutates arr).
 // boxes: [{bbox:[x,y,w,h]}, ...]  imgEl: the image element for dimensions.
 function trailPush(arr, boxes, imgEl) {
   const imgW = imgEl.naturalWidth || 1280, imgH = imgEl.naturalHeight || 720;
-  arr.push(boxes.map(d => { const [x,y,w,h]=d.bbox; return {cx:(x+w/2)/imgW, cy:(y+h/2)/imgH}; }));
+  arr.push(boxes.map(d => {
+    const [x,y,w,h] = d.bbox;
+    return { bx:x/imgW, by:y/imgH, bw:w/imgW, bh:h/imgH };
+  }));
   if (arr.length > TRAIL_LEN) arr.shift();
 }
 
-// Draws trail arr onto canvas. Pass an empty array to clear.
+// Draws fading historical bbox rectangles onto canvas. Pass an empty array to clear.
+// The last 2 frames are skipped to leave a gap before the live bbox overlay.
 function drawTrail(canvas, arr) {
   if (!canvas) return;
   const rect = canvas.parentElement.getBoundingClientRect();
@@ -77,26 +81,19 @@ function drawTrail(canvas, arr) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!arr || !arr.length) return;
   const W = canvas.width, H = canvas.height, n = arr.length;
-  for (let i = 0; i < n; i++) {
-    const t = (i+1)/n;
+  const drawLen = Math.max(0, n - 2); // skip last 2 frames — gap before live bbox
+  for (let i = 0; i < drawLen; i++) {
+    const t = (i + 1) / n;
     const frame = arr[i];
     if (!frame?.length) continue;
-    if (i < n-1 && arr[i+1]?.length) {
-      ctx.lineWidth = 1.5;
-      frame.forEach(pt => {
-        let bestDist = Infinity, bestPt = null;
-        arr[i+1].forEach(np => { const d=Math.hypot(np.cx-pt.cx,np.cy-pt.cy); if(d<bestDist){bestDist=d;bestPt=np;} });
-        if (bestPt && bestDist < 0.3) {
-          ctx.strokeStyle = `rgba(255,180,0,${(t*0.7).toFixed(2)})`;
-          ctx.beginPath(); ctx.moveTo(pt.cx*W, pt.cy*H); ctx.lineTo(bestPt.cx*W, bestPt.cy*H); ctx.stroke();
-        }
-      });
-    }
-    ctx.fillStyle = `rgba(255,200,0,${(t*0.9).toFixed(2)})`;
     frame.forEach(pt => {
+      ctx.fillStyle   = `rgba(255,200,0,${(t * 0.22).toFixed(2)})`;
+      ctx.strokeStyle = `rgba(255,180,0,${(t * 0.75).toFixed(2)})`;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(pt.cx*W, pt.cy*H, i===n-1 ? 4 : 2.5, 0, 2*Math.PI);
+      ctx.rect(pt.bx*W, pt.by*H, pt.bw*W, pt.bh*H);
       ctx.fill();
+      ctx.stroke();
     });
   }
 }
