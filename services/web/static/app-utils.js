@@ -55,6 +55,86 @@ function bindSlider(slId, onDrag, onCommit) {
   return { isDragging: () => dragging };
 }
 
+/* ── Confidence timeline ──────────────────────────────────────────────────── */
+
+// Builds a Float32Array[N] of max confidence per e2vid frame index.
+// opts.secondaryCount + slope/offset/calibrated: maps secondary frame space
+//   to e2vid space. inverse=true iterates detections (hyper→e2vid);
+//   inverse=false forward-scans e2vid frames (fusion→e2vid).
+function buildConfArray(dets, N, opts = {}) {
+  if (!dets || !N) return null;
+  const arr = new Float32Array(N);
+  const { slope, offset, calibrated, secondaryCount, inverse } = opts;
+  if (secondaryCount && secondaryCount !== N) {
+    if (inverse) {
+      dets.forEach(d => {
+        const ef = (calibrated && slope)
+          ? Math.max(0, Math.min(N-1, Math.round((d.frame - offset) / slope)))
+          : Math.round(d.frame * N / secondaryCount);
+        if (ef >= 0 && ef < N && d.confidence > arr[ef]) arr[ef] = d.confidence;
+      });
+    } else {
+      const map = new Map();
+      dets.forEach(d => { if (!map.has(d.frame) || d.confidence > map.get(d.frame)) map.set(d.frame, d.confidence); });
+      for (let ef = 0; ef < N; ef++) {
+        const sf = calibrated
+          ? Math.max(0, Math.min(secondaryCount-1, Math.round(slope*ef+offset)))
+          : Math.round(ef * secondaryCount / N);
+        const c = map.get(sf) || 0;
+        if (c > arr[ef]) arr[ef] = c;
+      }
+    }
+  } else {
+    dets.forEach(d => { if (d.frame < N && d.confidence > arr[d.frame]) arr[d.frame] = d.confidence; });
+  }
+  return arr;
+}
+
+// Draws a multi-line confidence sparkline with a current-frame marker and legend.
+// lines: [{arr: Float32Array|null, color: string, label: string}, ...]
+function drawConfTimeline(canvasId, frame, max, lines) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const W = canvas.width = canvas.offsetWidth;
+  const H = canvas.height = canvas.offsetHeight;
+  if (!W || !H) return;
+  const ctx = canvas.getContext('2d');
+  const dark = document.documentElement.dataset.theme === 'dark' ||
+    (!document.documentElement.dataset.theme && window.matchMedia('(prefers-color-scheme:dark)').matches);
+  ctx.fillStyle = dark ? '#1e2530' : '#f1f3f5';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = dark ? 'rgba(200,200,200,0.15)' : 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, H*0.5); ctx.lineTo(W, H*0.5); ctx.stroke();
+  const N = max + 1;
+  lines.forEach(({arr, color}) => {
+    if (!arr) return;
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    let first = true;
+    for (let i = 0; i < N; i++) {
+      const x = i / (N-1||1) * W, y = H - arr[i] * H;
+      if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  });
+  if (max > 0) {
+    const x = frame / max * W;
+    ctx.strokeStyle = 'rgba(220,38,38,0.75)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  // Legend
+  ctx.font = '9px sans-serif';
+  let lx = 6;
+  lines.forEach(({arr, color, label}) => {
+    if (!arr || !label) return;
+    ctx.fillStyle = color;
+    ctx.fillRect(lx, 4, 10, 7);
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)';
+    ctx.fillText(label, lx+13, 11);
+    lx += 13 + ctx.measureText(label).width + 8;
+  });
+}
+
 /* ── Bounding box rendering ───────────────────────────────────────────────── */
 
 // Renders an array of already-filtered detection boxes as absolutely-positioned

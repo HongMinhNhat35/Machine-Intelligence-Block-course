@@ -19,6 +19,7 @@ let dtPlaying=false, dtTimer=null, dtFrame=0, dtMax=0, dtLoadedSeq=null;
 let dtDetections=null, dtImgDebounce=null, dtLiveMode=false, dtLiveBoxes=[];
 let dtMode='e2vid'; // 'e2vid' | 'hypere2vid' | 'fusion_rgb' | 'fusion_event' | 'fusion'
 let dtAllFusionDets=null; // raw fusion detections, filtered per mode in dtRenderBboxes
+let dtConfArr=null; // Float32Array for confidence timeline
 
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
@@ -82,10 +83,19 @@ function dtLoadImage(){
 
 // Clamps n to [0, dtMax], updates pill and slider, and triggers dtLoadImage
 // unless the user is actively dragging the slider.
+const DT_MODEL_COLORS={e2vid:'#3b82f6',hypere2vid:'#8b5cf6',fusion:'#f97316',fusion_rgb:'#22c55e',fusion_event:'#14b8a6'};
+
+function dtDrawConfTimeline(){
+  drawConfTimeline('det-conf-timeline', dtFrame, dtMax, [
+    {arr:dtConfArr, color:DT_MODEL_COLORS[dtMode]||'#888', label:MODE_LABELS[dtMode]||dtMode},
+  ]);
+}
+
 function dtSetFrame(n){
   dtFrame=Math.max(0,Math.min(n,dtMax));
   document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax;
   const gi=document.getElementById('det-goto'); if(gi) gi.value=dtFrame;
+  dtDrawConfTimeline();
   if(!dtSlider.isDragging()){
     document.getElementById('det-sl').value=dtFrame;
     dtLoadImage();
@@ -128,6 +138,8 @@ async function dtLoadDetections(seqId, mode){
       dtLiveMode=false;
       document.getElementById('det-status').textContent='Cached — '+data.detections.length+' detections across all frames';
       const sbD=document.getElementById(sbKeys[apiModel]||'sb-e2vid-dets'); if(sbD) sbD.textContent=data.detections.length;
+      dtConfArr=buildConfArray(isFusionVariant ? dtAllFusionDets : dtDetections, dtMax+1);
+      dtDrawConfTimeline();
       dtRenderBboxes();
     } else {
       if(isFusionVariant){
@@ -157,7 +169,7 @@ function detLoad(){
     dtStop();
     dtLoadedSeq=selSeq.id;
     dtMax=selSeq.frame_count-1;
-    dtDetections=null;
+    dtDetections=null; dtConfArr=null;
     document.getElementById('det-sl').max=dtMax;
     document.getElementById('det-max').textContent=dtMax;
     document.getElementById('det-max2').textContent=dtMax;
@@ -176,7 +188,7 @@ function detLoad(){
 
 // Slider drag-tracking — onDrag updates pill only; onCommit also loads the frame.
 const dtSlider = bindSlider('det-sl',
-  v => { dtFrame=Math.max(0,Math.min(v,dtMax)); document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax; },
+  v => { dtFrame=Math.max(0,Math.min(v,dtMax)); document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax; dtDrawConfTimeline(); },
   v => { dtFrame=Math.max(0,Math.min(v,dtMax)); document.getElementById('det-pill').textContent='frame '+dtFrame+' / '+dtMax; dtLoadImage(); }
 );
 

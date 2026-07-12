@@ -84,13 +84,13 @@ Shows one model's detection overlay at a time. Switch models with the five butto
 
 ### Model buttons
 
-| Button | Source frames | Detection cache |
-|--------|--------------|-----------------|
-| **e2vid** | E2VID reconstruction | `detections_e2vid.json` |
-| **HyperE2VID** | HyperE2VID reconstruction | `detections_hypere2vid.json` |
-| **RGB** | FRED RGB frame | `detections_fusion.json` (all fusion detections) |
-| **Event** | E2VID reconstruction | `detections_fusion.json` (all fusion detections) |
-| **Late Fusion** | FRED RGB frame | `detections_fusion.json` (all fusion detections) |
+| Button | Source frames | Detection cache | Timeline colour |
+|--------|--------------|-----------------|-----------------|
+| **e2vid** | E2VID reconstruction | `detections_e2vid.json` | Blue |
+| **HyperE2VID** | HyperE2VID reconstruction | `detections_hypere2vid.json` | Purple |
+| **RGB** | FRED RGB frame | `detections_fusion.json` (all fusion detections) | Green |
+| **Event** | E2VID reconstruction | `detections_fusion.json` (all fusion detections) | Teal |
+| **Late Fusion** | FRED RGB frame | `detections_fusion.json` (all fusion detections) | Orange |
 
 RGB and Event modes show the full fusion detection cache because separate per-source caches are not yet available. They differ only in the background frame shown.
 
@@ -101,6 +101,10 @@ Shows the raw reconstructed frame (or FRED RGB frame for RGB / Late Fusion mode)
 ### Right panel — detection overlay
 
 Same frame with YOLO bounding boxes. The pill shows how many boxes are visible at the current confidence threshold.
+
+### Confidence timeline
+
+A strip below the frame panels shows the maximum detection confidence at each frame for the active model. The colour matches the model button (see table above). A red vertical line marks the current frame position. The strip updates in real time while scrubbing.
 
 ### Confidence threshold (sidebar)
 
@@ -149,6 +153,21 @@ Three-column view where the **left column** is the master time axis:
 | Right — Late Fusion | FRED RGB frames | `detections_fusion.json` |
 
 Toggle the left column between e2vid and HyperE2VID with the buttons at the bottom. Middle and right columns always show FRED RGB frames with fusion detections. The **next detection** button (crosshair icon) jumps to the next frame in the left column that has a detection.
+
+### Detection trail
+
+The **Trail** button toggles a motion trail overlay on all three columns. While active, the last 30 frames of bbox centre positions are drawn as fading gold dots on each panel, with connecting line segments between consecutive frames (nearest-neighbour match). Turning Trail off clears the buffer. The trail resets automatically on sequence change.
+
+### Confidence timeline
+
+A 48 px strip between the image panels and the playback controls shows the maximum detection confidence per frame for two models simultaneously:
+
+| Line | Colour | Source |
+|------|--------|--------|
+| Left column model (e2vid or HyperE2VID) | Blue | `detections_e2vid.json` or `detections_hypere2vid.json` |
+| Fusion model | Orange | `detections_fusion.json` |
+
+The model name is shown as a small legend inside the canvas. A red vertical marker tracks the current frame and moves in real time while scrubbing. The horizontal gridline at 50% confidence is a visual reference.
 
 ### Frame synchronisation
 

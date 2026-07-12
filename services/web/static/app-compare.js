@@ -429,72 +429,23 @@ function cp2ClearTrails(){
 
 function cp2BuildConfArrays(){
   const N=cp2Max+1;
-  if(!N){ cp2ConfLeft=null; cp2ConfFusion=null; return; }
-  // Left model (e2vid or hypere2vid)
   const leftDets=cp2LeftMode==='hypere2vid' ? cp2HyperDets : cp2E2vidDets;
-  if(leftDets){
-    cp2ConfLeft=new Float32Array(N);
-    if(cp2LeftMode==='hypere2vid' && cp2HyperFrameCount){
-      leftDets.forEach(d=>{
-        const ef=cp2HyperCalibrated
-          ? Math.max(0,Math.min(N-1, Math.round((d.frame-cp2HyperOffset)/cp2HyperSlope)))
-          : Math.round(d.frame*N/cp2HyperFrameCount);
-        if(ef>=0 && ef<N && d.confidence>cp2ConfLeft[ef]) cp2ConfLeft[ef]=d.confidence;
-      });
-    } else {
-      leftDets.forEach(d=>{ if(d.frame<N && d.confidence>cp2ConfLeft[d.frame]) cp2ConfLeft[d.frame]=d.confidence; });
-    }
-  } else { cp2ConfLeft=null; }
-  // Fusion model (mapped from fusion frame space to e2vid frame space)
-  if(cp2FusionDets && cp2FusionFrameCount){
-    cp2ConfFusion=new Float32Array(N);
-    const fusMap=new Map();
-    cp2FusionDets.forEach(d=>{ if(!fusMap.has(d.frame)||d.confidence>fusMap.get(d.frame)) fusMap.set(d.frame,d.confidence); });
-    for(let ef=0;ef<N;ef++){
-      const ff=cp2FusionCalibrated
-        ? Math.max(0,Math.min(cp2FusionFrameCount-1, Math.round(cp2FusionSlope*ef+cp2FusionOffset)))
-        : Math.round(ef*cp2FusionFrameCount/N);
-      const c=fusMap.get(ff)||0;
-      if(c>cp2ConfFusion[ef]) cp2ConfFusion[ef]=c;
-    }
-  } else { cp2ConfFusion=null; }
+  cp2ConfLeft=buildConfArray(leftDets, N,
+    cp2LeftMode==='hypere2vid'
+      ? {secondaryCount:cp2HyperFrameCount, slope:cp2HyperSlope, offset:cp2HyperOffset, calibrated:cp2HyperCalibrated, inverse:true}
+      : {}
+  );
+  cp2ConfFusion=buildConfArray(cp2FusionDets, N,
+    {secondaryCount:cp2FusionFrameCount, slope:cp2FusionSlope, offset:cp2FusionOffset, calibrated:cp2FusionCalibrated}
+  );
 }
 
 function cp2DrawConfTimeline(){
-  const canvas=document.getElementById('cp2-conf-timeline');
-  if(!canvas) return;
-  const W=canvas.width=canvas.offsetWidth;
-  const H=canvas.height=canvas.offsetHeight;
-  if(!W||!H) return;
-  const ctx=canvas.getContext('2d');
-  const dark=document.documentElement.dataset.theme==='dark'||
-    (!document.documentElement.dataset.theme && window.matchMedia('(prefers-color-scheme:dark)').matches);
-  ctx.fillStyle=dark?'#1e2530':'#f1f3f5';
-  ctx.fillRect(0,0,W,H);
-  // 0.5 confidence gridline
-  ctx.strokeStyle=dark?'rgba(200,200,200,0.15)':'rgba(0,0,0,0.1)';
-  ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(0,H*0.5); ctx.lineTo(W,H*0.5); ctx.stroke();
-  const N=cp2Max+1;
-  if(!N) return;
-  const drawLine=(arr,color)=>{
-    if(!arr) return;
-    ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=1.5;
-    let first=true;
-    for(let i=0;i<N;i++){
-      const x=i/(N-1||1)*W, y=H-arr[i]*H;
-      if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  };
-  drawLine(cp2ConfLeft,'#3b82f6');
-  drawLine(cp2ConfFusion,'#f97316');
-  // Current frame marker
-  if(cp2Max>0){
-    const x=cp2Frame/cp2Max*W;
-    ctx.strokeStyle='rgba(220,38,38,0.75)'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
-  }
+  const leftLabel=cp2LeftMode==='hypere2vid'?'HyperE2VID':'e2vid';
+  drawConfTimeline('cp2-conf-timeline', cp2Frame, cp2Max, [
+    {arr:cp2ConfLeft,  color:'#3b82f6', label:leftLabel},
+    {arr:cp2ConfFusion, color:'#f97316', label:'Fusion'},
+  ]);
 }
 
 /* ── Calibration ─────────────────────────────────────────────────────── */
