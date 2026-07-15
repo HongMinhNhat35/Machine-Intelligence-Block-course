@@ -46,12 +46,14 @@ Select a sequence from the browser list. Sequences show colour-coded badges:
 - Green `hyper N` — HyperE2VID reconstruction available
 - Grey badge — frames not yet available for that model
 
-After selecting, the file panel below confirms what data is present (events file, ground-truth coordinates).
+A info box below the browser shows which sequences have reconstruction data available:
+- **Test set** (e2vid): 8, 9, 12, 20, 21
+- **Prototyping set** (e2vid + HyperE2VID): 84, 85, **124**, **127**, **201**
 
 ### Detection cache — pre-compute buttons
 
 Three buttons allow you to run and cache detections for the selected sequence. This is not strictly required as the detection and comparison screens also run on-the-fly inference, but cached mode is faster and smoother.
-The GUI comes with pre-cached detections for the test sequences 8, 9, 12, 20, 21.
+The GUI comes with pre-cached detections for all 10 demo sequences: test set (8, 9, 12, 20, 21) and prototyping set (84, 85, 124, 127, 201).
 
 | Button | Model | Prerequisite |
 |--------|-------|-------------|
@@ -206,7 +208,7 @@ Also lists data mount paths and weight file locations baked into each container.
 - **Nothing shows in the overlay:** the confidence slider may be too high. Lower it to 0.10.
 - **"Run cache first" in Detection (fusion model):** fusion does not support live frame-by-frame mode. Go to Upload, select the sequence, and click **Late Fusion** to build the cache.
 - **Comparison fusion column blank:** no `detections_fusion.json` for this sequence yet. Build it from the Upload tab.
-- **Fusion boxes look temporally offset:** the ratio mapping assumes both cameras cover exactly the same time window. If the FRED RGB recording started later or ended earlier than the event stream the boxes will drift. This is a known limitation of the ratio approximation.
+- **Fusion boxes look temporally offset:** sync uses exact per-frame timestamps when available (all 10 demo sequences include `timestamps.txt`). If you add a custom sequence without `timestamps.txt`, sync falls back to cluster-based calibration which may drift slightly.
 - **"Reconstruction not available":** frames for that model are not on disk. Reconstruction runs on Kaggle, not in this GUI.
 - **"Could not reach … service":** container is unhealthy. Restart: `docker compose down && docker compose up -d`.
 - **mAP50 in sidebar shows —:** the KPI fetch failed. Refresh the page.
