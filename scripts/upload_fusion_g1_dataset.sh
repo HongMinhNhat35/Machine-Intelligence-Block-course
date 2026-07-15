@@ -13,7 +13,7 @@ KAGGLE="${HOME}/.local/bin/kaggle"
 if [ ! -x "$KAGGLE" ]; then KAGGLE="$(command -v kaggle)"; fi
 
 DATASET_ID="ami-fusion-g1"
-DATASET_TITLE="AMI Fusion G1 — FRED sequences for fusion detection cache"
+DATASET_TITLE="AMI Fusion G1 FRED sequences"
 STAGING="/tmp/${DATASET_ID}_upload"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ZIPS_DIR="${ROOT}/data/raw/zips"
