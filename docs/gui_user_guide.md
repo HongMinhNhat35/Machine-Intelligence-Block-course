@@ -46,7 +46,7 @@ Select a sequence from the browser list. Sequences show colour-coded badges:
 - Green `hyper N` — HyperE2VID reconstruction available
 - Grey badge — frames not yet available for that model
 
-A info box below the browser shows which sequences have reconstruction data available:
+An info box below the browser shows the **Proposed datasets** — the sequences selected for the demo:
 - **Test set** (e2vid): 8, 9, 12, 20, 21
 - **Prototyping set** (e2vid + HyperE2VID): 84, 85, **124**, **127**, **201**
 
