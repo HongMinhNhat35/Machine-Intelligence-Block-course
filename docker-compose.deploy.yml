@@ -1,0 +1,64 @@
+# Hybrid Vision System — deploy / quickstart compose file
+#
+# Used by g1-install.sh. Contains only data mounts; app code is baked into the images.
+# For development (live-editing app.py / static / kpis), use docker-compose.yml instead.
+#
+# Setup:
+#   cp .env.example .env        # then fill in your two paths
+#   docker compose -f docker-compose.deploy.yml up -d
+
+services:
+
+  web:
+    image: ghcr.io/gennepy/ami-web:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    environment:
+      - E2VID_URL=http://e2vid:8001
+      - HYPERE2VID_URL=http://hypere2vid:8002
+      - FUSION_URL=http://fusion:8003
+    depends_on:
+      e2vid:
+        condition: service_healthy
+
+  e2vid:
+    image: ghcr.io/gennepy/ami-e2vid:latest
+    expose:
+      - "8001"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  hypere2vid:
+    image: ghcr.io/gennepy/ami-hypere2vid:latest
+    expose:
+      - "8002"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fusion:
+    image: ghcr.io/gennepy/ami-fusion:latest
+    expose:
+      - "8003"
+    volumes:
+      - ${FRED_DATA_PATH}:/data/fred:ro
+      - ${RECON_DATA_PATH}:/data/recon
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

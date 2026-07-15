@@ -113,7 +113,7 @@ tar xzf /tmp/detections_fusion_run1.tar.gz -C $RECON/
 
 ```bash
 curl -fsSL -o $RECON/docker-compose.yml \
-  https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.yml
+  https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.deploy.yml
 
 cat > $RECON/.env <<EOF
 FRED_DATA_PATH=/path/to/fred/sequences    # set to your FRED dataset, or same as RECON_DATA_PATH

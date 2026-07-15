@@ -131,7 +131,7 @@ rm /tmp/detections_fusion_run1.tar.gz
 echo ""
 
 echo "Downloading docker-compose.yml ..."
-curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.yml"
+curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.deploy.yml"
 
 echo "Writing .env ..."
 cat > "$RECON/.env" <<EOF
