@@ -44,7 +44,8 @@ function dtRenderBboxes(){
       drawTrail(trailCanvas, dtTrailOn ? dtTrail : []);
       return;
     }
-    boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf);
+    const src=dtMode==='fusion_event'?'event':dtMode==='fusion_rgb'?'rgb':null;
+    boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf && (!src||d.source===src));
   }
   document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
   renderBboxes(boxes, imgEl, bboxDiv);
@@ -59,9 +60,9 @@ function dtGetModel(){ return dtMode; }
 
 // Returns the frame URL for the current mode.
 function dtFrameSrc(seq, n){
-  if(dtMode==='hypere2vid') return '/frames/'+seq+'/'+n+'?model=hypere2vid';
+  if(dtMode==='hypere2vid')  return '/frames/'+seq+'/'+n+'?model=hypere2vid';
   if(dtMode==='fusion_rgb' || dtMode==='fusion') return '/frames_rgb/'+seq+'/'+n;
-  // e2vid, fusion_event
+  if(dtMode==='fusion_event') return '/frames_event/'+seq+'/'+n;
   return '/frames/'+seq+'/'+n+'?model=e2vid';
 }
 
@@ -100,6 +101,14 @@ function dtDrawConfTimeline(){
   drawConfTimeline('det-conf-timeline', dtFrame, dtMax, [
     {arr:dtConfArr, color:DT_MODEL_COLORS[dtMode]||'#888', label:MODE_LABELS[dtMode]||dtMode},
   ]);
+}
+
+// Returns the correct frame max for the active mode, using per-mode frame counts.
+function dtFrameMax(){
+  if(!selSeq) return 0;
+  if(dtMode==='fusion_event') return Math.max(0,(selSeq.fred_event_count||1)-1);
+  if(dtMode==='hypere2vid')   return Math.max(0,(selSeq.hyper_frame_count||selSeq.frame_count||1)-1);
+  return Math.max(0,(selSeq.frame_count||1)-1);
 }
 
 function dtSetFrame(n){
@@ -150,7 +159,9 @@ async function dtLoadDetections(seqId, mode){
       dtLiveMode=false;
       document.getElementById('det-status').textContent='Cached — '+data.detections.length+' detections across all frames';
       const sbD=document.getElementById(sbKeys[apiModel]||'sb-e2vid-dets'); if(sbD) sbD.textContent=data.detections.length;
-      dtConfArr=buildConfArray(isFusionVariant ? dtAllFusionDets : dtDetections, dtMax+1);
+      const srcFilter=dtMode==='fusion_event'?'event':dtMode==='fusion_rgb'?'rgb':null;
+      const confPool=isFusionVariant?(srcFilter?dtAllFusionDets.filter(d=>d.source===srcFilter):dtAllFusionDets):dtDetections;
+      dtConfArr=buildConfArray(confPool, dtMax+1);
       dtDrawConfTimeline();
       dtRenderBboxes();
     } else {
@@ -180,7 +191,7 @@ function detLoad(){
   if(seqChanged){
     dtStop();
     dtLoadedSeq=selSeq.id;
-    dtMax=selSeq.frame_count-1;
+    dtMax=dtFrameMax();
     dtDetections=null; dtConfArr=null;
     dtTrail.length=0; drawTrail(document.getElementById('det-trail'),[]);
     document.getElementById('det-sl').max=dtMax;
@@ -248,7 +259,18 @@ function dtSetMode(m){
   const pill=document.getElementById('det-pill');
   if(lbl){ lbl.textContent=(MODE_LABELS[m]||m)+' '; if(pill) lbl.appendChild(pill); }
   document.getElementById('tb').textContent=MODE_LABELS[m]||m;
-  if(selSeq){ dtLoadDetections(selSeq.id); dtLoadImage(); }
+  if(selSeq){
+    const newMax=dtFrameMax();
+    if(newMax!==dtMax){
+      dtMax=newMax;
+      document.getElementById('det-sl').max=dtMax;
+      document.getElementById('det-max').textContent=dtMax;
+      document.getElementById('det-max2').textContent=dtMax;
+      const gi=document.getElementById('det-goto'); if(gi) gi.max=dtMax;
+      if(dtFrame>dtMax){ dtFrame=dtMax; }
+    }
+    dtLoadDetections(selSeq.id); dtLoadImage();
+  }
 }
 
 document.querySelectorAll('#det-mode-btns button').forEach(b=>{

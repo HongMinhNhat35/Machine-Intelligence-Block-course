@@ -58,6 +58,8 @@ def get_sequences():
 
         rgb_dir      = fred_dir / "RGB"
         fred_rgb_frames = list(rgb_dir.glob("*")) if rgb_dir.exists() else []
+        event_dir    = fred_dir / "Event" / "Frames"
+        fred_event_frames = sorted(event_dir.glob("*.png"), key=_event_sort_key) if event_dir.exists() else []
 
         # events.zip / events.h5 land in RECON_ROOT after preprocessing;
         # raw FRED extracts put the events in FRED_ROOT/seq/Event/ instead.
@@ -76,6 +78,7 @@ def get_sequences():
             "hypere2vid_done":   len(hyper_frames) > 0,
             "hyper_frame_count": len(hyper_frames),
             "fred_rgb_count":    len(fred_rgb_frames),
+            "fred_event_count":  len(fred_event_frames),
         })
     return result
 
@@ -91,8 +94,15 @@ def get_frame(seq: str, n: int, model: str = "e2vid"):
             return FileResponse(str(p), media_type=f"image/{ext}")
     raise HTTPException(status_code=404, detail=f"Frame {n} not found for {seq} ({model})")
 
-_rgb_file_cache: dict[str, list[Path]] = {}
-_sync_cache:     dict[str, dict]       = {}
+_rgb_file_cache:   dict[str, list[Path]] = {}
+_event_file_cache: dict[str, list[Path]] = {}
+_sync_cache:       dict[str, dict]       = {}
+
+_EVENT_TS_RE = re.compile(r'_frame_(\d+)\.png$', re.IGNORECASE)
+
+def _event_sort_key(p: Path) -> int:
+    m = _EVENT_TS_RE.search(p.name)
+    return int(m.group(1)) if m else 0
 
 _RGB_TS_RE = re.compile(r'_(\d+)_(\d+)_(\d+)\.(\d+)\.')
 
@@ -150,6 +160,21 @@ def get_frame_rgb(seq: str, n: int):
     return FileResponse(str(p), media_type=f"image/{p.suffix.lstrip('.')}")
 
 
+@app.get("/frames_event/{seq}/{n}")
+def get_frame_event(seq: str, n: int):
+    if seq not in _event_file_cache:
+        event_dir = FRED_ROOT / seq / "Event" / "Frames"
+        if not event_dir.exists():
+            raise HTTPException(status_code=404, detail="No event frames for this sequence")
+        _event_file_cache[seq] = sorted(event_dir.glob("*.png"), key=_event_sort_key)
+    files = _event_file_cache.get(seq, [])
+    if not files:
+        raise HTTPException(status_code=404, detail="No event frames found")
+    if n >= len(files):
+        raise HTTPException(status_code=404, detail=f"Frame {n} out of range ({len(files)} total)")
+    return FileResponse(str(files[n]), media_type="image/png")
+
+
 @app.get("/api/kpis")
 def get_kpis():
     from fastapi.responses import JSONResponse
@@ -178,6 +203,7 @@ async def detect_frame_live(seq_id: str, n: int, model: str = "e2vid"):
     service_url = {
         "e2vid":      E2VID_URL,
         "hypere2vid": HYPERE2VID_URL,
+        "fusion":     FUSION_URL,
     }.get(model, E2VID_URL)
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:

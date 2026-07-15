@@ -25,7 +25,7 @@ The script will ask two questions:
 1. **Where to store the data** — default: `~/g1-ami-data`
 2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
-It then downloads ~1.5 GB of pre-computed E2VID frames (Run 7, events_per_pixel=0.1) and optionally ~294 MB of HyperE2VID frames (Run 2, events_per_frame=46080, 5 sequences), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
+It then downloads ~1.5 GB of pre-computed E2VID frames (Run 9, test set: 8, 9, 12, 20, 21, and prototyping set: 84, 85, 124, 127, 201) and ~290 MB of HyperE2VID frames (Run 2, sequences 84, 85, 124, 127, 201), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
 When it finishes:
 
@@ -38,6 +38,17 @@ Open **http://localhost:8080**
 
 > **Warning:** only run `docker compose up -d` once. If the stack is already running, starting it again from a different directory will conflict on port 8080. Stop the existing stack first: `docker compose down`.
 
+## Sequences with reconstruction data from e2vid and hypere2vid
+
+Reconstructed frames of e2vid and hypere2vid are only available for the following sequences. Only when selecting one of those a detection or comparison is possible:
+
+e2vid:
+  - test set: 8, 9, 12, 20, 21
+  - prototyping set: 84, 85, 124, 127, 201
+
+HyperE2VID:
+  - prototyping set: 84, 85, 124, 127, 201
+
 ---
 
 ## Manual installation (if the script fails)
@@ -49,36 +60,25 @@ RECON=~/g1-ami-data      # absolute path — change if needed
 mkdir -p $RECON
 ```
 
-### 2. Download and extract pre-computed reconstruction frames
+### 2. Download and extract pre-computed E2VID frames (Run 9)
 
 ```bash
-# sequence_84 (128 MB)
-curl -L -o /tmp/sequence_84.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_84.tar
-mkdir -p $RECON/sequence_84 && tar xf /tmp/sequence_84.tar -C $RECON/sequence_84/
+BASE="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v5.0"
 
-# sequence_85 (83 MB)
-curl -L -o /tmp/sequence_85.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_85.tar
-mkdir -p $RECON/sequence_85 && tar xf /tmp/sequence_85.tar -C $RECON/sequence_85/
+# Test sequences
+for seq in 8 9 12 20 21; do
+  curl -L -o /tmp/sequence_${seq}.tar "$BASE/sequence_${seq}_e2vid_run9.tar"
+  mkdir -p $RECON/sequence_${seq} && tar xf /tmp/sequence_${seq}.tar -C $RECON/sequence_${seq}/
+done
 
-# sequence_124 (668 MB)
-curl -L -o /tmp/sequence_124.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_124.tar
-mkdir -p $RECON/sequence_124 && tar xf /tmp/sequence_124.tar -C $RECON/sequence_124/
-
-# sequence_127 (242 MB)
-curl -L -o /tmp/sequence_127.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_127.tar
-mkdir -p $RECON/sequence_127 && tar xf /tmp/sequence_127.tar -C $RECON/sequence_127/
-
-# sequence_201 (326 MB)
-curl -L -o /tmp/sequence_201.tar \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/sequence_201.tar
-mkdir -p $RECON/sequence_201 && tar xf /tmp/sequence_201.tar -C $RECON/sequence_201/
+# Prototyping sequences (HyperE2VID available for these)
+for seq in 84 85 124 127 201; do
+  curl -L -o /tmp/sequence_${seq}.tar "$BASE/sequence_${seq}_e2vid_run9.tar"
+  mkdir -p $RECON/sequence_${seq} && tar xf /tmp/sequence_${seq}.tar -C $RECON/sequence_${seq}/
+done
 ```
 
-### 3. Download HyperE2VID frames (optional, ~294 MB, Run 2)
+### 3. Download HyperE2VID frames (Run 2)
 
 ```bash
 for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
@@ -91,17 +91,17 @@ done
 ### 4. Download pre-cached detections
 
 ```bash
-# E2VID (Run 7 — YOLOv8s, mAP@0.5=93.6%)
-curl -L -o /tmp/detections_e2vid_run7.tar.gz \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0/detections_e2vid_run7.tar.gz
-tar xzf /tmp/detections_e2vid_run7.tar.gz -C $RECON/
+# E2VID — all 10 demo sequences
+curl -L -o /tmp/detections_e2vid_demo.tar.gz \
+  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v5.0/detections_e2vid_demo.tar.gz
+tar xzf /tmp/detections_e2vid_demo.tar.gz -C $RECON/
 
-# HyperE2VID (Run 2 — YOLOv8n, mAP@0.5=56.7%) — only needed if you downloaded HyperE2VID frames above
+# HyperE2VID (Run 2)
 curl -L -o /tmp/detections_hypere2vid_run2.tar.gz \
   https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0/detections_hypere2vid_run2.tar.gz
 tar xzf /tmp/detections_hypere2vid_run2.tar.gz -C $RECON/
 
-# Late Fusion (Run 1 — YOLOv8n RGB+Event, mAP@0.5=50%)
+# Late Fusion (Run 1)
 curl -L -o /tmp/detections_fusion_run1.tar.gz \
   https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v4.0/detections_fusion_run1.tar.gz
 tar xzf /tmp/detections_fusion_run1.tar.gz -C $RECON/
@@ -149,9 +149,8 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 |---|---|
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
 | **Reconstruction** | Browse E2VID and HyperE2VID reconstructed frames side-by-side with playback controls. |
-| **Detection** | View YOLO bounding-box overlay. Choose from five models with the bottom buttons: e2vid, HyperE2VID, RGB (FRED RGB frame + fusion detections), Event (E2VID frame + fusion detections), Late Fusion (FRED RGB frame + fusion detections). Adjust confidence with the sidebar slider. Detection results are pre-cached — no inference needed. |
-| **Compare v1** | Original three-column view: E2VID · HyperE2VID · Late Fusion — synchronised playback with bounding box overlays and per-model KPI metrics. Kept for reference. |
-| **Comparison** | New three-column view: left column shows e2vid or HyperE2VID (toggle at bottom) — middle and right show FRED RGB frames with fusion detection overlay. Left column is the master time axis; middle/right are mapped via cluster-based calibration that matches detection bursts across streams for accurate sync. |
+| **Detection** | View YOLO bounding-box overlay. Choose from five models with the bottom buttons: e2vid, HyperE2VID, RGB (FRED RGB frame + fusion detections), Event (raw event frame + fusion detections), Late Fusion (FRED RGB frame + fusion detections). Adjust confidence with the sidebar slider. Detection results are pre-cached — no inference needed. |
+| **Comparison** | Three-column view: left column shows e2vid or HyperE2VID (toggle at bottom) — middle and right show FRED RGB frames with fusion detection overlay. Left column is the master time axis; middle/right are mapped via cluster-based calibration that matches detection bursts across streams for accurate sync. |
 | **KPIs** | Summary table (best run per model) plus full detail tables for detection accuracy, reconstruction, and training metrics across all runs. |
 | **Dataset** | Per-sequence notes: event counts, annotation timing, known reconstruction quirks. |
 | **Admin** | Live health status of all backend services. |
@@ -165,4 +164,4 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 - **Early frames (~first 250 frames per sequence):** YOLO bounding boxes may appear over a visually empty region. This is expected — the E2VID LSTM needs ~20 s to warm up from a cold start. The detections are geometrically correct (verified against ground truth, IoU 0.73–0.92); the drone is present but the reconstruction quality is too low for human visibility.
 - **Partial detection caches:** If a precompute run was interrupted, the cache may cover only part of the sequence. The Upload screen shows the cached detection count — if it looks low relative to the frame count, click **Run Detection** again to rebuild the cache from scratch. Detection and KPI metrics in the KPIs tab are computed over the full run, not the partial cache.
 - Reconstruction (event → frames) is not triggered from the GUI. Frames are pre-generated and included in the downloaded data.
-- The FRED raw dataset (`FRED_DATA_PATH`) is only needed for Late Fusion. The e2vid pipeline and comparison view work without it.
+- The FRED raw dataset (`FRED_DATA_PATH`) is only needed for Late Fusion and the Event/RGB detection modes. The e2vid pipeline and comparison view work without it.

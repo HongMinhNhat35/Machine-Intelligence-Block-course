@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "model": "fusion_event",
+  "detector": "YOLOv8n (event)",
+  "run_id": "run_2",
+  "contributor": "AMI Group 1",
+  "timestamp": "2026-07-14T20:56:00",
+  "note": "Event-only component model (no reconstruction). Raw event frames, 1 frame per 10 sampled. 40/10/5 train/val/test split. Trained on A100, ~34 min. Weights deployed as fusion_event.pt.",
+  "reconstruction": {
+    "sequences": ["sequence_84", "sequence_85", "sequence_124", "sequence_127", "sequence_201"],
+    "events_per_pixel": null,
+    "total_frames": null,
+    "total_runtime_s": null,
+    "avg_fps": null,
+    "gpu": null
+  },
+  "training": {
+    "note": "Trained by AMI Group 1 on raw event frames (no e2vid reconstruction). Frame sampling: 1 per 10 frames.",
+    "train_sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_124"],
+    "val_sequences": ["sequence_127"],
+    "n_train_images": null,
+    "n_val_images": null,
+    "lr0": null,
+    "epochs_requested": 40,
+    "epochs_completed": 40,
+    "best_epoch": null,
+    "n_gpus": 1,
+    "batch_per_gpu": 32,
+    "effective_batch": 32,
+    "imgsz": 640,
+    "runtime_s": 2040,
+    "gpu": "A100"
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.875,
+      "map50_95": 0.424,
+      "precision": 0.898,
+      "recall": 0.843,
+      "note": "Test set: 5 held-out sequences (seq 8, 9, 12, 20, 21)."
+    },
+    "val": {
+      "map50": 0.898,
+      "map50_95": 0.466,
+      "precision": 0.883,
+      "recall": 0.892
+    }
+  }
+}

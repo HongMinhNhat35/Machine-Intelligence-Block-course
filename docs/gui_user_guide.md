@@ -7,7 +7,7 @@ The GUI provides a browser-based interface to the AMI drone-detection pipeline. 
 | Model | What it does |
 |-------|-------------|
 | **E2VID + YOLO** | Converts the event stream to greyscale frames (E2VID), then runs YOLO detection. Reconstruction was run on Kaggle; frames are stored on disk. |
-| **HyperE2VID + YOLO** | Same pipeline as E2VID but uses the HyperE2VID reconstructor (higher quality, lower fps). |
+| **HyperE2VID + YOLO** | Same pipeline as E2VID but uses the HyperE2VID reconstructor. |
 | **Late Fusion** | Runs two separate YOLO models — one trained on FRED RGB camera frames, one on FRED event frames — and merges their detections. Does **not** use reconstructed frames. |
 
 The GUI talks to four backend services running in Docker:
@@ -34,8 +34,8 @@ After selecting a sequence the sidebar shows stats for each model:
 | Field | Meaning |
 |-------|---------|
 | **Frames** | Reconstructed frame count for that model |
-| **Detections @0.1** | Cached detections at confidence ≥ 0.1 (display filter does not change this) |
-| **mAP50** | Validation accuracy of the current weights |
+| **Detections @0.1** | Total detections in the cache at confidence ≥ 0.1 |
+| **mAP50** | Canonical test accuracy of the featured model weights |
 
 ---
 
@@ -50,7 +50,8 @@ After selecting, the file panel below confirms what data is present (events file
 
 ### Detection cache — pre-compute buttons
 
-Three buttons allow you to run and cache detections for the selected sequence:
+Three buttons allow you to run and cache detections for the selected sequence. This is not strictly required as the detection and comparison screens also run on-the-fly inference, but cached mode is faster and smoother.
+The GUI comes with pre-cached detections for the test sequences 8, 9, 12, 20, 21.
 
 | Button | Model | Prerequisite |
 |--------|-------|-------------|
@@ -74,7 +75,7 @@ Side-by-side player showing E2VID (left) and HyperE2VID (right) reconstructed fr
 | **Stop** | Pause and return to frame 0 |
 | **‹ ›** | Step one frame backward / forward |
 | **Number input** | Jump directly to a frame number |
-| **Slider** | Drag to scrub |
+| **Slider** | Drag to scrub through the sequence |
 
 ---
 
@@ -88,19 +89,29 @@ Shows one model's detection overlay at a time. Switch models with the five butto
 |--------|--------------|-----------------|-----------------|
 | **e2vid** | E2VID reconstruction | `detections_e2vid.json` | Blue |
 | **HyperE2VID** | HyperE2VID reconstruction | `detections_hypere2vid.json` | Purple |
-| **RGB** | FRED RGB frame | `detections_fusion.json` (all fusion detections) | Green |
-| **Event** | E2VID reconstruction | `detections_fusion.json` (all fusion detections) | Teal |
-| **Late Fusion** | FRED RGB frame | `detections_fusion.json` (all fusion detections) | Orange |
-
-RGB and Event modes show the full fusion detection cache because separate per-source caches are not yet available. They differ only in the background frame shown.
+| **RGB** | FRED RGB frames | `detections_fusion.json` (RGB detections only) | Green |
+| **Event** | FRED raw event frames | `detections_fusion.json` (event detections only) | Teal |
+| **Late Fusion** | FRED RGB frames | `detections_fusion.json` (all detections) | Orange |
 
 ### Left panel — source frame
 
-Shows the raw reconstructed frame (or FRED RGB frame for RGB / Late Fusion mode).
+Shows the raw reconstructed frame (or FRED RGB / event frame for fusion modes).
 
 ### Right panel — detection overlay
 
 Same frame with YOLO bounding boxes. The pill shows how many boxes are visible at the current confidence threshold.
+
+### Playback controls
+
+| Control | Action |
+|---------|--------|
+| **Play / Pause** | Continuous playback at ~6 fps |
+| **Stop** | Pause and return to frame 0 |
+| **‹ ›** | Step one frame backward / forward |
+| **⊹ (crosshair)** | Jump to the next frame that has a detection above the confidence threshold (cached mode only) |
+| **Trail** | Toggle motion trail — draws the last 30 frames of bbox centre positions as fading dots |
+| **Number input** | Jump directly to a frame number |
+| **Slider** | Drag to scrub through the sequence |
 
 ### Confidence timeline
 
@@ -109,36 +120,6 @@ A strip below the frame panels shows the maximum detection confidence at each fr
 ### Confidence threshold (sidebar)
 
 Filters which cached detections are drawn. Never affects the cache itself — the cache always covers confidence ≥ 0.1.
-
----
-
-## Caching
-
-Detection is slow (minutes per sequence on CPU). Results are saved to
-`RECON_DATA_PATH/sequence_XX/detections_{model}.json` and loaded instantly on subsequent visits.
-
-| File | Model |
-|------|-------|
-| `detections_e2vid.json` | E2VID + YOLO |
-| `detections_hypere2vid.json` | HyperE2VID + YOLO |
-| `detections_fusion.json` | Late Fusion |
-
-**Re-run triggers:** new model weights pushed; reconstruction frames updated.  
-**Never needed:** confidence threshold changes; these are display-only.
-
----
-
-## Compare v1
-
-Original three-column side-by-side view kept for reference:
-
-| Column | Source frames | Detection source |
-|--------|--------------|-----------------|
-| E2VID + YOLO | `reconstruction_e2vid/` | `detections_e2vid.json` |
-| HyperE2VID + YOLO | `reconstruction_hypere2vid/` | `detections_hypere2vid.json` |
-| Late Fusion | FRED RGB frames | `detections_fusion.json` |
-
-Model KPI metrics (mAP@0.5, mAP@0.5:95, Precision, Recall) are shown below each column.
 
 ---
 
@@ -152,15 +133,27 @@ Three-column view where the **left column** is the master time axis:
 | Middle — RGB | FRED RGB frames | `detections_fusion.json` |
 | Right — Late Fusion | FRED RGB frames | `detections_fusion.json` |
 
-Toggle the left column between e2vid and HyperE2VID with the buttons at the bottom. Middle and right columns always show FRED RGB frames with fusion detections. The **next detection** button (crosshair icon) jumps to the next frame in the left column that has a detection.
+Toggle the left column between e2vid and HyperE2VID with the buttons at the bottom. Middle and right columns always show FRED RGB frames with fusion detections.
+
+### Playback controls
+
+| Control | Action |
+|---------|--------|
+| **Play / Pause** | Continuous playback at ~6 fps |
+| **Stop** | Pause and return to frame 0 |
+| **‹ ›** | Step one frame backward / forward |
+| **⊹ (crosshair)** | Jump to the next frame in the left column that has a detection above the confidence threshold |
+| **Trail** | Toggle motion trail on all three columns — last 30 bbox centres drawn as fading gold dots with connecting segments |
+| **Number input** | Jump directly to a frame number |
+| **Slider** | Drag to scrub through the sequence |
 
 ### Detection trail
 
-The **Trail** button toggles a motion trail overlay on all three columns. While active, the last 30 frames of bbox centre positions are drawn as fading gold dots on each panel, with connecting line segments between consecutive frames (nearest-neighbour match). Turning Trail off clears the buffer. The trail resets automatically on sequence change.
+While active, the last 30 frames of bbox centre positions are drawn as fading gold dots on each panel, with connecting line segments between consecutive frames (nearest-neighbour match). Turning Trail off clears the buffer. The trail resets automatically on sequence change.
 
 ### Confidence timeline
 
-A 48 px strip between the image panels and the playback controls shows the maximum detection confidence per frame for two models simultaneously:
+A strip between the image panels and the playback controls shows the maximum detection confidence per frame for two models simultaneously:
 
 | Line | Colour | Source |
 |------|--------|--------|
@@ -171,13 +164,13 @@ The model name is shown as a small legend inside the canvas. A red vertical mark
 
 ### Frame synchronisation
 
-The left column drives the E2VID frame index. The slider position maps to middle/right (FRED RGB) frames via **cluster-based linear calibration**:
+The left column drives the E2VID frame index. The slider position maps to middle/right (FRED RGB) frames using the best available method:
 
-1. Detection clusters (sustained bursts of ≥ 5 detections in any 10-frame window) are identified in both the e2vid and fusion detection caches.
-2. Cluster starts are paired by rank (1st cluster in e2vid → 1st cluster in fusion, etc.).
-3. A least-squares linear regression through all matched pairs gives `fusion_frame = slope × e2vid_frame + offset`.
-
-This handles the e2vid burst-skip (where early e2vid frames have no detections and thus map differently from the ratio formula) and improves alignment throughout the sequence, not just at the endpoints. Falls back to a ratio formula when fewer than two clusters can be matched.
+1. **Timestamp sync (primary)** — if `/api/sync` returns exact event timestamps for the sequence, each e2vid frame is mapped to the closest RGB frame by timestamp. This is the most accurate method.
+2. **Cluster-based linear calibration (fallback)** — when timestamp data is unavailable, slope and offset are computed from the detection caches:
+   - **Slope**: ratio of the secondary stream's detection span (first sustained cluster start → last sustained cluster end) to the primary stream's detection span. Sustained clusters require ≥ 5 detections in any 10-frame window and span ≥ 30 frames, which filters out noise blips.
+   - **Offset**: a ±300-frame cross-correlation search around the span anchor picks the offset that maximises the number of primary detection frames that land on a secondary detection frame.
+3. **Ratio fallback** — if calibration also fails (too few detections or no clusters), falls back to a simple frame-count ratio.
 
 The same calibration applies to the HyperE2VID column when left mode is HyperE2VID.
 
@@ -185,14 +178,14 @@ The same calibration applies to the HyperE2VID column when left mode is HyperE2V
 
 ## KPIs
 
-Two tables loaded from `kpis/*.json`:
+Loaded from `kpis/*.json`. The summary table shows the **featured** run per model (the run marked `"featured": true` in its JSON file, or the highest mAP@0.5 if none is marked).
 
 | Table | What it shows |
 |-------|---------------|
-| **Best results** | One row per model: the run with the highest canonical mAP@0.5. Includes total runtime (reconstruction + training). |
-| **Details — Detection accuracy** | All runs: mAP@0.5, mAP@0.5:95, Precision, Recall, total runtime |
-| **Details — Reconstruction** | All runs: sequences, events_per_frame, total frames, runtime, fps, GPU |
-| **Details — Training** | All runs: dataset split, epochs, learning rate, batch size, GPU |
+| **Best results** | One row per model: the featured run. Includes total runtime (reconstruction + training). |
+| **Details — Detection accuracy** | All runs sorted by model then run number: mAP@0.5, mAP@0.5:95, Precision, Recall, total runtime |
+| **Details — Reconstruction** | All runs sorted by model then run number: sequences, events_per_pixel, total frames, runtime, fps, GPU |
+| **Details — Training** | All runs sorted by model then run number: dataset split, epochs, learning rate, batch size, GPU |
 
 ---
 

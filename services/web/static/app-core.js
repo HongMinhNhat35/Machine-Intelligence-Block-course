@@ -66,7 +66,7 @@ async function getKpis(){
 function updateSidebarMap50(){
   if(!kpiCache) return;
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
-  const bestRun=runs=>runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b), runs[0]);
+  const bestRun=runs=>runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const e2vidRuns=kpiCache.filter(r=>r.model==='e2vid');
   const e2vidEl=document.getElementById('sb-e2vid-map50');
   if(e2vidEl){

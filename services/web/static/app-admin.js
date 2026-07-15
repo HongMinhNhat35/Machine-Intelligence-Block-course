@@ -95,20 +95,24 @@ const MODEL_LABELS = {
   'fusion_event': 'Late Fusion — Event',
   'fusion_rgb':   'Late Fusion — RGB',
 };
-function modelLabel(r){ return MODEL_LABELS[r.model] || ((r.model||'')+(r.detector?' + '+r.detector:'')); }
+function modelLabel(r){
+  if (r.detector) return (r.model||'') + ' + ' + r.detector;
+  return MODEL_LABELS[r.model] || r.model || '—';
+}
 
 // Fetches /api/kpis and populates the summary table and three detail tables.
 async function loadKpis(){
   try{
     const runs = (await fetch('/api/kpis').then(r=>r.json())).filter(r=>r.model);
 
-    // ── Summary: best run per model; fusion shows combined + components ───────
+    // ── Summary: prefer featured/deployed run; fall back to highest mAP ────────
     const modelOrder = ['e2vid','hypere2vid','fusion','fusion_event','fusion_rgb'];
     const gt = s => `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}`;
     const summaryRows = modelOrder.map(model => {
       const modelRuns = runs.filter(r => r.model === model);
       if (!modelRuns.length) return '';
-      const best = modelRuns.reduce((b,r) => ((r.detection?.canonical?.map50||0) > (b.detection?.canonical?.map50||0) ? r : b));
+      const featured = modelRuns.find(r => r.featured || r.deployed);
+      const best = featured || modelRuns.reduce((b,r) => ((r.detection?.canonical?.map50||0) > (b.detection?.canonical?.map50||0) ? r : b));
       const c = best.detection?.canonical || {};
       const rc = best.reconstruction || {};
       const tr = best.training || {};
@@ -128,11 +132,13 @@ async function loadKpis(){
 
     // ── Detection detail table ────────────────────────────────────────────────
     const detOrder = ['e2vid','hypere2vid','fusion','fusion_event','fusion_rgb'];
-    const orderedRuns = [...runs].sort((a,b) => {
-      const ai = detOrder.indexOf(a.model), bi = detOrder.indexOf(b.model);
-      if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
-      return (b.detection?.canonical?.map50||0) - (a.detection?.canonical?.map50||0);
-    });
+    const runNum = r => parseInt((r.run_id||'').replace(/\D/g,''))||0;
+    const byModelRun = (a,b) => {
+      const ai=detOrder.indexOf(a.model), bi=detOrder.indexOf(b.model);
+      if (ai !== bi) return (ai<0?99:ai)-(bi<0?99:bi);
+      return runNum(a)-runNum(b);
+    };
+    const orderedRuns = [...runs].sort(byModelRun);
     const isCombined = r => r.model === 'fusion';
     document.getElementById('kpi-det-body').innerHTML = orderedRuns.length ? orderedRuns.map(r=>{
       const c=r.detection?.canonical||{};
@@ -149,7 +155,7 @@ async function loadKpis(){
         <td>${runtime}</td></tr>`;
     }).join('') : '<tr><td colspan="8" style="color:#aaa">No KPI files found.</td></tr>';
 
-    document.getElementById('kpi-rec-body').innerHTML = runs.length ? runs.map(r=>{
+    document.getElementById('kpi-rec-body').innerHTML = runs.length ? [...runs].sort(byModelRun).map(r=>{
       const rc=r.reconstruction||{};
       const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
       return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${kpiSeqs(rc.sequences)}</td>
@@ -158,7 +164,7 @@ async function loadKpis(){
         <td>${kpiFmt(rc.avg_fps,2,' fps')}</td><td>${rc.gpu||'—'}</td></tr>`;
     }).join('') : '<tr><td colspan="8" style="color:#aaa">No KPI files found.</td></tr>';
 
-    document.getElementById('kpi-tr-body').innerHTML = runs.length ? runs.map(r=>{
+    document.getElementById('kpi-tr-body').innerHTML = runs.length ? [...runs].sort(byModelRun).map(r=>{
       const tr=r.training||{};
       const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
       const epochs=(tr.epochs_completed!==null&&tr.epochs_completed!==undefined)

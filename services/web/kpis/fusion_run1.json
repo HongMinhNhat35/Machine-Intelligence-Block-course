@@ -7,7 +7,7 @@
   "timestamp": "2026-07-09T00:00:00",
   "note": "Late Fusion — combined RGB+event system. Combined mAP50 evaluation pending; values shown are the lower bound (RGB component, the stronger individual model). Runtime lower bound = RGB training only.",
   "reconstruction": {
-    "sequences": null,
+    "sequences": ["sequence_84", "sequence_85", "sequence_124", "sequence_127", "sequence_201"],
     "events_per_pixel": null,
     "total_frames": null,
     "total_runtime_s": null,
@@ -15,6 +15,7 @@
     "gpu": null
   },
   "training": {
+    "note": "Trained by AMI Group 1; runtime_s is a lower bound (RGB component only). Detailed parameters (images, epochs, batch, GPU) were not recorded.",
     "train_sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_124"],
     "val_sequences": ["sequence_127"],
     "n_train_images": null,

@@ -45,7 +45,7 @@ function onSeqSelected(seq){
     set('sb-fusion-frames', seq.fred_rgb_count > 0 ? seq.fred_rgb_count : '—');
     set('sb-fusion-dets', '—');
     getKpis().then(()=>{
-      const bestRun=runs=>runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+      const bestRun=runs=>runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
       const e2vidRuns=kpiCache?kpiCache.filter(r=>r.model==='e2vid'):[];
       const hyperRuns=kpiCache?kpiCache.filter(r=>r.model==='hypere2vid'):[];
       const fusionRuns=kpiCache?kpiCache.filter(r=>r.model==='fusion'):[];

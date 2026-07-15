@@ -236,7 +236,7 @@ function cpUpdateMetrics(){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='e2vid');
   if(!runs.length) return;
-  const run=runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-map50').textContent=pct(m.map50);
@@ -251,7 +251,7 @@ function cpUpdateMetricsHyper(){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='hypere2vid');
   if(!runs.length) return;
-  const run=runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-hyper-map50').textContent=pct(m.map50);
@@ -271,7 +271,7 @@ function cpUpdateMetricsFusion(){
     });
     return;
   }
-  const run=runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   document.getElementById('cp-fusion-map50').textContent=pct(m.map50);
   document.getElementById('cp-fusion-map5095').textContent=pct(m.map50_95);
@@ -579,7 +579,8 @@ function cp2UpdateMetrics(){
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   const best=(runs,model)=>{
     const r=runs.filter(x=>x.model===model);
-    return r.length ? r.reduce((b,x)=>((x.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?x:b),r[0]).detection?.canonical||{} : {};
+    const picked=r.find(x=>x.featured||x.deployed)||r.reduce((b,x)=>((x.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?x:b),r[0]);
+    return picked ? picked.detection?.canonical||{} : {};
   };
   const leftModel=cp2LeftMode==='hypere2vid'?'hypere2vid':'e2vid';
   const lm=best(kpiCache,leftModel);
