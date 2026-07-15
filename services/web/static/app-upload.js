@@ -59,14 +59,6 @@ function onSeqSelected(seq){
     });
   }
   if(seq){
-    fileRow('df-events',
-      seq.has_events_zip ? 'ti-file-zip' : seq.has_events_h5 ? 'ti-file-code' : seq.has_raw_events ? 'ti-file-code' : 'ti-alert-triangle',
-      seq.has_events_zip ? 'events.zip' : seq.has_events_h5 ? 'events.h5' : seq.has_raw_events ? 'Event/ (FRED raw)' : 'no events file found',
-      seq.has_events_zip||seq.has_events_h5||seq.has_raw_events ? 'events' : 'missing',
-      seq.has_events_zip||seq.has_events_h5||seq.has_raw_events);
-    if(seq.has_coordinates) fileRow('df-coords','ti-map-pin','coordinates.txt','annotations',true);
-    else document.getElementById('df-coords').style.display='none';
-    document.getElementById('detected-files').style.display='flex';
     const pcSection=document.getElementById('det-precompute-section');
     if(seq.e2vid_done){
       pcSection.style.display='';
