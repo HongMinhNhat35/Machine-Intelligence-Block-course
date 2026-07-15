@@ -137,9 +137,6 @@ EOF
 echo ""
 echo "=== Basic demo setup complete ==="
 echo ""
-echo "Group 1 ran E2VID reconstruction (Run 9) on the full FRED dataset split:"
-echo "  40 training + 10 validation + 5 test sequences (~8 GB total)."
-echo "The 10 sequences above cover the demo. Download the remaining 45 to explore the full dataset in the GUI."
 read -rp "Download all 55 reconstructed sequences? [y/N]: " DL_ALL
 DL_ALL="${DL_ALL:-N}"
 if [[ "$DL_ALL" =~ ^[Yy] ]]; then
