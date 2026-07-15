@@ -59,8 +59,8 @@ def convert_yolo_output(result):
 
 def process_frame(rgb_path: str, event_path: str):
     rgb_model, event_model = _get_models()
-    rgb_result = rgb_model(rgb_path)[0]
-    event_result = event_model(event_path)[0]
+    rgb_result = rgb_model(rgb_path, conf=0.1, verbose=False)[0]
+    event_result = event_model(event_path, conf=0.1, verbose=False)[0]
     rgb_detections = convert_yolo_output(rgb_result)
     event_detections = convert_yolo_output(event_result)
     return fuse_detections(event_detections, rgb_detections)

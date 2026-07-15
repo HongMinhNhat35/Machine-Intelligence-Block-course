@@ -40,6 +40,34 @@ def _err(message: str) -> str:
     return _sse("error", json.dumps({"message": message}))
 
 
+@app.get("/detect_frame")
+def detect_frame(sequence_id: str, frame_n: int):
+    from run_pipeline import _get_frame_files, process_frame, weights_available
+    if not weights_available():
+        raise HTTPException(status_code=503, detail="Weights not found")
+    try:
+        rgb_files, event_files = _get_frame_files(sequence_id)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    n_frames = min(len(rgb_files), len(event_files))
+    if n_frames == 0:
+        raise HTTPException(status_code=404, detail="No paired frames for this sequence")
+    if frame_n >= n_frames:
+        raise HTTPException(status_code=404, detail=f"Frame {frame_n} out of range ({n_frames} total)")
+    fused = process_frame(str(rgb_files[frame_n]), str(event_files[frame_n]))
+    boxes = []
+    for det in fused:
+        x1, y1, x2, y2 = det["box"]
+        boxes.append({
+            "frame":      frame_n,
+            "bbox":       [x1, y1, x2 - x1, y2 - y1],
+            "confidence": det["confidence"],
+            "class":      "drone",
+            "source":     det.get("source", "fusion"),
+        })
+    return {"sequence_id": sequence_id, "frame": frame_n, "detections": boxes}
+
+
 @app.post("/detect")
 def detect(req: DetectRequest):
     cache_path = RECON_ROOT / req.sequence_id / "detections_fusion.json"

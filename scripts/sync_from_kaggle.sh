@@ -1,329 +1,189 @@
 #!/usr/bin/env bash
-# Download results from Kaggle after a pipeline run.
-#
-# The Kaggle kernel produces ~80k output files (40k frames + 40k label .txt).
-# `kaggle kernels output` only fetches one API page and misses everything past
-# sequence_127 alphabetically. This script uses a Python paginator instead.
+# Download results from the AMI Kaggle pipeline.
 #
 # Usage:
-#   bash scripts/sync_from_kaggle.sh            # weights, KPIs, logs, training plots
-#   bash scripts/sync_from_kaggle.sh --frames   # also download reconstructed JPEG frames (~2.5 GB)
+#   bash scripts/sync_from_kaggle.sh                   # session 2: weights + KPIs + logs
+#   bash scripts/sync_from_kaggle.sh --frames-zip      # session 1: extract frames_and_detections.zip
+#   bash scripts/sync_from_kaggle.sh --frames-zip=/path/to/frames_and_detections.zip
+#   bash scripts/sync_from_kaggle.sh --detections      # session 3: download detections/ via API
+#   bash scripts/sync_from_kaggle.sh --detections-zip  # session 3: extract JSONs from zip
+#
+# Session 1 (recon): download frames_and_detections.zip manually from the Kaggle
+#   output page, then run with --frames-zip to extract into data/processed/.
+#
+# Session 2 (training): run without flags to pull weights, KPIs, and logs.
+#   Uses file_pattern to skip the 8.9 GB frames zip.
+#
+# Session 3 (detection cache): run --detections to download the standalone
+#   detections/ folder via the Kaggle API (no manual zip download required).
+#   Requires notebook v100+ which writes the standalone folder.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+KAGGLE="${HOME}/.local/bin/kaggle"
+if [ ! -x "$KAGGLE" ]; then
+    KAGGLE="$(command -v kaggle)"
+fi
+KERNEL="gennepy/ami-e2vid-pipeline"
 TMPDIR="/tmp/kaggle_output"
-PYBIN="/home/bani/.local/share/pipx/venvs/kaggle/bin/python3"
-SCRIPT="$(mktemp /tmp/kaggle_dl_XXXXXX.py)"
 
-trap "rm -f $SCRIPT" EXIT
-
-DOWNLOAD_FRAMES_ARG=""
-DOWNLOAD_FRAMES_ZIP=false
-RUN_ID="run8"
+FRAMES_ZIP=""
+DETECTIONS_ZIP=""
+DETECTIONS_API=""
 for arg in "$@"; do
     case "$arg" in
-        --frames)      DOWNLOAD_FRAMES_ARG="--frames" ;;
-        --frames-zip)  DOWNLOAD_FRAMES_ZIP=true ;;
-        --run=*)       RUN_ID="${arg#--run=}" ;;
+        --frames-zip=*)      FRAMES_ZIP="${arg#--frames-zip=}" ;;
+        --frames-zip)        FRAMES_ZIP="$HOME/Downloads/frames_and_detections.zip" ;;
+        --detections-zip=*)  DETECTIONS_ZIP="${arg#--detections-zip=}" ;;
+        --detections-zip)    DETECTIONS_ZIP="$HOME/Downloads/frames_and_detections.zip" ;;
+        --detections)        DETECTIONS_API="1" ;;
     esac
 done
 
-# ── Inline Python paginator ───────────────────────────────────────────────────
-cat > "$SCRIPT" << 'PYEOF'
-#!/usr/bin/env python3
-"""Paginated download of Kaggle kernel outputs."""
-import os, re, sys, time, requests, threading
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-KAGGLE_LIB = "/home/bani/.local/share/pipx/venvs/kaggle/lib/python3.12/site-packages"
-sys.path.insert(0, KAGGLE_LIB)
-from kaggle.api.kaggle_api_extended import KaggleApi
-from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
-
-KERNEL          = "gennepy/ami-e2vid-pipeline"
-OUT_DIR         = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("/tmp/kaggle_output")
-DOWNLOAD_FRAMES = "--frames" in sys.argv
-FRAME_PAT       = re.compile(r"frame_\d+\.(jpg|png)$")
-LABEL_PAT       = re.compile(r"frame_\d+\.txt$")
-PAGE_DELAY      = 0.3
-WORKERS         = 16    # parallel download threads
-RETRY_DELAYS    = [5, 15, 30, 60]
-NET_RETRY_DELAYS= [3, 10, 30, 60]
-
-OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-api = KaggleApi()
-api.authenticate()
-owner_slug, kernel_slug, _ = api.parse_kernel_string(KERNEL)
-
-print_lock = threading.Lock()
-def log(msg):
-    with print_lock:
-        print(msg, flush=True)
-
-def list_page(kc, owner, slug, token):
-    req = ApiListKernelSessionOutputRequest()
-    req.user_name, req.kernel_slug = owner, slug
-    if token:
-        req.page_token = token
-    for delay in RETRY_DELAYS:
-        try:
-            return kc.kernels.kernels_api_client.list_kernel_session_output(req)
-        except Exception as e:
-            if "429" in str(e):
-                log(f"  Rate limited — retrying in {delay}s ...")
-                time.sleep(delay)
-            else:
-                raise
-    return kc.kernels.kernels_api_client.list_kernel_session_output(req)
-
-def download_one(fname, url):
-    outfile = OUT_DIR / fname
-    if outfile.exists() and FRAME_PAT.search(fname):
-        return 'skip', fname
-    outfile.parent.mkdir(parents=True, exist_ok=True)
-    for delay in NET_RETRY_DELAYS:
-        try:
-            dl = requests.get(url, stream=True, timeout=60)
-            dl.raise_for_status()
-            outfile.write_bytes(dl.content)
-            return 'ok', fname
-        except (requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout, OSError) as e:
-            log(f"  Network error ({e.__class__.__name__}) on {fname} — retrying in {delay}s ...")
-            time.sleep(delay)
-    return 'fail', fname
-
-# ── Phase 1: collect all URLs by paging the API ───────────────────────────────
-page_token, page, total = "", 0, 0
-to_download = []   # list of (fname, url)
-log(f"Downloading from {KERNEL} → {OUT_DIR}")
-log(f"Frames: {'YES' if DOWNLOAD_FRAMES else 'NO'}\n")
-log("Phase 1: collecting file list ...")
-
-with api.build_kaggle_client() as kaggle:
-    log_written = False
-    while True:
-        resp = list_page(kaggle, owner_slug, kernel_slug, page_token)
-        files = resp.files or []
-        total += len(files)
-        page  += 1
-
-        if not log_written and resp.log:
-            (OUT_DIR / f"{kernel_slug}.log").write_text(resp.log)
-            log_written = True
-
-        for item in files:
-            fname = item.file_name
-            if LABEL_PAT.search(fname):
-                continue
-            if FRAME_PAT.search(fname) and not DOWNLOAD_FRAMES:
-                continue
-            if not (OUT_DIR / fname).exists():
-                to_download.append((fname, item.url))
-
-        if page % 20 == 0:
-            log(f"  ... page {page}, {total} files seen, {len(to_download)} queued")
-
-        next_token = resp.next_page_token
-        if not next_token:
-            break
-        page_token = next_token
-        time.sleep(PAGE_DELAY)
-
-log(f"Phase 1 done: {total} files seen, {len(to_download)} to download\n")
-
-# ── Phase 2: parallel download ────────────────────────────────────────────────
-if not to_download:
-    log("Nothing to download — all files already present.")
-else:
-    log(f"Phase 2: downloading {len(to_download)} files with {WORKERS} threads ...")
-    downloaded, failed = 0, 0
-    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        futures = {pool.submit(download_one, fname, url): fname
-                   for fname, url in to_download}
-        for fut in as_completed(futures):
-            status, fname = fut.result()
-            if status == 'ok':
-                downloaded += 1
-                if downloaded % 500 == 0 or downloaded <= 10:
-                    log(f"  [{downloaded}/{len(to_download)}] {fname}")
-            elif status == 'fail':
-                failed += 1
-                log(f"  FAILED: {fname}")
-
-    log(f"\n=== Done: {downloaded} downloaded, {failed} failed, {total} total files seen ===")
-PYEOF
-
-# ── Frames zip shortcut ───────────────────────────────────────────────────────
-if [ "$DOWNLOAD_FRAMES_ZIP" = true ]; then
-    echo "=== Downloading frames_e2vid.zip ==="
-    # Use Python paginator to find and download the zip (kernels output --file-pattern
-    # is unreliable for large outputs; we use a direct API download instead).
-    ZIPFILE="$TMPDIR/frames_e2vid_run8.zip"
-    if [ ! -f "$ZIPFILE" ]; then
-        python3 - "$TMPDIR" << 'PYEOF'
-import sys
-from pathlib import Path
-sys.path.insert(0, "/home/bani/.local/share/pipx/venvs/kaggle/lib/python3.12/site-packages")
-from kaggle.api.kaggle_api_extended import KaggleApi
-from kagglesdk.kernels.types.kernels_api_service import ApiListKernelSessionOutputRequest
-import requests
-
-api = KaggleApi(); api.authenticate()
-out_dir = Path(sys.argv[1]); out_dir.mkdir(parents=True, exist_ok=True)
-owner, slug, _ = api.parse_kernel_string("gennepy/ami-e2vid-pipeline")
-
-with api.build_kaggle_client() as kc:
-    token = ""
-    while True:
-        req = ApiListKernelSessionOutputRequest()
-        req.user_name, req.kernel_slug = owner, slug
-        if token: req.page_token = token
-        resp = kc.kernels.kernels_api_client.list_kernel_session_output(req)
-        for item in (resp.files or []):
-            if item.file_name == "frames_e2vid_run8.zip":
-                print(f"Found: {item.file_name}")
-                r = requests.get(item.url, stream=True, timeout=300)
-                r.raise_for_status()
-                dest = out_dir / "frames_e2vid_run8.zip"
-                total = 0
-                with open(dest, "wb") as f:
-                    for chunk in r.iter_content(65536):
-                        f.write(chunk); total += len(chunk)
-                        if total % (256*1024*1024) == 0:
-                            print(f"  {total//1024//1024} MB ...")
-                print(f"Downloaded: {dest}  ({total//1024//1024} MB)")
-                sys.exit(0)
-        token = resp.next_page_token
-        if not token: break
-print("frames_e2vid_run8.zip not found in output"); sys.exit(1)
-PYEOF
-    else
-        echo "frames_e2vid.zip already present, skipping download."
-    fi
-
-    if [ -f "$ZIPFILE" ]; then
-        echo "Unzipping frames ..."
-        unzip -q "$ZIPFILE" -d "$TMPDIR/frames_unzipped"
-        for SEQ in 44 45 46 47 146; do
-            # zip stores: data/processed/sequence_N/reconstruction_e2vid/frame_*.jpg
-            SRC="$TMPDIR/frames_unzipped/data/processed/sequence_${SEQ}/reconstruction_e2vid"
-            DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
-            if [ -d "$SRC" ]; then
-                mkdir -p "$DST"
-                rsync -a "$SRC/" "$DST/"
-                n=$(find "$DST" -maxdepth 1 -name "frame_*.jpg" | wc -l)
-                echo "  sequence_${SEQ}: ${n} frames → $DST"
-            else
-                echo "  sequence_${SEQ}: not found in zip"
-            fi
-        done
-        echo "=== Done ==="
-    else
-        echo "ERROR: frames_e2vid.zip download failed"
+# ── Session 3: extract only detections_e2vid.json from zip ───────────────────
+if [ -n "$DETECTIONS_ZIP" ]; then
+    if [ ! -f "$DETECTIONS_ZIP" ]; then
+        echo "ERROR: zip not found at $DETECTIONS_ZIP"
+        echo "Download frames_and_detections.zip from the Kaggle output page and pass its path:"
+        echo "  bash scripts/sync_from_kaggle.sh --detections-zip=/path/to/frames_and_detections.zip"
         exit 1
     fi
+    echo "=== Extracting detections_e2vid.json from $DETECTIONS_ZIP → $ROOT ==="
+    python3 - <<PYEOF
+import zipfile, os
+from pathlib import Path
+
+zip_path = "$DETECTIONS_ZIP"
+root = Path("$ROOT")
+count = 0
+with zipfile.ZipFile(zip_path) as zf:
+    for name in zf.namelist():
+        if name.endswith('detections_e2vid.json'):
+            dest = root / name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(zf.read(name))
+            count += 1
+print(f"  Extracted {count} detections_e2vid.json files → data/processed/")
+PYEOF
+    echo "=== Done ==="
     exit 0
 fi
 
-# ── Run paginator ─────────────────────────────────────────────────────────────
-mkdir -p "$TMPDIR"
-"$PYBIN" "$SCRIPT" "$TMPDIR" $DOWNLOAD_FRAMES_ARG
+# ── Session 3 (API): download detections/ folder via Kaggle API ──────────────
+if [ -n "$DETECTIONS_API" ]; then
+    echo "=== Downloading detections/ from $KERNEL via Kaggle API ==="
+    rm -rf "$TMPDIR"
+    mkdir -p "$TMPDIR"
+    python3 - <<'PYEOF'
+import sys, os
+sys.path.insert(0, os.path.expanduser('~/.local/lib/python3.12/site-packages'))
+import kaggle
 
-# ── Copy weights ───────────────────────────────────────────────────────────────
-echo ""
-echo "--- Weights ---"
+api = kaggle.api
+api.authenticate()
+
+tmpdir = '/tmp/kaggle_output'
+kernel = 'gennepy/ami-e2vid-pipeline'
+pattern = r'detections_e2vid\.json'
+files, _ = api.kernels_output(kernel, path=tmpdir, file_pattern=pattern, force=True, quiet=False)
+print(f'Downloaded {len(files)} files to {tmpdir}')
+PYEOF
+
+    python3 - <<PYEOF
+from pathlib import Path
+import shutil
+
+tmpdir = Path('/tmp/kaggle_output')
+root = Path("$ROOT")
+count = 0
+for f in tmpdir.rglob('detections_e2vid.json'):
+    # Files land as detections/<seq>/detections_e2vid.json in tmpdir
+    # Map to data/processed/<seq>/detections_e2vid.json
+    parts = f.relative_to(tmpdir).parts
+    if len(parts) >= 2:
+        dest = root / 'data' / 'processed' / '/'.join(parts[-2:])
+    else:
+        dest = root / 'data' / 'processed' / f.name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(f, dest)
+    count += 1
+print(f"  Copied {count} detections_e2vid.json files → data/processed/")
+PYEOF
+    echo "=== Done ==="
+    exit 0
+fi
+
+# ── Session 1: extract frames zip ────────────────────────────────────────────
+if [ -n "$FRAMES_ZIP" ]; then
+    if [ ! -f "$FRAMES_ZIP" ]; then
+        echo "ERROR: zip not found at $FRAMES_ZIP"
+        echo "Download frames_and_detections.zip from the Kaggle output page and pass its path:"
+        echo "  bash scripts/sync_from_kaggle.sh --frames-zip=/path/to/frames_and_detections.zip"
+        exit 1
+    fi
+    echo "=== Extracting $FRAMES_ZIP → $ROOT ==="
+    unzip -q -o "$FRAMES_ZIP" -d "$ROOT"
+    echo "Counting extracted frames..."
+    total=$(find "$ROOT/data/processed" -name 'frame_*.jpg' | wc -l)
+    seqs=$(find "$ROOT/data/processed" -name 'reconstruction_e2vid' -type d | wc -l)
+    echo "  $total frames across $seqs sequences → $ROOT/data/processed/"
+    echo "=== Done ==="
+    exit 0
+fi
+
+# ── Session 2: download weights + KPIs + logs (skip frames zip) ──────────────
+echo "=== Downloading session 2 outputs from $KERNEL (skipping frames zip) ==="
+rm -rf "$TMPDIR"
+mkdir -p "$TMPDIR"
+
+# file_pattern is a regex matched against filenames.
+# Exclude frames_and_detections.zip (8.9 GB) — download everything else.
+python3 - <<'PYEOF'
+import sys, os, shutil
+sys.path.insert(0, os.path.expanduser('~/.local/lib/python3.12/site-packages'))
+import kaggle
+
+api = kaggle.api
+api.authenticate()
+
+tmpdir = '/tmp/kaggle_output'
+kernel = 'gennepy/ami-e2vid-pipeline'
+
+# Download all files except the large frames zip
+pattern = r'^(?!frames_and_detections\.zip$)'
+files, _ = api.kernels_output(kernel, path=tmpdir, file_pattern=pattern, force=True, quiet=False)
+print(f'Downloaded {len(files)} files to {tmpdir}')
+PYEOF
+
+# ── Copy to project directories ───────────────────────────────────────────────
+
+# Weights (prefer yolo_e2vid.pt, fall back to best.pt)
 PT="$TMPDIR/yolo_e2vid.pt"
+BEST="$TMPDIR/best.pt"
 if [ -f "$PT" ]; then
     mkdir -p "${ROOT}/services/e2vid/weights"
     cp "$PT" "${ROOT}/services/e2vid/weights/yolo_e2vid.pt"
     echo "  yolo_e2vid.pt → services/e2vid/weights/  ($(du -h "$PT" | cut -f1))"
+elif [ -f "$BEST" ]; then
+    mkdir -p "${ROOT}/services/e2vid/weights"
+    cp "$BEST" "${ROOT}/services/e2vid/weights/yolo_e2vid.pt"
+    echo "  best.pt → services/e2vid/weights/yolo_e2vid.pt  ($(du -h "$BEST" | cut -f1))"
 else
-    echo "  yolo_e2vid.pt not found in output"
+    echo "  WARNING: no weights file found"
 fi
 
-# ── Copy KPIs ─────────────────────────────────────────────────────────────────
-echo ""
-echo "--- KPIs ---"
-for SEQ in 84 85 201 127; do
-    SRC="$TMPDIR/data/processed/sequence_${SEQ}/kpis"
-    if [ -d "$SRC" ]; then
-        mkdir -p "${ROOT}/data/kpis"
-        cp -r "$SRC/." "${ROOT}/data/kpis/"
-        echo "  sequence_${SEQ} KPIs → data/kpis/"
-    fi
+# KPIs + plots (downloaded into kpis/ subdir)
+mkdir -p "${ROOT}/data/kpis"
+for f in "$TMPDIR"/kpis/train_yolo.json "$TMPDIR"/kpis/reconstruct_summary.json \
+          "$TMPDIR"/kpis/*.png "$TMPDIR"/kpis/*.csv "$TMPDIR"/kpis/*.jpg; do
+    [ -f "$f" ] && cp "$f" "${ROOT}/data/kpis/" && echo "  $(basename "$f") → data/kpis/"
 done
-if [ -f "$TMPDIR/kpis/train_yolo.json" ]; then
-    mkdir -p "${ROOT}/data/kpis"
-    cp "$TMPDIR/kpis/train_yolo.json" "${ROOT}/data/kpis/train_yolo_${RUN_ID}.json"
-    echo "  train_yolo.json → data/kpis/train_yolo_${RUN_ID}.json"
-fi
 
-# ── Copy training runs ─────────────────────────────────────────────────────────
-echo ""
-echo "--- Training runs ---"
-RUNS_DST="${ROOT}/data/yolo_runs/${RUN_ID}"
-mkdir -p "${RUNS_DST}/e2vid/weights"
-
-# weights come from yolo_runs/ in the output
-if [ -d "$TMPDIR/yolo_runs" ]; then
-    cp -r "$TMPDIR/yolo_runs/." "${RUNS_DST}/"
-    echo "  yolo_runs/ → data/yolo_runs/${RUN_ID}/"
-fi
-
-# training plots land in kpis/ (notebook cleanup copies them there)
-PLOTS="BoxF1_curve.png BoxPR_curve.png BoxP_curve.png BoxR_curve.png \
-       confusion_matrix.png confusion_matrix_normalized.png labels.jpg \
-       results.csv results.png \
-       train_batch0.jpg train_batch1.jpg train_batch2.jpg \
-       val_batch0_labels.jpg val_batch0_pred.jpg \
-       val_batch1_labels.jpg val_batch1_pred.jpg \
-       val_batch2_labels.jpg val_batch2_pred.jpg"
-for f in $PLOTS; do
-    [ -f "$TMPDIR/kpis/$f" ] && cp "$TMPDIR/kpis/$f" "${RUNS_DST}/e2vid/$f"
+# Logs (downloaded into logs/ subdir)
+mkdir -p "${ROOT}/data/logs"
+for f in "$TMPDIR"/logs/run_*.log; do
+    [ -f "$f" ] && cp "$f" "${ROOT}/data/logs/" && echo "  $(basename "$f") → data/logs/"
 done
-echo "  kpis/*.png/csv → data/yolo_runs/${RUN_ID}/e2vid/"
 
-# ── Copy logs ─────────────────────────────────────────────────────────────────
-echo ""
-echo "--- Logs ---"
-if [ -d "$TMPDIR/logs" ]; then
-    mkdir -p "${ROOT}/data/logs"
-    cp -r "$TMPDIR/logs/." "${ROOT}/data/logs/"
-    echo "  logs/ → data/logs/"
-fi
-if [ -f "$TMPDIR/ami-e2vid-pipeline.log" ]; then
-    mkdir -p "${ROOT}/data/logs"
-    cp "$TMPDIR/ami-e2vid-pipeline.log" "${ROOT}/data/logs/"
-    echo "  ami-e2vid-pipeline.log → data/logs/"
-fi
-
-# ── Copy frames ───────────────────────────────────────────────────────────────
-if [[ "${DOWNLOAD_FRAMES_ARG}" == "--frames" ]]; then
-    echo ""
-    echo "--- Reconstructed frames ---"
-    for SEQ in 44 45 46 47 146; do
-        SRC="$TMPDIR/data/processed/sequence_${SEQ}/reconstruction_e2vid"
-        DST="${ROOT}/data/processed/sequence_${SEQ}/reconstruction_e2vid"
-        if [ -d "$SRC" ]; then
-            mkdir -p "$DST"
-            rsync -a --include="frame_*.jpg" --include="frame_*.png" \
-                  --include="timestamps.txt" --exclude="*" "$SRC/" "$DST/"
-            n=$(find "$DST" -name "frame_*.jpg" -o -name "frame_*.png" 2>/dev/null | wc -l)
-            echo "  sequence_${SEQ}: ${n} frames  ($(du -sh "$DST" | cut -f1))"
-        else
-            echo "  sequence_${SEQ}: not found in output"
-        fi
-    done
-else
-    echo ""
-    echo "Skipping frames (add --frames to download ~2.5 GB of reconstructed JPEGs)"
-fi
-
-echo ""
 echo "=== Done ==="
-echo "Weights at : ${ROOT}/services/e2vid/weights/yolo_e2vid.pt"
-echo "Next step  : docker compose build e2vid && docker compose up -d"

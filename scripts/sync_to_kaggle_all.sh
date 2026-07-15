@@ -16,6 +16,15 @@
 
 set -uo pipefail
 
+# Parse flags
+SKIP_D1=false
+for arg in "$@"; do
+    case "$arg" in
+        --skip-d1) SKIP_D1=true ;;
+        *) echo "Unknown argument: $arg"; exit 1 ;;
+    esac
+done
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KAGGLE="$(command -v kaggle)"
 STAGING_1="/tmp/fred-events-ami-1"
@@ -113,14 +122,18 @@ EOF
 }
 
 # Fix metadata title for dataset 1 (no suffix)
-stage_dataset "$STAGING_1" "fred-events-ami" "${SEQS_1[@]}"
-cat > "${STAGING_1}/dataset-metadata.json" <<'EOF'
+if $SKIP_D1; then
+    echo "=== Skipping dataset 1 (--skip-d1) ==="
+else
+    stage_dataset "$STAGING_1" "fred-events-ami" "${SEQS_1[@]}"
+    cat > "${STAGING_1}/dataset-metadata.json" <<'EOF'
 {
   "title": "FRED Events AMI",
   "id": "gennepy/fred-events-ami",
   "licenses": [{"name": "other"}]
 }
 EOF
+fi
 
 if [ ${#SEQS_2[@]} -gt 0 ]; then
     stage_dataset "$STAGING_2" "fred-events-ami-2" "${SEQS_2[@]}"
@@ -145,7 +158,9 @@ upload_dataset() {
     echo "  Done: https://www.kaggle.com/datasets/gennepy/${SLUG}"
 }
 
-upload_dataset "$STAGING_1" "fred-events-ami"
+if ! $SKIP_D1; then
+    upload_dataset "$STAGING_1" "fred-events-ami"
+fi
 
 if [ ${#SEQS_2[@]} -gt 0 ]; then
     upload_dataset "$STAGING_2" "fred-events-ami-2"
