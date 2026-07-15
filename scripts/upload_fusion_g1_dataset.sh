@@ -23,8 +23,8 @@ echo "=== Preparing staging area: $STAGING ==="
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
 
-# Copy the 5 FRED sequence zips
-for n in 84 85 124 127 201; do
+# Copy all 10 FRED sequence zips (5 test + 5 prototyping)
+for n in 8 9 12 20 21 84 85 124 127 201; do
     echo "  Copying ${n}.zip ($(du -sh "$ZIPS_DIR/${n}.zip" | cut -f1)) ..."
     cp "$ZIPS_DIR/${n}.zip" "$STAGING/${n}.zip"
 done
@@ -46,13 +46,13 @@ EOF
 
 echo ""
 echo "=== Staging complete. Total size: $(du -sh "$STAGING" | cut -f1) ==="
-echo "=== Uploading to Kaggle (~6.6 GB — may take 20-40 min) ==="
+echo "=== Uploading to Kaggle (~8 GB — may take 30-50 min) ==="
 echo ""
 
 # Create or version-update
 if "$KAGGLE" datasets list --user gennepy --search "$DATASET_ID" 2>/dev/null | grep -q "$DATASET_ID"; then
     echo "Dataset exists — creating new version ..."
-    "$KAGGLE" datasets version -p "$STAGING" -m "Updated fusion_event.pt to run2 (YOLOv8n, A100, mAP50=0.875 test)" --dir-mode zip
+    "$KAGGLE" datasets version -p "$STAGING" -m "Add test sequences 8,9,12,20,21 for fusion detection and KPI evaluation" --dir-mode zip
 else
     echo "Creating new dataset ..."
     "$KAGGLE" datasets create -p "$STAGING" --dir-mode zip
