@@ -78,20 +78,6 @@ download_seq "$RELEASE_V5" sequence_124 sequence_124_e2vid_run9.tar
 download_seq "$RELEASE_V5" sequence_127 sequence_127_e2vid_run9.tar
 download_seq "$RELEASE_V5" sequence_201 sequence_201_e2vid_run9.tar
 
-echo "Download all 55 E2VID Run 9 sequences? (~8 GB total — enables full dataset exploration)"
-read -rp "Download all 55 sequences? [y/N]: " DL_ALL
-DL_ALL="${DL_ALL:-N}"
-if [[ "$DL_ALL" =~ ^[Yy] ]]; then
-  echo ""
-  echo "Downloading E2VID Run 9 — all 55 sequences ..."
-  # Excludes 85 and 124 (already downloaded above)
-  ALL_SEQS=(0 2 5 8 9 12 14 16 18 20 21 25 28 31 33 38 44 47 49 54 58 62 67 71 75 79 81 89 95 99 101 104 108 116 120 125 131 135 140 145 149 150 157 161 168 172 176 182 186 192 199 204 211)
-  for n in "${ALL_SEQS[@]}"; do
-    download_seq "$RELEASE_V5" "sequence_${n}" "sequence_${n}_e2vid_run9.tar"
-  done
-  echo ""
-fi
-
 echo "Downloading HyperE2VID reconstruction frames (~290 MB, 5 sequences, Run 2) ..."
 RELEASE_V3="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0"
 for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
