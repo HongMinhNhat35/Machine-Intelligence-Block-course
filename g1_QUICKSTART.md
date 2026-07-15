@@ -107,13 +107,24 @@ curl -L -o /tmp/detections_fusion_run1.tar.gz \
 tar xzf /tmp/detections_fusion_run1.tar.gz -C $RECON/
 ```
 
-### 5. Download the compose file and write `.env`
+### 5. Download the compose file, GUI files, and write `.env`
 
 > **Important:** Use an absolute path for `RECON` — Docker Compose does not expand `~` or `$HOME`.
 
 ```bash
-curl -fsSL -o $RECON/docker-compose.yml \
-  https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/docker-compose.deploy.yml
+BASE_RAW="https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui"
+
+curl -fsSL -o $RECON/docker-compose.yml "$BASE_RAW/docker-compose.deploy.yml"
+
+mkdir -p $RECON/static
+for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css; do
+  curl -fsSL -o $RECON/static/$f "$BASE_RAW/services/web/static/$f"
+done
+
+mkdir -p $RECON/kpis
+for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
+  curl -fsSL -o $RECON/kpis/$f "$BASE_RAW/services/web/kpis/$f"
+done
 
 cat > $RECON/.env <<EOF
 FRED_DATA_PATH=/path/to/fred/sequences    # set to your FRED dataset, or same as RECON_DATA_PATH

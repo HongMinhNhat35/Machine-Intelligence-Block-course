@@ -16,6 +16,8 @@ services:
     volumes:
       - ${FRED_DATA_PATH}:/data/fred:ro
       - ${RECON_DATA_PATH}:/data/recon
+      - ./static:/app/static:ro
+      - ./kpis:/app/kpis:ro
     environment:
       - E2VID_URL=http://e2vid:8001
       - HYPERE2VID_URL=http://hypere2vid:8002
