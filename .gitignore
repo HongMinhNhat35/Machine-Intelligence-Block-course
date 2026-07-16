@@ -14,6 +14,7 @@ services/hypere2vid/weights/
 # fusion weights are small (~6 MB each) and versioned directly in git
 *.pt
 !services/fusion/weights/*.pt
+!notebooks/ami-fusion-weights/*.pt
 *.pth
 *.pth.tar
 
