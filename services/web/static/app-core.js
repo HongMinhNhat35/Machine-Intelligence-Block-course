@@ -157,17 +157,18 @@ async function lpStartPlayer(){
     return Math.round(ef*syncR.length/Math.max(syncE.length,1));
   }
 
-  const evMap={}, fusRgbMap={}, fusEvMap={};
+  const evMap={}, rgbMap={}, fusMap={};
   try{
     const ed=await fetch('/api/detections/'+SEQ+'?model=e2vid').then(r=>r.json());
     (ed.detections||[]).forEach(d=>{(evMap[d.frame]=evMap[d.frame]||[]).push(d);});
   }catch(e){}
   try{
+    const rd=await fetch('/api/detections/'+SEQ+'?model=fusion_rgb').then(r=>r.json());
+    (rd.detections||[]).forEach(d=>{(rgbMap[d.frame]=rgbMap[d.frame]||[]).push(d);});
+  }catch(e){}
+  try{
     const fd=await fetch('/api/detections/'+SEQ+'?model=fusion').then(r=>r.json());
-    (fd.detections||[]).forEach(d=>{
-      const m=d.source==='rgb'?fusRgbMap:fusEvMap;
-      (m[d.frame]=m[d.frame]||[]).push(d);
-    });
+    (fd.detections||[]).forEach(d=>{(fusMap[d.frame]=fusMap[d.frame]||[]).push(d);});
   }catch(e){}
 
   const pillEv=document.getElementById('lp-pill-ev');
@@ -177,14 +178,14 @@ async function lpStartPlayer(){
   const pillRgb=document.querySelector('#lp-demo-panels .lp-panel:nth-child(2) .lp-pill');
   if(pillRgb) pillRgb.textContent='rgb boxes';
 
-  // bbox is [cx,cy,w,h] in absolute pixels; coords are in natural img dimensions
+  // bbox is [x1,y1,w,h] in absolute pixels (top-left origin)
   function drawBoxes(ctx,boxes,color){
     if(!boxes||!boxes.length) return;
     ctx.strokeStyle=color; ctx.lineWidth=8;
     boxes.forEach(d=>{
       if(d.confidence<0.2) return;
-      const [cx,cy,w,h]=d.bbox;
-      ctx.strokeRect(cx-w/2, cy-h/2, w, h);
+      const [x,y,w,h]=d.bbox;
+      ctx.strokeRect(x, y, w, h);
     });
   }
 
@@ -208,10 +209,10 @@ async function lpStartPlayer(){
     if(imgRgb){
       cvRgb.width=imgRgb.naturalWidth; cvRgb.height=imgRgb.naturalHeight;
       const ctxRgb=cvRgb.getContext('2d'); ctxRgb.drawImage(imgRgb,0,0);
-      drawBoxes(ctxRgb,fusRgbMap[rgbF],'#4ade80');
+      drawBoxes(ctxRgb,rgbMap[rgbF],'#4ade80');
       cvFus.width=imgRgb.naturalWidth; cvFus.height=imgRgb.naturalHeight;
       const ctxFus=cvFus.getContext('2d'); ctxFus.drawImage(imgRgb,0,0);
-      drawBoxes(ctxFus,(fusRgbMap[rgbF]||[]).concat(fusEvMap[rgbF]||[]),'#fb923c');
+      drawBoxes(ctxFus,fusMap[rgbF],'#fb923c');
     }
     frame++;
     if(frame>=frameCount) frame=START;
