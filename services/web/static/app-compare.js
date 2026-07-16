@@ -358,7 +358,7 @@ async function compLoad(){
 /* ── State ──────────────────────────────────────────────────────────────── */
 
 let cp2Playing=false, cp2Timer=null, cp2Frame=0, cp2Max=0, cp2LoadedSeq=null;
-let cp2E2vidDets=null, cp2HyperDets=null, cp2FusionDets=null, cp2ImgDebounce=null;
+let cp2E2vidDets=null, cp2HyperDets=null, cp2RgbDets=null, cp2FusionDets=null, cp2ImgDebounce=null;
 let cp2FusionFrameCount=0, cp2HyperFrameCount=0;
 let cp2LeftMode='e2vid';
 let cp2Sync=null;
@@ -468,9 +468,9 @@ function cp2RenderRgbBboxes(){
   const bboxDiv=document.getElementById('cp2-rgb-bboxes');
   if(!bboxDiv) return;
   const imgEl=document.getElementById('cp2-rgb-img');
-  if(!cp2FusionDets){ bboxDiv.innerHTML=''; cp2TrailPush('rgb',[],imgEl); cp2DrawTrail(document.getElementById('cp2-rgb-trail'),'rgb'); return; }
+  if(!cp2RgbDets){ bboxDiv.innerHTML=''; cp2TrailPush('rgb',[],imgEl); cp2DrawTrail(document.getElementById('cp2-rgb-trail'),'rgb'); return; }
   const conf=getConf(), ff=cp2GetFusionFrame();
-  const boxes=cp2FusionDets.filter(d=>d.frame===ff && d.confidence>=conf);
+  const boxes=cp2RgbDets.filter(d=>d.frame===ff && d.confidence>=conf);
   renderBboxes(boxes, imgEl, bboxDiv);
   cp2TrailPush('rgb', boxes, imgEl);
   cp2DrawTrail(document.getElementById('cp2-rgb-trail'), 'rgb');
@@ -515,19 +515,23 @@ function cp2LoadImage(){
         if(leftImg.complete) cp2RenderLeftBboxes();
       }
     }
-    if(cp2FusionDets){
+    if(cp2RgbDets||cp2FusionDets){
       const ff=cp2GetFusionFrame();
-      const rgbImg=document.getElementById('cp2-rgb-img');
-      if(rgbImg){
-        rgbImg.onload=()=>cp2RenderRgbBboxes();
-        rgbImg.src='/frames_rgb/'+seq+'/'+ff;
-        if(rgbImg.complete) cp2RenderRgbBboxes();
+      if(cp2RgbDets){
+        const rgbImg=document.getElementById('cp2-rgb-img');
+        if(rgbImg){
+          rgbImg.onload=()=>cp2RenderRgbBboxes();
+          rgbImg.src='/frames_rgb/'+seq+'/'+ff;
+          if(rgbImg.complete) cp2RenderRgbBboxes();
+        }
       }
-      const fusionImg=document.getElementById('cp2-fusion-img');
-      if(fusionImg){
-        fusionImg.onload=()=>cp2RenderFusionBboxes();
-        fusionImg.src='/frames_rgb/'+seq+'/'+ff;
-        if(fusionImg.complete) cp2RenderFusionBboxes();
+      if(cp2FusionDets){
+        const fusionImg=document.getElementById('cp2-fusion-img');
+        if(fusionImg){
+          fusionImg.onload=()=>cp2RenderFusionBboxes();
+          fusionImg.src='/frames_rgb/'+seq+'/'+ff;
+          if(fusionImg.complete) cp2RenderFusionBboxes();
+        }
       }
     }
   }, 60);
@@ -612,7 +616,7 @@ async function comp2Load(){
     cp2Stop();
     cp2LoadedSeq=selSeq.id;
     cp2Max=selSeq.frame_count-1;
-    cp2E2vidDets=null; cp2HyperDets=null; cp2FusionDets=null;
+    cp2E2vidDets=null; cp2HyperDets=null; cp2RgbDets=null; cp2FusionDets=null;
     cp2FusionFrameCount=selSeq.fred_rgb_count||0;
     cp2HyperFrameCount=selSeq.hyper_frame_count||0;
     cp2FusionCalibrated=false; cp2HyperCalibrated=false;
@@ -620,11 +624,12 @@ async function comp2Load(){
     document.getElementById('cp2-max').textContent=cp2Max;
     document.getElementById('cp2-max2').textContent=cp2Max;
     const gi=document.getElementById('cp2-goto'); if(gi){ gi.max=cp2Max; gi.value=0; }
-    const [r1,r2,r3,r4]=await Promise.all([
+    const [r1,r2,r3,r4,r5]=await Promise.all([
       fetch('/api/detections/'+selSeq.id).catch(()=>null),
       selSeq.hypere2vid_done
         ? fetch('/api/detections/'+selSeq.id+'?model=hypere2vid').catch(()=>null)
         : Promise.resolve(null),
+      fetch('/api/detections/'+selSeq.id+'?model=fusion_rgb').catch(()=>null),
       fetch('/api/detections/'+selSeq.id+'?model=fusion').catch(()=>null),
       fetch('/api/sync/'+selSeq.id).catch(()=>null),
     ]);
@@ -633,18 +638,14 @@ async function comp2Load(){
     const d2=r2?.ok ? await r2.json().catch(()=>null) : null;
     if(d2) cp2HyperDets=d2.detections;
     const d3=r3?.ok ? await r3.json().catch(()=>null) : null;
+    const d4=r4?.ok ? await r4.json().catch(()=>null) : null;
     const noRgb=document.getElementById('cp2-rgb-no-cache');
     const noFusion=document.getElementById('cp2-fusion-no-cache2');
-    if(d3){
-      cp2FusionDets=d3.detections;
-      if(noRgb) noRgb.style.display='none';
-      if(noFusion) noFusion.style.display='none';
-    } else {
-      cp2FusionDets=null;
-      if(noRgb) noRgb.style.display='flex';
-      if(noFusion) noFusion.style.display='flex';
-    }
-    cp2Sync = r4?.ok ? await r4.json().catch(()=>null) : null;
+    cp2RgbDets = d3 ? d3.detections : null;
+    if(noRgb) noRgb.style.display=cp2RgbDets?'none':'flex';
+    cp2FusionDets = d4 ? d4.detections : null;
+    if(noFusion) noFusion.style.display=cp2FusionDets?'none':'flex';
+    cp2Sync = r5?.ok ? await r5.json().catch(()=>null) : null;
     cp2Calibrate();
     cp2ClearTrails();
     cp2BuildConfArrays();

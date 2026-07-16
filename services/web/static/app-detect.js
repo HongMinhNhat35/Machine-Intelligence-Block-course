@@ -26,7 +26,6 @@ const dtTrail=[];
 /* ── Rendering ────────────────────────────────────────────────────────────── */
 
 // Filters stored or live boxes by confidence and draws them over det-img2.
-// For fusion_rgb/fusion_event modes, filters the fusion cache by source field.
 function dtRenderBboxes(){
   const bboxDiv=document.getElementById('det-bboxes');
   if(!bboxDiv) return;
@@ -37,15 +36,13 @@ function dtRenderBboxes(){
   if(dtLiveMode){
     boxes=(dtLiveBoxes||[]).filter(d=>d.confidence>=conf);
   } else {
-    const pool=(dtMode==='fusion_rgb'||dtMode==='fusion_event') ? dtAllFusionDets : dtDetections;
-    if(!pool){
+    if(!dtDetections){
       bboxDiv.innerHTML=''; document.getElementById('det-count').textContent='—';
       if(dtTrailOn) trailPush(dtTrail, [], imgEl);
       drawTrail(trailCanvas, dtTrailOn ? dtTrail : []);
       return;
     }
-    const src=dtMode==='fusion_event'?'event':dtMode==='fusion_rgb'?'rgb':null;
-    boxes=pool.filter(d=>d.frame===dtFrame && d.confidence>=conf && (!src||d.source===src));
+    boxes=dtDetections.filter(d=>d.frame===dtFrame && d.confidence>=conf);
   }
   document.getElementById('det-count').textContent=boxes.length ? boxes.length+' detection'+(boxes.length===1?'':'s') : 'no detections';
   renderBboxes(boxes, imgEl, bboxDiv);
@@ -134,7 +131,6 @@ function dtStop(){
 /* ── Detection cache ──────────────────────────────────────────────────────── */
 
 // Fetches cached detections for the current mode; falls back to live for e2vid/hyper.
-// fusion_rgb and fusion_event use the fusion cache filtered by source.
 async function dtLoadDetections(seqId, mode){
   if(mode) dtMode=mode;
   dtDetections=null; dtAllFusionDets=null; dtLiveMode=false; dtLiveBoxes=[];
@@ -146,27 +142,21 @@ async function dtLoadDetections(seqId, mode){
   }
   const sbKeys={e2vid:'sb-e2vid-dets',hypere2vid:'sb-hyper-dets',fusion:'sb-fusion-dets'};
   try{
-    const apiModel=isFusionVariant?'fusion':dtMode;
-    const r=await fetch('/api/detections/'+seqId+'?model='+apiModel);
+    const r=await fetch('/api/detections/'+seqId+'?model='+dtMode);
     if(r.ok){
       const data=await r.json();
-      if(isFusionVariant){
-        dtAllFusionDets=data.detections;
-        dtDetections=data.detections; // also set for compat
-      } else {
-        dtDetections=data.detections;
-      }
+      dtDetections=data.detections;
+      dtAllFusionDets=isFusionVariant?data.detections:dtAllFusionDets;
       dtLiveMode=false;
       document.getElementById('det-status').textContent='Cached — '+data.detections.length+' detections across all frames';
-      const sbD=document.getElementById(sbKeys[apiModel]||'sb-e2vid-dets'); if(sbD) sbD.textContent=data.detections.length;
-      const srcFilter=dtMode==='fusion_event'?'event':dtMode==='fusion_rgb'?'rgb':null;
-      const confPool=isFusionVariant?(srcFilter?dtAllFusionDets.filter(d=>d.source===srcFilter):dtAllFusionDets):dtDetections;
-      dtConfArr=buildConfArray(confPool, dtMax+1);
+      const sbKey=dtMode==='fusion'?'sb-fusion-dets':dtMode==='e2vid'?'sb-e2vid-dets':dtMode==='hypere2vid'?'sb-hyper-dets':null;
+      const sbD=sbKey?document.getElementById(sbKey):null; if(sbD) sbD.textContent=data.detections.length;
+      dtConfArr=buildConfArray(dtDetections, dtMax+1);
       dtDrawConfTimeline();
       dtRenderBboxes();
     } else {
       if(isFusionVariant){
-        document.getElementById('det-status').textContent='No fusion cache — run detection from Upload screen first';
+        document.getElementById('det-status').textContent='No cache for this model — run detection from Upload screen first';
         dtRenderBboxes(); dtLoadImage(); return;
       }
       dtLiveMode=true;
