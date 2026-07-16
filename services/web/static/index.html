@@ -115,28 +115,21 @@
           <div class="lp-section">
             <div class="lp-h2">Smart Fusion.</div>
             <p class="lp-lead">We leverage an innovative hybrid fusion architecture that combines RGB frames with high-frequency event data to ensure reliable performance where others fail.</p>
-            <!-- Placeholder for 3-column GIF — replace src attr with your recorded GIF -->
             <div class="lp-demo" id="lp-demo-panels">
               <div class="lp-panel">
-                <div class="lp-panel-hdr ev"><span>Event</span><span class="lp-pill">event model</span></div>
-                <div class="lp-panel-body">
-                  <div class="lp-bbox lp-bbox-ev" style="left:28%;top:22%;width:22%;height:38%"></div>
-                </div>
+                <div class="lp-panel-hdr ev"><span>E2VID</span><span class="lp-pill" id="lp-pill-ev">loading…</span></div>
+                <div class="lp-panel-body"><canvas id="lp-cv-ev"></canvas></div>
               </div>
               <div class="lp-panel">
-                <div class="lp-panel-hdr rgb"><span>RGB</span><span class="lp-pill">rgb model</span></div>
-                <div class="lp-panel-body">
-                  <div class="lp-bbox lp-bbox-rgb" style="left:30%;top:20%;width:22%;height:40%"></div>
-                </div>
+                <div class="lp-panel-hdr rgb"><span>RGB</span><span class="lp-pill">raw frame</span></div>
+                <div class="lp-panel-body"><canvas id="lp-cv-rgb"></canvas></div>
               </div>
               <div class="lp-panel">
-                <div class="lp-panel-hdr fus"><span>Late Fusion</span><span class="lp-pill">merged</span></div>
-                <div class="lp-panel-body">
-                  <div class="lp-bbox lp-bbox-fus" style="left:29%;top:21%;width:22%;height:39%"></div>
-                </div>
+                <div class="lp-panel-hdr fus"><span>Late Fusion</span><span class="lp-pill" id="lp-pill-fus">loading…</span></div>
+                <div class="lp-panel-body"><canvas id="lp-cv-fus"></canvas></div>
               </div>
             </div>
-            <p style="font-size:11px;color:#aaa;margin-top:8px">↑ Animated placeholder — replace with recorded GIF by setting <code>lp-demo-panels</code> innerHTML to an &lt;img&gt; tag.</p>
+            <p style="font-size:11px;color:#aaa;margin-top:8px">Live · Sequence 201 · E2VID reconstruction + Late Fusion detections</p>
           </div>
 
           <!-- Results -->
@@ -225,7 +218,6 @@
             <span>Applied Machine Intelligence Research Project &nbsp;|&nbsp; Technical University of Munich</span>
             <span style="display:flex;gap:16px">
               <a href="#" onclick="go('kpis');return false">Results</a>
-              <a href="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course" target="_blank">GitHub</a>
             </span>
           </div>
 

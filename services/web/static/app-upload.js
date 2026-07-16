@@ -105,6 +105,7 @@ async function initBrowser(){
       onSeqSelected(allSeqs.find(s=>s.id===el.dataset.val));
     });
   });
+  if(typeof lpStartPlayer==='function') lpStartPlayer();
 }
 
 /* ── Pre-compute detection cache ──────────────────────────────────────────── */
@@ -184,4 +185,3 @@ document.getElementById('precomp-fusion-btn').addEventListener('click',function(
 /* ── Startup ──────────────────────────────────────────────────────────────── */
 
 initBrowser();
-go('home');
