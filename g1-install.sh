@@ -35,7 +35,7 @@ curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.deploy.yml"
 
 echo "Downloading GUI static files ..."
 mkdir -p "$RECON/static"
-for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css; do
+for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css gui_user_guide.html; do
   curl -fsSL -o "$RECON/static/$f" "$RAW/services/web/static/$f"
 done
 
