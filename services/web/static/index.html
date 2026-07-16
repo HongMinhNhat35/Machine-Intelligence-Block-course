@@ -345,6 +345,13 @@
               <button class="pb-btn" data-dm="fusion_event" style="font-size:11px;padding:3px 10px">Event</button>
               <button class="pb-btn" data-dm="fusion" style="font-size:11px;padding:3px 10px">Late Fusion</button>
             </div>
+            <!-- KPI bar: updates when model changes -->
+            <div id="det-kpi-bar" style="font-size:11px;color:#666;margin-bottom:4px;display:flex;gap:16px;flex-wrap:wrap">
+              <span><span style="color:#aaa">mAP@0.5</span>&nbsp;<strong id="det-kpi-map50">—</strong></span>
+              <span><span style="color:#aaa">mAP@0.5:95</span>&nbsp;<strong id="det-kpi-map5095">—</strong></span>
+              <span><span style="color:#aaa">Precision</span>&nbsp;<strong id="det-kpi-prec">—</strong></span>
+              <span><span style="color:#aaa">Recall</span>&nbsp;<strong id="det-kpi-rec">—</strong></span>
+            </div>
             <!-- Status line: "Cached — N detections" or "Live detection — frame by frame" -->
             <div id="det-status" style="font-size:11px;color:#888"></div>
           </div>
