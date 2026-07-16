@@ -1,6 +1,7 @@
 # Group 1 — Hybrid Vision System: Quickstart
 
 Standalone deployment guide for the AMI drone-detection GUI.  
+This guide installs a fully functional demonstration environment with precomputed reconstructions, cached detections and evaluation results.  
 No Python, no Git, no build step — just Docker.
 
 ---
@@ -161,7 +162,7 @@ Data in `~/g1-ami-data` is preserved — it survives container restarts.
 | **Upload** | Select a FRED sequence. The sidebar shows frame count and cached detection count. |
 | **Reconstruction** | Browse E2VID and HyperE2VID reconstructed frames side-by-side with playback controls. |
 | **Detection** | View YOLO bounding-box overlay. Choose from five models with the bottom buttons: e2vid, HyperE2VID, RGB (FRED RGB frame + fusion detections), Event (raw event frame + fusion detections), Late Fusion (FRED RGB frame + fusion detections). Adjust confidence with the sidebar slider. Detection results are pre-cached — no inference needed. |
-| **Comparison** | Three-column view: left column shows e2vid or HyperE2VID (toggle at bottom) — middle and right show FRED RGB frames with fusion detection overlay. Left column is the master time axis; middle/right are mapped via cluster-based calibration that matches detection bursts across streams for accurate sync. |
+| **Comparison** | Three-column view: left column shows e2vid or HyperE2VID (toggle at bottom) — middle and right show FRED RGB frames with fusion detection overlay. Left column is the master time axis; middle and right columns are synchronized automatically using the best available synchronization method (timestamp-based synchronization with automatic fallback calibration). |
 | **KPIs** | Summary table (best run per model) plus full detail tables for detection accuracy, reconstruction, and training metrics across all runs. |
 | **Dataset** | Per-sequence notes: event counts, annotation timing, known reconstruction quirks. |
 | **Admin** | Live health status of all backend services. |
