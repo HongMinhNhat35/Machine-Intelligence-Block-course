@@ -40,3 +40,4 @@ data/logs/
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 services/e2vid/wheels/
+notebooks/ami-fusion-weights/*.pt
