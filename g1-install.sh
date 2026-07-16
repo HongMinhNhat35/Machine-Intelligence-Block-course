@@ -41,7 +41,7 @@ done
 
 echo "Downloading KPI files ..."
 mkdir -p "$RECON/kpis"
-for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
+for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
   curl -fsSL -o "$RECON/kpis/$f" "$RAW/services/web/kpis/$f"
 done
 

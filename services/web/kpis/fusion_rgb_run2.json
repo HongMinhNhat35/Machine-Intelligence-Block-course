@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "model": "fusion_rgb",
+  "detector": "YOLOv8n (rgb)",
+  "run_id": "run_2",
+  "contributor": "AMI Group 1",
+  "timestamp": "2026-07-16T00:00:00",
+  "note": "Late Fusion — RGB-camera component model. YOLOv8n trained on FRED RGB frames.",
+  "reconstruction": {
+    "sequences": null,
+    "events_per_pixel": null,
+    "total_frames": null,
+    "total_runtime_s": null,
+    "avg_fps": null,
+    "gpu": null
+  },
+  "training": {
+    "train_sequences": null,
+    "val_sequences": null,
+    "n_train_images": null,
+    "n_val_images": null,
+    "lr0": 0.01,
+    "lrf": 0.01,
+    "epochs_requested": 50,
+    "epochs_completed": 50,
+    "best_epoch": 24,
+    "n_gpus": 1,
+    "batch_per_gpu": 32,
+    "effective_batch": 32,
+    "imgsz": 640,
+    "runtime_s": 34129,
+    "gpu": "Colab GPU"
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.26133,
+      "map50_95": 0.07202,
+      "precision": 0.44893,
+      "recall": 0.29448
+    },
+    "challenging": {
+      "map50": null,
+      "map50_95": null,
+      "precision": null,
+      "recall": null
+    }
+  }
+}
