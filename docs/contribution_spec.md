@@ -120,6 +120,6 @@ File: `services/fusion/app.py`
 **KPI naming convention:** The GUI reads all `*.json` files from the `kpis/` folder sorted by name. Use `e2vid_run4.json`, `hypere2vid_run1.json`, `fusion_run1.json` — the `model` field in the JSON is what the GUI uses to filter, not the filename.
 
 **Integration checklist:**
-- [ ] hypere2vid: Frames follow the `reconstruction_hypere2vid/` naming convention
-- [ ] hypere2vid: `timestamps.txt` exists and line count matches frame count
-- [ ] KPI JSON includes `"model": "hypere2vid"` or `"model": "fusion"`
+- [x] hypere2vid: Frames follow the `reconstruction_hypere2vid/` naming convention
+- [x] hypere2vid: `timestamps.txt` exists and line count matches frame count
+- [x] KPI JSON includes `"model": "hypere2vid"` or `"model": "fusion"`
