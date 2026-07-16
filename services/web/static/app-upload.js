@@ -184,3 +184,4 @@ document.getElementById('precomp-fusion-btn').addEventListener('click',function(
 /* ── Startup ──────────────────────────────────────────────────────────────── */
 
 initBrowser();
+go('home');

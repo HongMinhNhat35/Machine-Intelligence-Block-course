@@ -20,6 +20,7 @@ function go(k){
   document.getElementById('tt').textContent=cfg[k].title;
   document.getElementById('tb').textContent=cfg[k].badge;
   document.getElementById('sb-extra').innerHTML=cfg[k].extra;
+  if(k==='kpis')  loadKpis();
   if(k==='detect'){
     const cs=document.getElementById('csl'),cv=document.getElementById('cval');
     if(cs){
@@ -96,12 +97,14 @@ document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('cli
   if(el.dataset.s==='recon')    reconLoad();
   if(el.dataset.s==='detect')   detLoad();
   if(el.dataset.s==='compare2') comp2Load();
-  if(el.dataset.s==='kpis')     loadKpis();
   if(el.dataset.s==='admin')    loadAdmin();
 }));
 
 getKpis().then(updateSidebarMap50).then(()=>{
-  // Populate landing page KPI table
+  lpPopulateTable();
+});
+
+function lpPopulateTable(){
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   const bestRun=runs=>runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const body=document.getElementById('lp-kpi-body');
@@ -118,11 +121,10 @@ getKpis().then(updateSidebarMap50).then(()=>{
     const isFusion=m==='fusion';
     if(isFusion && v!=null) fusionVal=v;
     const cls=isFusion?' class="lp-fusion"':'';
-    return `<tr${cls}><td>${modelLabel[m]}</td><td>${r.run||'—'}</td><td>${r.detection?.canonical?.val_set||'—'}</td><td>${pct(v)}</td><td>${pct(r.detection?.canonical?.precision)}</td><td>${pct(r.detection?.canonical?.recall)}</td></tr>`;
+    return `<tr${cls}><td>${modelLabel[m]}</td><td>${r.run_id||'—'}</td><td>${pct(v)}</td><td>${pct(r.detection?.canonical?.precision)}</td><td>${pct(r.detection?.canonical?.recall)}</td></tr>`;
   }).join('');
-  // Paper baselines
-  const paperRows=`<tr><td style="color:#888">YOLOv11 (FRED paper)</td><td>—</td><td>—</td><td>87.7%</td><td>—</td><td>—</td></tr>
-  <tr><td style="color:#888">ER-DETR (FRED paper)</td><td>—</td><td>—</td><td>78.6%</td><td>—</td><td>—</td></tr>`;
+  const paperRows=`<tr><td style="color:#888">YOLOv11 (FRED paper)</td><td>—</td><td>87.7%</td><td>—</td><td>—</td></tr>
+  <tr><td style="color:#888">ER-DETR (FRED paper)</td><td>—</td><td>78.6%</td><td>—</td><td>—</td></tr>`;
   body.innerHTML=rows+paperRows;
   if(map50El && fusionVal!=null) map50El.textContent=pct(fusionVal);
-});
+}
