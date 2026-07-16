@@ -588,12 +588,15 @@ function cp2UpdateMetrics(){
   document.getElementById('cp2-left-map5095').textContent=pct(lm.map50_95);
   document.getElementById('cp2-left-prec').textContent=pct(lm.precision);
   document.getElementById('cp2-left-rec').textContent=pct(lm.recall);
-  const fm=best(kpiCache,'fusion');
-  ['cp2-fusion-map50','cp2-fusion-map5095','cp2-fusion-prec','cp2-fusion-rec',
-   'cp2-fusion2-map50','cp2-fusion2-map5095','cp2-fusion2-prec','cp2-fusion2-rec'].forEach((id,i)=>{
+  const rm=best(kpiCache,'fusion_rgb');
+  ['cp2-fusion-map50','cp2-fusion-map5095','cp2-fusion-prec','cp2-fusion-rec'].forEach((id,i)=>{
     const el=document.getElementById(id); if(!el) return;
-    const keys=['map50','map50_95','precision','recall'];
-    el.textContent=pct(fm[keys[i%4]]);
+    el.textContent=pct(rm[['map50','map50_95','precision','recall'][i]]);
+  });
+  const fm=best(kpiCache,'fusion');
+  ['cp2-fusion2-map50','cp2-fusion2-map5095','cp2-fusion2-prec','cp2-fusion2-rec'].forEach((id,i)=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.textContent=pct(fm[['map50','map50_95','precision','recall'][i]]);
   });
 }
 
