@@ -175,7 +175,7 @@ async function lpStartPlayer(){
   // bbox is [cx,cy,w,h] in absolute pixels; coords are in natural img dimensions
   function drawBoxes(ctx,boxes,color){
     if(!boxes||!boxes.length) return;
-    ctx.strokeStyle=color; ctx.lineWidth=3;
+    ctx.strokeStyle=color; ctx.lineWidth=8;
     boxes.forEach(d=>{
       if(d.confidence<0.2) return;
       const [cx,cy,w,h]=d.bbox;
