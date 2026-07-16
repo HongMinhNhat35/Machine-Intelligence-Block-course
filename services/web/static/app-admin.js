@@ -118,7 +118,15 @@ async function loadKpis(){
       const tr = best.training || {};
       const lbl = modelLabel(best);
       const valSeqs = kpiSeqs(tr.val_sequences);
-      const totalS = (rc.total_runtime_s||0) + (tr.runtime_s||0);
+      let totalS = (rc.total_runtime_s||0) + (tr.runtime_s||0);
+      if (model === 'fusion') {
+        const compRuntime = m => {
+          const rs = runs.filter(r=>r.model===m);
+          const b = rs.find(r=>r.featured||r.deployed)||rs.reduce((a,r)=>((r.detection?.canonical?.map50||0)>(a.detection?.canonical?.map50||0)?r:a),rs[0]);
+          return b?.training?.runtime_s||0;
+        };
+        totalS += compRuntime('fusion_rgb') + compRuntime('fusion_event');
+      }
       const runtime = totalS > 0 ? kpiHrs(totalS) : '—';
       const isCombined = model === 'fusion';
       const cls = isCombined ? 'best ours' : 'ours';
@@ -145,7 +153,15 @@ async function loadKpis(){
       const rc=r.reconstruction||{}, tr=r.training||{};
       const lbl=modelLabel(r);
       const valSeqs=kpiSeqs(tr.val_sequences);
-      const totalS=(rc.total_runtime_s||0)+(tr.runtime_s||0);
+      let totalS=(rc.total_runtime_s||0)+(tr.runtime_s||0);
+      if(isCombined(r)){
+        const compRuntime=m=>{
+          const rs=runs.filter(x=>x.model===m);
+          const b=rs.find(x=>x.featured||x.deployed)||rs.reduce((a,x)=>((x.detection?.canonical?.map50||0)>(a.detection?.canonical?.map50||0)?x:a),rs[0]);
+          return b?.training?.runtime_s||0;
+        };
+        totalS+=compRuntime('fusion_rgb')+compRuntime('fusion_event');
+      }
       const runtime=totalS>0?kpiHrs(totalS):'—';
       const cls=isCombined(r)?'best ours':'ours';
       const gt2 = s => isCombined(r) ? `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}` : s;

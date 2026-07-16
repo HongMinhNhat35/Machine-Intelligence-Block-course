@@ -30,7 +30,7 @@
     "effective_batch": 32,
     "imgsz": 640,
     "runtime_s": 34129,
-    "gpu": "Colab GPU"
+    "gpu": "A100"
   },
   "detection": {
     "canonical": {
