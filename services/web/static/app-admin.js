@@ -83,7 +83,7 @@ async function loadAdmin(){
 // Format helpers — all return '—' for null/undefined values.
 function kpiFmt(v, decimals=1, suffix=''){ return (v===null||v===undefined) ? '—' : (+v).toFixed(decimals)+suffix; }
 function kpiPct(v){ return (v===null||v===undefined) ? '—' : (Math.round(+v*1000)/10).toFixed(1)+'%'; }
-function kpiHrs(s){ return (s===null||s===undefined) ? '—' : (+s/3600).toFixed(1)+' h'; }
+function kpiHrs(s){ return (s===null||s===undefined) ? '—' : (+s/3600).toFixed(2)+' h'; }
 function kpiNum(v){ return (v===null||v===undefined) ? '—' : (+v).toLocaleString(); }
 function kpiRun(id){ return id ? id.replace(/^run_?/i,'') : '—'; }
 function kpiSeqs(seqs){ return Array.isArray(seqs) && seqs.length ? seqs.map(s=>s.replace('sequence_','')).join(', ') : '—'; }
