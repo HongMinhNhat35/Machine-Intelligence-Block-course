@@ -98,6 +98,43 @@
       "precision": 0.883,
       "recall": 0.892
     },
-    "eval_source": "test"
+    "eval_source": "test",
+    "per_sequence": {
+      "sequence_8": {
+        "map50": 0.6078,
+        "precision": 0.7292,
+        "recall": 0.7868,
+        "n_gt": 2782,
+        "n_det": 3002
+      },
+      "sequence_9": {
+        "map50": 0.409,
+        "precision": 0.5104,
+        "recall": 0.6174,
+        "n_gt": 2891,
+        "n_det": 3497
+      },
+      "sequence_12": {
+        "map50": 0.576,
+        "precision": 0.6134,
+        "recall": 0.7137,
+        "n_gt": 1736,
+        "n_det": 2020
+      },
+      "sequence_20": {
+        "map50": 0.8738,
+        "precision": 0.7902,
+        "recall": 0.9482,
+        "n_gt": 2820,
+        "n_det": 3384
+      },
+      "sequence_21": {
+        "map50": 0.2254,
+        "precision": 0.6811,
+        "recall": 0.2711,
+        "n_gt": 1103,
+        "n_det": 439
+      }
+    }
   }
 }

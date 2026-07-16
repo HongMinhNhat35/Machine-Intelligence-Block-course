@@ -124,22 +124,11 @@ for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
   echo "  [$seq] Done"
 done
 echo ""
-echo "Downloading pre-cached HyperE2VID detections (Run 2 — YOLOv8n, mAP@0.5=56.7%) ..."
-curl -L --progress-bar -o /tmp/detections_hypere2vid_run2.tar.gz "$RELEASE_V3/detections_hypere2vid_run2.tar.gz"
-tar xzf /tmp/detections_hypere2vid_run2.tar.gz -C "$RECON/"
-rm /tmp/detections_hypere2vid_run2.tar.gz
-echo ""
-
-echo "Downloading pre-cached E2VID detections (demo sequences — all 10) ..."
-curl -L --progress-bar -o /tmp/detections_e2vid_demo.tar.gz "$RELEASE_V5/detections_e2vid_demo.tar.gz"
-tar xzf /tmp/detections_e2vid_demo.tar.gz -C "$RECON/"
-rm /tmp/detections_e2vid_demo.tar.gz
-echo ""
-
-echo "Downloading pre-cached Late Fusion detections (Run 2 — YOLOv8n RGB+Event, 50-seq split) ..."
-curl -L --progress-bar -o /tmp/detections_fusion_run2.tar.gz "$RELEASE_V5/detections_fusion_run2.tar.gz"
-tar xzf /tmp/detections_fusion_run2.tar.gz -C "$RECON/"
-rm /tmp/detections_fusion_run2.tar.gz
+echo "Downloading pre-cached detections — all models, all 10 demo sequences (~5 MB) ..."
+echo "(e2vid · HyperE2VID · Late Fusion event · Late Fusion RGB · Late Fusion combined)"
+curl -L --progress-bar -o /tmp/detections_all.tar.gz "$RELEASE_V5/detections_all.tar.gz"
+tar xzf /tmp/detections_all.tar.gz -C "$RECON/"
+rm /tmp/detections_all.tar.gz
 echo ""
 
 echo ""

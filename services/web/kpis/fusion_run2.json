@@ -93,34 +93,39 @@
     },
     "per_sequence": {
       "sequence_8": {
-        "map50": 0.6078,
-        "precision": 0.77,
-        "recall": 0.7786,
-        "n_gt": 2782
+        "map50": 0.6634,
+        "precision": 0.3492,
+        "recall": 0.8433,
+        "n_gt": 2782,
+        "n_det": 6719
       },
       "sequence_9": {
-        "map50": 0.3592,
-        "precision": 0.5672,
-        "recall": 0.5694,
-        "n_gt": 2891
+        "map50": 0.4089,
+        "precision": 0.4367,
+        "recall": 0.632,
+        "n_gt": 2891,
+        "n_det": 4184
       },
       "sequence_12": {
-        "map50": 0.5186,
-        "precision": 0.6617,
-        "recall": 0.6434,
-        "n_gt": 1736
+        "map50": 0.5757,
+        "precision": 0.4471,
+        "recall": 0.7327,
+        "n_gt": 1736,
+        "n_det": 2845
       },
       "sequence_20": {
-        "map50": 0.8738,
-        "precision": 0.8797,
-        "recall": 0.9206,
-        "n_gt": 2820
+        "map50": 0.8737,
+        "precision": 0.3644,
+        "recall": 0.9592,
+        "n_gt": 2820,
+        "n_det": 7423
       },
       "sequence_21": {
-        "map50": 0.0909,
-        "precision": 0.7938,
-        "recall": 0.0698,
-        "n_gt": 1103
+        "map50": 0.1841,
+        "precision": 0.4803,
+        "recall": 0.2765,
+        "n_gt": 1103,
+        "n_det": 635
       }
     },
     "eval_source": "test"
