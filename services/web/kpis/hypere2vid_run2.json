@@ -5,7 +5,7 @@
   "run_id": "run_2",
   "contributor": "Kevin (kevinhong54385)",
   "timestamp": "2026-07-02T13:48:26",
-  "note": "Run 2. Same reconstruction parameters as Run 1 (events_per_frame=46080) but adds sequence_124 (6,609 frames). Training on 4 sequences (84/85/201/124) vs 3 in Run 1. mAP50 improves from 0.132 to 0.567 — adding sequence_124 and doubling the training set is the likely driver. Best epoch 13, stopped at 54 (patience=20).",
+  "note": "Run 2. Same reconstruction parameters as Run 1 (events_per_frame=46080) but adds sequence_124 (6,609 frames). Training on 4 sequences (84/85/201/124) vs 3 in Run 1. mAP50 improves from 0.132 to 0.567 \u2014 adding sequence_124 and doubling the training set is the likely driver. Best epoch 13, stopped at 54 (patience=20).",
   "reconstruction": {
     "sequences": [
       "sequence_84",
@@ -55,6 +55,7 @@
       "map50_95": null,
       "precision": null,
       "recall": null
-    }
+    },
+    "eval_source": "val"
   }
 }

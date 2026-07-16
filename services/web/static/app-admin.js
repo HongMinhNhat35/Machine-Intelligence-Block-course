@@ -87,6 +87,11 @@ function kpiHrs(s){ return (s===null||s===undefined) ? '—' : (+s/3600).toFixed
 function kpiNum(v){ return (v===null||v===undefined) ? '—' : (+v).toLocaleString(); }
 function kpiRun(id){ return id ? id.replace(/^run_?/i,'') : '—'; }
 function kpiSeqs(seqs){ return Array.isArray(seqs) && seqs.length ? seqs.map(s=>s.replace('sequence_','')).join(', ') : '—'; }
+function kpiEvalBadge(s){
+  if(s==='test') return '<span style="background:rgba(22,101,52,.35);color:#86efac;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600">test</span>';
+  if(s==='val')  return '<span style="background:rgba(75,85,99,.3);color:#9ca3af;padding:1px 6px;border-radius:3px;font-size:10px">val</span>';
+  return '<span style="color:#555;font-size:10px">—</span>';
+}
 
 const MODEL_LABELS = {
   'e2vid':        'e2vid + YOLOv8s',
@@ -166,12 +171,14 @@ async function loadKpis(){
       const cls=isCombined(r)?'best ours':'ours';
       const gt2 = s => isCombined(r) ? `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}` : s;
       return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${valSeqs}</td>
+        <td>${kpiEvalBadge(r.detection?.eval_source)}</td>
         <td>${gt2(kpiPct(c.map50))}</td><td>${gt2(kpiPct(c.map50_95))}</td>
         <td>${gt2(kpiPct(c.precision))}</td><td>${gt2(kpiPct(c.recall))}</td>
         <td>${runtime}</td></tr>`;
-    }).join('') : '<tr><td colspan="8" style="color:#aaa">No KPI files found.</td></tr>';
+    }).join('') : '<tr><td colspan="9" style="color:#aaa">No KPI files found.</td></tr>';
 
-    document.getElementById('kpi-rec-body').innerHTML = runs.length ? [...runs].sort(byModelRun).map(r=>{
+    const recRuns = [...runs].sort(byModelRun).filter(r=>!['fusion','fusion_event','fusion_rgb'].includes(r.model));
+    document.getElementById('kpi-rec-body').innerHTML = recRuns.length ? recRuns.map(r=>{
       const rc=r.reconstruction||{};
       const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
       return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${kpiSeqs(rc.sequences)}</td>
@@ -185,13 +192,15 @@ async function loadKpis(){
       const lbl=(r.model||'')+(r.detector?' + '+r.detector:'');
       const epochs=(tr.epochs_completed!==null&&tr.epochs_completed!==undefined)
         ? `${tr.epochs_completed} / ${tr.epochs_requested||'—'}` : '—';
-      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${kpiSeqs(tr.train_sequences)}</td>
+      return `<tr class="ours"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td>
+        <td>${kpiEvalBadge(r.detection?.eval_source)}</td>
+        <td>${kpiSeqs(tr.train_sequences)}</td>
         <td>${kpiNum(tr.n_train_images)}</td><td>${kpiHrs(tr.runtime_s)}</td>
         <td>${epochs}</td><td>${tr.best_epoch!==null&&tr.best_epoch!==undefined?tr.best_epoch:'—'}</td>
         <td>${tr.lr0!==null&&tr.lr0!==undefined?tr.lr0:'—'}</td>
         <td>${tr.effective_batch!==null&&tr.effective_batch!==undefined?tr.effective_batch:'—'}</td>
         <td>${tr.gpu||'—'}</td></tr>`;
-    }).join('') : '<tr><td colspan="10" style="color:#aaa">No KPI files found.</td></tr>';
+    }).join('') : '<tr><td colspan="11" style="color:#aaa">No KPI files found.</td></tr>';
 
   }catch(e){
     ['kpi-det-body','kpi-rec-body','kpi-tr-body'].forEach(id=>{

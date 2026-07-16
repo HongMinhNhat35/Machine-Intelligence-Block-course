@@ -55,6 +55,7 @@
       "map50_95": null,
       "precision": null,
       "recall": null
-    }
+    },
+    "eval_source": "val"
   }
 }

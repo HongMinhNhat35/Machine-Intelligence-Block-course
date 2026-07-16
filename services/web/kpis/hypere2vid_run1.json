@@ -5,9 +5,14 @@
   "run_id": "run_1",
   "contributor": "Kevin (kevinhong54385)",
   "timestamp": "2026-06-22T02:30:38",
-  "note": "Run 1. HyperE2VID reconstruction with events_per_frame=46080 (fixed bin size). sequence_124 not included (not available in Kaggle input dataset). Training peaked at epoch 1 (mAP50=13.2%) then collapsed — 20-epoch patience triggered stop at epoch 21. Strong contrast with E2VID Run 7 (mAP50=93.6%). Likely causes: HyperE2VID frame style differs significantly from E2VID; 30% background frames in val sequence_127; smaller model (YOLOv8n vs YOLOv8s).",
+  "note": "Run 1. HyperE2VID reconstruction with events_per_frame=46080 (fixed bin size). sequence_124 not included (not available in Kaggle input dataset). Training peaked at epoch 1 (mAP50=13.2%) then collapsed \u2014 20-epoch patience triggered stop at epoch 21. Strong contrast with E2VID Run 7 (mAP50=93.6%). Likely causes: HyperE2VID frame style differs significantly from E2VID; 30% background frames in val sequence_127; smaller model (YOLOv8n vs YOLOv8s).",
   "reconstruction": {
-    "sequences": ["sequence_84", "sequence_85", "sequence_201", "sequence_127"],
+    "sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_201",
+      "sequence_127"
+    ],
     "events_per_frame": 46080,
     "total_frames": 8072,
     "total_runtime_s": 5889.6,
@@ -15,8 +20,14 @@
     "gpu": "Tesla T4"
   },
   "training": {
-    "train_sequences": ["sequence_84", "sequence_85", "sequence_201"],
-    "val_sequences": ["sequence_127"],
+    "train_sequences": [
+      "sequence_84",
+      "sequence_85",
+      "sequence_201"
+    ],
+    "val_sequences": [
+      "sequence_127"
+    ],
     "n_train_images": 5914,
     "n_val_images": 2158,
     "lr0": 0.01,
@@ -42,6 +53,7 @@
       "map50_95": null,
       "precision": null,
       "recall": null
-    }
+    },
+    "eval_source": "val"
   }
 }

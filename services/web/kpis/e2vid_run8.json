@@ -5,7 +5,7 @@
   "run_id": "run_8",
   "contributor": "Klaus",
   "timestamp": "2026-06-30T15:17:52",
-  "note": "Run 8. New sequence set (44/45/46/47 train, 146 val) selected by annotation quality score. events_per_pixel=0.1. Training failed to converge: sequences 44–47 are event-sparse (13–23M events each, 75–128 MB events.zip vs 530–882 MB for Run 7 sequences). Only 736 train frames total at epp=0.1 — insufficient for YOLO. Early stopping at epoch 47 (patience=20, best at epoch 27, mAP50=0.022). Weights not deployed; Run 7 weights remain active. Lesson: sequence selection must include minimum event density (≥ 500 MB events.zip or ≥ 1M events/s) as a hard filter.",
+  "note": "Run 8. New sequence set (44/45/46/47 train, 146 val) selected by annotation quality score. events_per_pixel=0.1. Training failed to converge: sequences 44\u201347 are event-sparse (13\u201323M events each, 75\u2013128 MB events.zip vs 530\u2013882 MB for Run 7 sequences). Only 736 train frames total at epp=0.1 \u2014 insufficient for YOLO. Early stopping at epoch 47 (patience=20, best at epoch 27, mAP50=0.022). Weights not deployed; Run 7 weights remain active. Lesson: sequence selection must include minimum event density (\u2265 500 MB events.zip or \u2265 1M events/s) as a hard filter.",
   "reconstruction": {
     "sequences": [
       "sequence_44",
@@ -55,6 +55,7 @@
       "map50_95": null,
       "precision": null,
       "recall": null
-    }
+    },
+    "eval_source": "val"
   }
 }
