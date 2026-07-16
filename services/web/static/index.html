@@ -31,7 +31,8 @@
 
   <!-- ── Top tab bar (mirrors sidebar nav, visible on narrow screens) ───────── -->
   <div class="tab-bar" id="tabs">
-    <div class="tab active" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
+    <div class="tab active" data-s="home"><i class="ti ti-home"></i> Home</div>
+    <div class="tab" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
     <div class="tab" data-s="recon"><i class="ti ti-movie"></i> Reconstruction</div>
     <div class="tab" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
     <div class="tab" data-s="compare2"><i class="ti ti-layout-columns"></i> Comparison</div>
@@ -47,6 +48,7 @@
       <div class="brand">Hybrid vision</div>
 
       <!-- Nav links — data-s value must match screen id suffix (s-{data-s}) -->
+      <div class="nav-item" data-s="home"><i class="ti ti-home"></i> Home</div>
       <div class="nav-item" data-s="upload"><i class="ti ti-upload"></i> Upload</div>
       <div class="nav-item" data-s="recon"><i class="ti ti-movie"></i> Reconstruction</div>
       <div class="nav-item" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
@@ -92,9 +94,146 @@
 
       <div class="content">
 
+        <!-- ── HOME ────────────────────────────────────────────────────────── -->
+        <div class="screen active lp" id="s-home">
+
+          <!-- Hero -->
+          <div class="lp-hero">
+            <div class="lp-eyebrow">Applied Machine Intelligence · Group 1 · TU Munich</div>
+            <h1 class="lp-h1">Hybrid Vision:<br>Next-Gen Drone Detection.</h1>
+            <p class="lp-sub">Bridging the gap between RGB imagery and event-based sensing for robust, real-time drone localization.</p>
+            <button class="lp-cta" onclick="go('kpis')"><i class="ti ti-chart-bar"></i> View Our Results</button>
+          </div>
+
+          <!-- Problem -->
+          <div class="lp-section lp-section-alt">
+            <div class="lp-h2">The Challenge.</div>
+            <p class="lp-lead">Traditional camera systems struggle in extreme lighting conditions, causing missed detections and system failures. High-speed drones further complicate detection — motion blur degrades RGB frames exactly when fast response matters most.</p>
+          </div>
+
+          <!-- Solution + demo panels -->
+          <div class="lp-section">
+            <div class="lp-h2">Smart Fusion.</div>
+            <p class="lp-lead">We leverage an innovative hybrid fusion architecture that combines RGB frames with high-frequency event data to ensure reliable performance where others fail.</p>
+            <!-- Placeholder for 3-column GIF — replace src attr with your recorded GIF -->
+            <div class="lp-demo" id="lp-demo-panels">
+              <div class="lp-panel">
+                <div class="lp-panel-hdr ev"><span>Event</span><span class="lp-pill">event model</span></div>
+                <div class="lp-panel-body">
+                  <div class="lp-bbox lp-bbox-ev" style="left:28%;top:22%;width:22%;height:38%"></div>
+                </div>
+              </div>
+              <div class="lp-panel">
+                <div class="lp-panel-hdr rgb"><span>RGB</span><span class="lp-pill">rgb model</span></div>
+                <div class="lp-panel-body">
+                  <div class="lp-bbox lp-bbox-rgb" style="left:30%;top:20%;width:22%;height:40%"></div>
+                </div>
+              </div>
+              <div class="lp-panel">
+                <div class="lp-panel-hdr fus"><span>Late Fusion</span><span class="lp-pill">merged</span></div>
+                <div class="lp-panel-body">
+                  <div class="lp-bbox lp-bbox-fus" style="left:29%;top:21%;width:22%;height:39%"></div>
+                </div>
+              </div>
+            </div>
+            <p style="font-size:11px;color:#aaa;margin-top:8px">↑ Animated placeholder — replace with recorded GIF by setting <code>lp-demo-panels</code> innerHTML to an &lt;img&gt; tag.</p>
+          </div>
+
+          <!-- Results -->
+          <div class="lp-section lp-section-alt">
+            <div class="lp-h2">Scientific Excellence.</div>
+            <p class="lp-lead">Our late-fusion system achieves a robust mAP50 of <strong id="lp-map50">—</strong> on challenging domain-shift test splits, outperforming standard single-modality baselines.</p>
+            <div class="lp-tbl-wrap">
+              <table class="lp-tbl">
+                <thead><tr><th>Model</th><th>Run</th><th>Val set</th><th>mAP@0.5</th><th>Precision</th><th>Recall</th></tr></thead>
+                <tbody id="lp-kpi-body">
+                  <tr><td colspan="6" style="color:#aaa;padding:10px">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Proposed datasets -->
+          <div class="lp-section">
+            <div class="lp-h2">Proposed Datasets.</div>
+            <p class="lp-lead">Sequences selected for demo and evaluation from the FRED dataset.</p>
+            <div class="lp-seq-grid">
+              <div class="lp-seq-group">
+                <div class="lp-seq-group-title">Test set — e2vid</div>
+                <div class="lp-seq-chips">
+                  <span class="lp-chip lp-chip-test">8</span>
+                  <span class="lp-chip lp-chip-test">9</span>
+                  <span class="lp-chip lp-chip-test">12</span>
+                  <span class="lp-chip lp-chip-test">20</span>
+                  <span class="lp-chip lp-chip-test">21</span>
+                </div>
+              </div>
+              <div class="lp-seq-group">
+                <div class="lp-seq-group-title">Prototyping set — e2vid + HyperE2VID</div>
+                <div class="lp-seq-chips">
+                  <span class="lp-chip lp-chip-proto">84</span>
+                  <span class="lp-chip lp-chip-proto">85</span>
+                  <span class="lp-chip lp-chip-proto bold">124</span>
+                  <span class="lp-chip lp-chip-proto bold">127</span>
+                  <span class="lp-chip lp-chip-proto bold">201</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Features -->
+          <div class="lp-section lp-section-alt">
+            <div class="lp-h2">Core Features.</div>
+            <div class="lp-features">
+              <div class="lp-feat">
+                <div class="lp-feat-icon">⚡</div>
+                <div class="lp-feat-title">Real-time Fusion</div>
+                <div class="lp-feat-body">Seamless integration of multi-modal sensor data from RGB and event cameras into a single detection stream.</div>
+              </div>
+              <div class="lp-feat">
+                <div class="lp-feat-icon">🎯</div>
+                <div class="lp-feat-title">Optimized Performance</div>
+                <div class="lp-feat-body">Efficient YOLOv8n-based backbone for high-speed detection, trained on the FRED drone dataset.</div>
+              </div>
+              <div class="lp-feat">
+                <div class="lp-feat-icon">🌐</div>
+                <div class="lp-feat-title">Domain Robustness</div>
+                <div class="lp-feat-body">Specially trained to handle environmental stressors — low light, motion blur, and sensor noise.</div>
+              </div>
+              <div class="lp-feat">
+                <div class="lp-feat-icon">🔬</div>
+                <div class="lp-feat-title">E2VID Reconstruction</div>
+                <div class="lp-feat-body">Events are reconstructed into greyscale frames via E2VID and HyperE2VID for visual inspection and detection.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team -->
+          <div class="lp-section">
+            <div class="lp-h2">Meet the Team.</div>
+            <div class="lp-team" id="lp-team">
+              <div class="lp-member"><div class="lp-avatar">A</div><div class="lp-member-name">Name 1</div></div>
+              <div class="lp-member"><div class="lp-avatar">B</div><div class="lp-member-name">Name 2</div></div>
+              <div class="lp-member"><div class="lp-avatar">C</div><div class="lp-member-name">Name 3</div></div>
+              <div class="lp-member"><div class="lp-avatar">D</div><div class="lp-member-name">Name 4</div></div>
+              <div class="lp-member"><div class="lp-avatar">E</div><div class="lp-member-name">Name 5</div></div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="lp-footer">
+            <span>Applied Machine Intelligence Research Project &nbsp;|&nbsp; Technical University of Munich</span>
+            <span style="display:flex;gap:16px">
+              <a href="#" onclick="go('kpis');return false">Results</a>
+              <a href="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course" target="_blank">GitHub</a>
+            </span>
+          </div>
+
+        </div><!-- /s-home -->
+
         <!-- ── UPLOAD ───────────────────────────────────────────────────────── -->
         <!-- Sequence browser + detected-files panel + detection pre-compute   -->
-        <div class="screen active" id="s-upload">
+        <div class="screen" id="s-upload">
           <div class="sec-lbl">Select sequence</div>
 
           <!-- List of available sequences fetched from /api/sequences -->

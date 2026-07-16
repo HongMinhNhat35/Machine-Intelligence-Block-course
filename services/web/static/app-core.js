@@ -4,6 +4,7 @@ const detModels={
   'fusion':{lbl:'Fusion input',sub:'RGB + event frames'}
 };
 const cfg={
+  home:{title:'Hybrid Vision System',badge:'Group 1 · TU Munich',extra:''},
   upload:{title:'Upload sequence',badge:'no sequence selected',extra:''},
   recon:{title:'Reconstruction viewer',badge:'seq_0 · 871 frames',extra:''},
   detect:{title:'Detection',badge:'e2vid + YOLO',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl"></div>`},
@@ -99,4 +100,29 @@ document.querySelectorAll('.tab,.nav-item').forEach(el=>el.addEventListener('cli
   if(el.dataset.s==='admin')    loadAdmin();
 }));
 
-getKpis().then(updateSidebarMap50);
+getKpis().then(updateSidebarMap50).then(()=>{
+  // Populate landing page KPI table
+  const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
+  const bestRun=runs=>runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const body=document.getElementById('lp-kpi-body');
+  const map50El=document.getElementById('lp-map50');
+  if(!kpiCache||!body) return;
+  const modelOrder=['e2vid','hypere2vid','fusion'];
+  const modelLabel={'e2vid':'E2VID + YOLO','hypere2vid':'HyperE2VID + YOLO','fusion':'Late Fusion'};
+  let fusionVal=null;
+  const rows=modelOrder.map(m=>{
+    const runs=kpiCache.filter(r=>r.model===m);
+    if(!runs.length) return '';
+    const r=bestRun(runs);
+    const v=r.detection?.canonical?.map50;
+    const isFusion=m==='fusion';
+    if(isFusion && v!=null) fusionVal=v;
+    const cls=isFusion?' class="lp-fusion"':'';
+    return `<tr${cls}><td>${modelLabel[m]}</td><td>${r.run||'—'}</td><td>${r.detection?.canonical?.val_set||'—'}</td><td>${pct(v)}</td><td>${pct(r.detection?.canonical?.precision)}</td><td>${pct(r.detection?.canonical?.recall)}</td></tr>`;
+  }).join('');
+  // Paper baselines
+  const paperRows=`<tr><td style="color:#888">YOLOv11 (FRED paper)</td><td>—</td><td>—</td><td>87.7%</td><td>—</td><td>—</td></tr>
+  <tr><td style="color:#888">ER-DETR (FRED paper)</td><td>—</td><td>—</td><td>78.6%</td><td>—</td><td>—</td></tr>`;
+  body.innerHTML=rows+paperRows;
+  if(map50El && fusionVal!=null) map50El.textContent=pct(fusionVal);
+});
