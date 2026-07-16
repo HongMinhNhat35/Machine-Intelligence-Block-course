@@ -163,14 +163,15 @@ tr.paper td{color:#888}
 
 /* ── Landing page (Home screen) ────────────────────────────────────────────── */
 .lp{overflow-y:auto;height:100%;padding:0}
-.lp-hero{background:linear-gradient(135deg,#0f2347 0%,#1a3a60 60%,#1e4d8c 100%);color:#fff;padding:52px 48px 44px;position:relative;overflow:hidden}
+.lp-hero{background:linear-gradient(135deg,#0f2347 0%,#1a3a60 60%,#1e4d8c 100%);color:#fff;padding:52px 48px 44px;position:relative;overflow:hidden;display:flex;align-items:center;gap:40px}
 .lp-hero::after{content:'';position:absolute;right:-60px;top:-60px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none}
 .lp-eyebrow{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:14px}
 .lp-h1{font-size:32px;font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.01em}
 .lp-sub{font-size:14px;color:rgba(255,255,255,.72);line-height:1.6;max-width:520px;margin-bottom:28px}
 .lp-cta{display:inline-flex;align-items:center;gap:7px;padding:11px 24px;border-radius:8px;background:#fff;color:#1a3a60;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 2px 12px rgba(0,0,0,.18)}
 .lp-cta:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.24)}
-.lp-hero-img{display:block;width:100%;max-width:860px;margin-top:32px;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.45)}
+.lp-hero-text{flex:1;min-width:0}
+.lp-hero-img{flex-shrink:0;width:42%;max-width:420px;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.45);display:block}
 .lp-section{padding:36px 48px;border-bottom:1px solid #e8e8e8}
 .lp-section:last-child{border-bottom:none}
 .lp-section-alt{background:#f9fafb}
