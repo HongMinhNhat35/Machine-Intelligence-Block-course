@@ -10,11 +10,13 @@ data/inference_check/
 
 # ── Model weights (distributed via sync_from_drive.sh) ────────────────────────
 services/e2vid/weights/*.pt
-services/hypere2vid/weights/
+services/hypere2vid/weights/*.pt
 # fusion weights are small (~6 MB each) and versioned directly in git
 *.pt
 !services/fusion/weights/*.pt
 !notebooks/ami-fusion-weights/*.pt
+!services/e2vid/weights/yolo_e2vid.pt
+!services/hypere2vid/weights/hypere2vid_best.pt
 *.pth
 *.pth.tar
 
