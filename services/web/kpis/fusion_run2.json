@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "model": "fusion",
+  "detector": "YOLOv8n (rgb+event)",
+  "run_id": "run_2",
+  "contributor": "AMI Group 1",
+  "timestamp": "2026-07-16T17:35:00",
+  "note": "Late Fusion — combined RGB+event system. Both component models (fusion_rgb_run_2, fusion_event_run_2) trained on full 40/10/5 FRED split. Evaluated on 5 canonical test sequences.",
+  "featured": true,
+  "reconstruction": {
+    "sequences": null,
+    "events_per_pixel": null,
+    "total_frames": null,
+    "total_runtime_s": null,
+    "avg_fps": null,
+    "gpu": null
+  },
+  "training": {
+    "train_sequences": ["sequence_0","sequence_5","sequence_14","sequence_18","sequence_25","sequence_28","sequence_33","sequence_38","sequence_44","sequence_49","sequence_54","sequence_58","sequence_67","sequence_71","sequence_75","sequence_79","sequence_85","sequence_89","sequence_95","sequence_99","sequence_104","sequence_108","sequence_116","sequence_120","sequence_124","sequence_131","sequence_135","sequence_140","sequence_145","sequence_149","sequence_157","sequence_161","sequence_168","sequence_172","sequence_176","sequence_182","sequence_186","sequence_192","sequence_199","sequence_204"],
+    "val_sequences": ["sequence_2","sequence_16","sequence_31","sequence_47","sequence_62","sequence_81","sequence_101","sequence_125","sequence_150","sequence_211"],
+    "n_train_images": null,
+    "n_val_images": null,
+    "lr0": null,
+    "epochs_requested": null,
+    "epochs_completed": null,
+    "best_epoch": null,
+    "n_gpus": null,
+    "batch_per_gpu": null,
+    "effective_batch": null,
+    "imgsz": 640,
+    "runtime_s": null,
+    "gpu": null
+  },
+  "detection": {
+    "canonical": {
+      "map50": 0.5068,
+      "map50_95": null,
+      "precision": 0.7274,
+      "recall": 0.6708,
+      "note": "Mean over 5 test sequences (8, 9, 12, 20, 21)."
+    },
+    "per_sequence": {
+      "sequence_8":  {"map50": 0.6078, "precision": 0.7700, "recall": 0.7786, "n_gt": 2782},
+      "sequence_9":  {"map50": 0.3592, "precision": 0.5672, "recall": 0.5694, "n_gt": 2891},
+      "sequence_12": {"map50": 0.5186, "precision": 0.6617, "recall": 0.6434, "n_gt": 1736},
+      "sequence_20": {"map50": 0.8738, "precision": 0.8797, "recall": 0.9206, "n_gt": 2820},
+      "sequence_21": {"map50": 0.0909, "precision": 0.7938, "recall": 0.0698, "n_gt": 1103}
+    }
+  }
+}

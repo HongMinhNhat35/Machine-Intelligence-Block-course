@@ -41,7 +41,7 @@ done
 
 echo "Downloading KPI files ..."
 mkdir -p "$RECON/kpis"
-for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
+for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json fusion_run2.json hypere2vid_run1.json hypere2vid_run2.json; do
   curl -fsSL -o "$RECON/kpis/$f" "$RAW/services/web/kpis/$f"
 done
 
@@ -136,11 +136,10 @@ tar xzf /tmp/detections_e2vid_demo.tar.gz -C "$RECON/"
 rm /tmp/detections_e2vid_demo.tar.gz
 echo ""
 
-echo "Downloading pre-cached Late Fusion detections (Run 1 — YOLOv8n RGB+Event) ..."
-RELEASE_V4="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v4.0"
-curl -L --progress-bar -o /tmp/detections_fusion_run1.tar.gz "$RELEASE_V4/detections_fusion_run1.tar.gz"
-tar xzf /tmp/detections_fusion_run1.tar.gz -C "$RECON/"
-rm /tmp/detections_fusion_run1.tar.gz
+echo "Downloading pre-cached Late Fusion detections (Run 2 — YOLOv8n RGB+Event, 50-seq split) ..."
+curl -L --progress-bar -o /tmp/detections_fusion_run2.tar.gz "$RELEASE_V5/detections_fusion_run2.tar.gz"
+tar xzf /tmp/detections_fusion_run2.tar.gz -C "$RECON/"
+rm /tmp/detections_fusion_run2.tar.gz
 echo ""
 
 echo ""
