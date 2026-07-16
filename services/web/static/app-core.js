@@ -157,20 +157,25 @@ async function lpStartPlayer(){
     return Math.round(ef*syncR.length/Math.max(syncE.length,1));
   }
 
-  const evMap={}, fusMap={};
+  const evMap={}, fusRgbMap={}, fusEvMap={};
   try{
     const ed=await fetch('/api/detections/'+SEQ+'?model=e2vid').then(r=>r.json());
     (ed.detections||[]).forEach(d=>{(evMap[d.frame]=evMap[d.frame]||[]).push(d);});
   }catch(e){}
   try{
     const fd=await fetch('/api/detections/'+SEQ+'?model=fusion').then(r=>r.json());
-    (fd.detections||[]).forEach(d=>{(fusMap[d.frame]=fusMap[d.frame]||[]).push(d);});
+    (fd.detections||[]).forEach(d=>{
+      const m=d.source==='rgb'?fusRgbMap:fusEvMap;
+      (m[d.frame]=m[d.frame]||[]).push(d);
+    });
   }catch(e){}
 
   const pillEv=document.getElementById('lp-pill-ev');
   const pillFus=document.getElementById('lp-pill-fus');
   if(pillEv) pillEv.textContent='e2vid boxes';
   if(pillFus) pillFus.textContent='fusion boxes';
+  const pillRgb=document.querySelector('#lp-demo-panels .lp-panel:nth-child(2) .lp-pill');
+  if(pillRgb) pillRgb.textContent='rgb boxes';
 
   // bbox is [cx,cy,w,h] in absolute pixels; coords are in natural img dimensions
   function drawBoxes(ctx,boxes,color){
@@ -202,10 +207,11 @@ async function lpStartPlayer(){
     drawBoxes(ctxEv,evMap[frame],'#38bdf8');
     if(imgRgb){
       cvRgb.width=imgRgb.naturalWidth; cvRgb.height=imgRgb.naturalHeight;
-      cvRgb.getContext('2d').drawImage(imgRgb,0,0);
+      const ctxRgb=cvRgb.getContext('2d'); ctxRgb.drawImage(imgRgb,0,0);
+      drawBoxes(ctxRgb,fusRgbMap[rgbF],'#4ade80');
       cvFus.width=imgRgb.naturalWidth; cvFus.height=imgRgb.naturalHeight;
       const ctxFus=cvFus.getContext('2d'); ctxFus.drawImage(imgRgb,0,0);
-      drawBoxes(ctxFus,fusMap[rgbF],'#fb923c');
+      drawBoxes(ctxFus,(fusRgbMap[rgbF]||[]).concat(fusEvMap[rgbF]||[]),'#fb923c');
     }
     frame++;
     if(frame>=frameCount) frame=START;
