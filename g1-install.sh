@@ -57,23 +57,8 @@ cd "$RECON"
 docker compose pull
 
 echo ""
-echo "=== Docker setup complete — teammates with existing data can stop here ==="
+echo "  If you already have the reconstruction data, you can stop here (Ctrl+C)."
 echo "  cd $RECON && docker compose up -d"
-echo ""
-read -rp "Download pre-computed reconstruction frames and detections? [Y/n]: " DL_DATA
-DL_DATA="${DL_DATA:-Y}"
-if [[ "$DL_DATA" =~ ^[Nn] ]]; then
-  echo ""
-  echo "=== Setup complete ==="
-  echo ""
-  echo "  Next:"
-  echo "    cd $RECON"
-  echo "    docker compose up -d"
-  echo "    open http://localhost:8080"
-  echo ""
-  exit 0
-fi
-
 echo ""
 echo "Downloading pre-computed E2VID reconstruction frames to $RECON ..."
 echo "(Run 9 — events_per_pixel=0.1 · test sequences: 8,9,12,20,21 · prototyping: 84,85,124,127,201)"
