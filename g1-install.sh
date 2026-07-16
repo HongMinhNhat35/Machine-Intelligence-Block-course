@@ -30,6 +30,51 @@ if [ ! -w "$RECON" ]; then
 fi
 
 echo ""
+echo "Downloading docker-compose.yml ..."
+curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.deploy.yml"
+
+echo "Downloading GUI static files ..."
+mkdir -p "$RECON/static"
+for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css; do
+  curl -fsSL -o "$RECON/static/$f" "$RAW/services/web/static/$f"
+done
+
+echo "Downloading KPI files ..."
+mkdir -p "$RECON/kpis"
+for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
+  curl -fsSL -o "$RECON/kpis/$f" "$RAW/services/web/kpis/$f"
+done
+
+echo "Writing .env ..."
+cat > "$RECON/.env" <<EOF
+FRED_DATA_PATH=$FRED
+RECON_DATA_PATH=$RECON
+EOF
+
+echo ""
+echo "Pulling Docker images ..."
+cd "$RECON"
+docker compose pull
+
+echo ""
+echo "=== Docker setup complete — teammates with existing data can stop here ==="
+echo "  cd $RECON && docker compose up -d"
+echo ""
+read -rp "Download pre-computed reconstruction frames and detections? [Y/n]: " DL_DATA
+DL_DATA="${DL_DATA:-Y}"
+if [[ "$DL_DATA" =~ ^[Nn] ]]; then
+  echo ""
+  echo "=== Setup complete ==="
+  echo ""
+  echo "  Next:"
+  echo "    cd $RECON"
+  echo "    docker compose up -d"
+  echo "    open http://localhost:8080"
+  echo ""
+  exit 0
+fi
+
+echo ""
 echo "Downloading pre-computed E2VID reconstruction frames to $RECON ..."
 echo "(Run 9 — events_per_pixel=0.1 · test sequences: 8,9,12,20,21 · prototyping: 84,85,124,127,201)"
 echo ""
@@ -113,27 +158,6 @@ tar xzf /tmp/detections_fusion_run1.tar.gz -C "$RECON/"
 rm /tmp/detections_fusion_run1.tar.gz
 echo ""
 
-echo "Downloading docker-compose.yml ..."
-curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.deploy.yml"
-
-echo "Downloading GUI static files ..."
-mkdir -p "$RECON/static"
-for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css; do
-  curl -fsSL -o "$RECON/static/$f" "$RAW/services/web/static/$f"
-done
-
-echo "Downloading KPI files ..."
-mkdir -p "$RECON/kpis"
-for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
-  curl -fsSL -o "$RECON/kpis/$f" "$RAW/services/web/kpis/$f"
-done
-
-echo "Writing .env ..."
-cat > "$RECON/.env" <<EOF
-FRED_DATA_PATH=$FRED
-RECON_DATA_PATH=$RECON
-EOF
-
 echo ""
 echo "=== Basic demo setup complete ==="
 echo ""
@@ -148,11 +172,6 @@ if [[ "$DL_ALL" =~ ^[Yy] ]]; then
   done
   echo ""
 fi
-
-echo ""
-echo "Pulling Docker images ..."
-cd "$RECON"
-docker compose pull
 
 echo ""
 echo "=== Setup complete ==="
