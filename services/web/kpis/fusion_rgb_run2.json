@@ -19,7 +19,7 @@
     "train_sequences": ["sequence_0","sequence_5","sequence_14","sequence_18","sequence_25","sequence_28","sequence_33","sequence_38","sequence_44","sequence_49","sequence_54","sequence_58","sequence_67","sequence_71","sequence_75","sequence_79","sequence_85","sequence_89","sequence_95","sequence_99","sequence_104","sequence_108","sequence_116","sequence_120","sequence_124","sequence_131","sequence_135","sequence_140","sequence_145","sequence_149","sequence_157","sequence_161","sequence_168","sequence_172","sequence_176","sequence_182","sequence_186","sequence_192","sequence_199","sequence_204"],
     "val_sequences": ["sequence_2","sequence_16","sequence_31","sequence_47","sequence_62","sequence_81","sequence_101","sequence_125","sequence_150","sequence_211"],
     "n_train_images": null,
-    "n_val_images": null,
+    "n_val_images": 28489,
     "lr0": 0.01,
     "lrf": 0.01,
     "epochs_requested": 50,
@@ -34,10 +34,11 @@
   },
   "detection": {
     "canonical": {
-      "map50": 0.26133,
-      "map50_95": 0.07202,
-      "precision": 0.44893,
-      "recall": 0.29448
+      "map50": 0.1669,
+      "map50_95": 0.0458,
+      "precision": 0.284,
+      "recall": 0.238,
+      "note": "Test set: 5 held-out sequences (seq 8, 9, 12, 20, 21). 11 249 images. Val set (10 seqs, 28 489 images): mAP50=0.260, mAP50-95=0.0725, P=0.451, R=0.297."
     },
     "challenging": {
       "map50": null,
