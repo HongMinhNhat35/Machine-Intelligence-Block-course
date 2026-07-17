@@ -236,7 +236,7 @@ function cpUpdateMetrics(){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='e2vid');
   if(!runs.length) return;
-  const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const run=(runs.find(r=>r.deployed)||runs.find(r=>r.featured))||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-map50').textContent=pct(m.map50);
@@ -251,7 +251,7 @@ function cpUpdateMetricsHyper(){
   if(!kpiCache) return;
   const runs=kpiCache.filter(r=>r.model==='hypere2vid');
   if(!runs.length) return;
-  const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const run=(runs.find(r=>r.deployed)||runs.find(r=>r.featured))||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   document.getElementById('cp-hyper-map50').textContent=pct(m.map50);
@@ -271,7 +271,7 @@ function cpUpdateMetricsFusion(){
     });
     return;
   }
-  const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const run=(runs.find(r=>r.deployed)||runs.find(r=>r.featured))||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const m=run.detection?.canonical||{};
   document.getElementById('cp-fusion-map50').textContent=pct(m.map50);
   document.getElementById('cp-fusion-map5095').textContent=pct(m.map50_95);
@@ -370,7 +370,7 @@ let cp2TrailOn=false;
 const cp2Trails={left:[],rgb:[],fusion:[]};
 
 // Confidence timeline state (Float32Array per e2vid frame index)
-let cp2ConfLeft=null, cp2ConfFusion=null;
+let cp2ConfLeft=null, cp2ConfRgb=null, cp2ConfFusion=null;
 
 /* ── Detection trail ───────────────────────────────────────────────── */
 
@@ -401,6 +401,9 @@ function cp2BuildConfArrays(){
       ? {secondaryCount:cp2HyperFrameCount, slope:cp2HyperSlope, offset:cp2HyperOffset, calibrated:cp2HyperCalibrated, inverse:true}
       : {}
   );
+  cp2ConfRgb=buildConfArray(cp2RgbDets, N,
+    {secondaryCount:cp2FusionFrameCount, slope:cp2FusionSlope, offset:cp2FusionOffset, calibrated:cp2FusionCalibrated}
+  );
   cp2ConfFusion=buildConfArray(cp2FusionDets, N,
     {secondaryCount:cp2FusionFrameCount, slope:cp2FusionSlope, offset:cp2FusionOffset, calibrated:cp2FusionCalibrated}
   );
@@ -409,7 +412,8 @@ function cp2BuildConfArrays(){
 function cp2DrawConfTimeline(){
   const leftLabel=cp2LeftMode==='hypere2vid'?'HyperE2VID':'e2vid';
   drawConfTimeline('cp2-conf-timeline', cp2Frame, cp2Max, [
-    {arr:cp2ConfLeft,  color:'#3b82f6', label:leftLabel},
+    {arr:cp2ConfLeft,   color:'#3b82f6', label:leftLabel},
+    {arr:cp2ConfRgb,    color:'#22c55e', label:'RGB'},
     {arr:cp2ConfFusion, color:'#f97316', label:'Fusion'},
   ]);
 }
@@ -583,7 +587,7 @@ function cp2UpdateMetrics(){
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
   const best=(runs,model)=>{
     const r=runs.filter(x=>x.model===model);
-    const picked=r.find(x=>x.featured||x.deployed)||r.reduce((b,x)=>((x.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?x:b),r[0]);
+    const picked=(r.find(x=>x.deployed)||r.find(x=>x.featured))||r.reduce((b,x)=>((x.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?x:b),r[0]);
     return picked ? picked.detection?.canonical||{} : {};
   };
   const leftModel=cp2LeftMode==='hypere2vid'?'hypere2vid':'e2vid';

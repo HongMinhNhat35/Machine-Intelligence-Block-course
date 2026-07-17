@@ -68,7 +68,7 @@ async function getKpis(){
 function updateSidebarMap50(){
   if(!kpiCache) return;
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
-  const bestRun=runs=>runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const bestRun=runs=>(runs.find(r=>r.deployed)||runs.find(r=>r.featured))||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const e2vidRuns=kpiCache.filter(r=>r.model==='e2vid');
   const e2vidEl=document.getElementById('sb-e2vid-map50');
   if(e2vidEl){
@@ -85,7 +85,7 @@ function updateSidebarMap50(){
   const fusionEl=document.getElementById('sb-fusion-map50');
   if(fusionEl){
     const v=fusionRuns.length ? bestRun(fusionRuns).detection?.canonical?.map50 : undefined;
-    fusionEl.textContent=v!==undefined ? '>'+pct(v) : '—';
+    fusionEl.textContent=v!==undefined ? pct(v) : '—';
   }
 }
 
@@ -106,7 +106,7 @@ getKpis().then(updateSidebarMap50).then(()=>{
 
 function lpPopulateTable(){
   const pct=v=>(v===null||v===undefined)?'—':(Math.round(+v*1000)/10).toFixed(1)+'%';
-  const bestRun=runs=>runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+  const bestRun=runs=>(runs.find(r=>r.deployed)||runs.find(r=>r.featured))||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
   const body=document.getElementById('lp-kpi-body');
   const map50El=document.getElementById('lp-map50');
   if(!kpiCache||!body) return;

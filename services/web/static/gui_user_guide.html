@@ -385,7 +385,16 @@
     </table></div>
 
     <h3>Confidence timeline</h3>
-    <p>Shows the maximum detection confidence per frame for the left-column model (blue) and the fusion model (orange) simultaneously. A red vertical marker tracks the current frame.</p>
+    <p>Labelled <strong>Detection confidence per frame</strong>, this strip shows the maximum detection confidence at each frame for three models simultaneously. Each line rises when the model detects a drone with high confidence and drops to the bottom when there is no detection.</p>
+    <table>
+      <thead><tr><th>Line</th><th>Colour</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Left column model (e2vid or HyperE2VID)</td><td>Blue</td><td><code>detections_e2vid.json</code> or <code>detections_hypere2vid.json</code></td></tr>
+        <tr><td>RGB detector</td><td>Green</td><td><code>detections_fusion_rgb.json</code></td></tr>
+        <tr><td>Late Fusion</td><td>Orange</td><td><code>detections_fusion.json</code></td></tr>
+      </tbody>
+    </table>
+    <p>A red vertical marker tracks the current frame. The horizontal gridline at 50% is a visual reference.</p>
 
     <hr>
 

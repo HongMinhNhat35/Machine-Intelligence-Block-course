@@ -155,14 +155,15 @@ While active, the last 30 frames of bbox centre positions are drawn as fading go
 
 ### Confidence timeline
 
-A strip between the image panels and the playback controls shows the maximum detection confidence per frame for two models simultaneously:
+A strip labelled **Detection confidence per frame** between the image panels and the playback controls shows the maximum detection confidence at each frame for three models simultaneously:
 
 | Line | Colour | Source |
 |------|--------|--------|
 | Left column model (e2vid or HyperE2VID) | Blue | `detections_e2vid.json` or `detections_hypere2vid.json` |
-| Fusion model | Orange | `detections_fusion.json` |
+| RGB detector | Green | `detections_fusion_rgb.json` |
+| Late Fusion | Orange | `detections_fusion.json` |
 
-The model name is shown as a small legend inside the canvas. A red vertical marker tracks the current frame and moves in real time while scrubbing. The horizontal gridline at 50% confidence is a visual reference.
+Each line rises toward the top when the model detects a drone with high confidence, and drops to the bottom when there is no detection. The model names are shown as a small legend inside the canvas. A red vertical marker tracks the current frame and moves in real time while scrubbing. The horizontal gridline at 50% confidence is a visual reference.
 
 ### Frame synchronisation
 

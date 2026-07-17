@@ -112,11 +112,10 @@ async function loadKpis(){
 
     // ── Summary: prefer featured/deployed run; fall back to highest mAP ────────
     const modelOrder = ['fusion','fusion_event','fusion_rgb','e2vid','hypere2vid'];
-    const gt = s => `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}`;
     const summaryRows = modelOrder.map(model => {
       const modelRuns = runs.filter(r => r.model === model);
       if (!modelRuns.length) return '';
-      const featured = modelRuns.find(r => r.featured || r.deployed);
+      const featured = modelRuns.find(r => r.deployed) || modelRuns.find(r => r.featured);
       const best = featured || modelRuns.reduce((b,r) => ((r.detection?.canonical?.map50||0) > (b.detection?.canonical?.map50||0) ? r : b));
       const c = best.detection?.canonical || {};
       const rc = best.reconstruction || {};
@@ -134,11 +133,10 @@ async function loadKpis(){
       const runtime = totalS > 0 ? kpiHrs(totalS) : '—';
       const isCombined = model === 'fusion';
       const cls = isCombined ? 'best ours' : 'ours';
-      const wrap = v => isCombined ? gt(v) : v;
       return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(best.run_id)}</td>
         <td>${kpiEvalBadge(best.detection?.eval_source)}</td>
-        <td>${wrap(kpiPct(c.map50))}</td><td>${wrap(kpiPct(c.map50_95))}</td>
-        <td>${wrap(kpiPct(c.precision))}</td><td>${wrap(kpiPct(c.recall))}</td>
+        <td>${kpiPct(c.map50)}</td><td>${kpiPct(c.map50_95)}</td>
+        <td>${kpiPct(c.precision)}</td><td>${kpiPct(c.recall)}</td>
         <td>${runtime}</td></tr>`;
     });
     document.getElementById('kpi-summary-body').innerHTML = summaryRows.join('');
@@ -169,11 +167,10 @@ async function loadKpis(){
       }
       const runtime=totalS>0?kpiHrs(totalS):'—';
       const cls=isCombined(r)?'best ours':'ours';
-      const gt2 = s => isCombined(r) ? `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}` : s;
       return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(r.run_id)}</td><td>${valSeqs}</td>
         <td>${kpiEvalBadge(r.detection?.eval_source)}</td>
-        <td>${gt2(kpiPct(c.map50))}</td><td>${gt2(kpiPct(c.map50_95))}</td>
-        <td>${gt2(kpiPct(c.precision))}</td><td>${gt2(kpiPct(c.recall))}</td>
+        <td>${kpiPct(c.map50)}</td><td>${kpiPct(c.map50_95)}</td>
+        <td>${kpiPct(c.precision)}</td><td>${kpiPct(c.recall)}</td>
         <td>${runtime}</td></tr>`;
     }).join('') : '<tr><td colspan="9" style="color:#aaa">No KPI files found.</td></tr>';
 

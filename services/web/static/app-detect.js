@@ -245,7 +245,7 @@ function dtUpdateKpis(){
   let m={};
   if(typeof kpiCache!=='undefined'&&kpiCache){
     const runs=kpiCache.filter(r=>r.model===kpiModel);
-    const run=runs.find(r=>r.featured||r.deployed)||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
+    const run=(runs.find(r=>r.deployed)||runs.find(r=>r.featured))||runs.reduce((b,r)=>((r.detection?.canonical?.map50||0)>(b.detection?.canonical?.map50||0)?r:b),runs[0]);
     m=run?.detection?.canonical||{};
   }
   const el=id=>document.getElementById(id);
