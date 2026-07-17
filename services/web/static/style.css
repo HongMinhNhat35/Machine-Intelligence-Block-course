@@ -23,7 +23,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;background:#f
 .app{display:flex;flex:1;overflow:hidden}
 
 /* ── Sidebar ──────────────────────────────────────────────────────────────── */
-.sidebar{width:190px;min-width:190px;background:#fff;border-right:1px solid #e0e0e0;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.sidebar{width:190px;min-width:190px;background:#fff;border-right:1px solid #e0e0e0;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
 .brand{font-size:13px;font-weight:600;padding:4px 8px;margin-bottom:8px;color:#1a3a60}
 .nav-item{padding:6px 10px;border-radius:8px;cursor:pointer;color:#555;font-size:12px;display:flex;align-items:center;gap:7px;transition:background .15s}
 .nav-item:hover{background:#f0f4f8}
