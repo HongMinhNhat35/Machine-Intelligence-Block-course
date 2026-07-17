@@ -112,7 +112,7 @@ def h5_event_generator(h5_path: Path, start_s: float, duration_s,
             yield (t_s,
                    chunk['x'].astype(np.int32),
                    chunk['y'].astype(np.int32),
-                   (chunk['p'] > 0).astype(np.float32) * 2 - 1)
+                   (chunk['p'] > 0).astype(np.float32))  # EVREAL uses 0/1 not -1/+1)
             idx += chunk_size
 
 
@@ -204,7 +204,7 @@ class StreamingVoxelBuilder:
                 buf_t[idx] = float(parts[0])
                 buf_x[idx] = int(parts[1])
                 buf_y[idx] = int(parts[2])
-                buf_p[idx] = 1.0 if int(parts[3]) > 0 else -1.0
+                buf_p[idx] = 1.0 if int(parts[3]) > 0 else 0.0  # EVREAL uses 0/1 not -1/+1
                 fill  += 1
                 total += 1
 
@@ -372,10 +372,13 @@ def run_streaming_inference(model, voxel_iter, n_events: int, n_windows: int,
 
             out     = model.forward(voxel)          # ColorNet.forward(tensor)
             pred    = out['image']                   # (3, H, W) float32 in [0,1]
-
-            # Convert to uint8 grayscale (all channels are identical for grayscale mode)
-            pred_np = pred[0].cpu().numpy()          # take first channel (R≡G≡B here)
-            pred_u8 = np.clip(pred_np * 255, 0, 255).astype(np.uint8)
+            # ColorNet returns BGR float [0,1] via to_tensor(uint8_hwc).
+            # Convert to grayscale with standard BGR weights.
+            pred_np = pred.cpu().numpy()             # (3, H, W)
+            gray    = (0.114 * pred_np[0] +          # B
+                       0.587 * pred_np[1] +          # G
+                       0.299 * pred_np[2])            # R
+            pred_u8 = np.clip(gray * 255, 0, 255).astype(np.uint8)
 
             frame_path = out_dir / f'frame_{frame_idx:06d}{ext}'
             img = Image.fromarray(pred_u8, mode='L')
@@ -523,6 +526,8 @@ def main():
         n_windows = -1
 
     # ── Stream inference → frames ─────────────────────────────────────────────
+    # Reset recurrent state so sequences don't bleed into each other
+    model.reset_states()
     print(f'\n=== Step 2: Streaming inference → {args.out_dir} ===')
     t0 = time.time()
     n_frames, runtime = run_streaming_inference(
