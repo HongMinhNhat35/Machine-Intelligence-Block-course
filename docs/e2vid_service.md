@@ -111,7 +111,7 @@ what is displayed without any server call, giving instant visual feedback.
 
 | Path | Contents |
 |---|---|
-| `/app/weights/yolo_e2vid.pt` | YOLOv8s weights, **Run 7**, trained on FRED e2vid frames (mAP50=93.6%, best at epoch 20) |
+| `/app/weights/yolo_e2vid.pt` | YOLOv8n weights, **Run 9**, trained on FRED e2vid frames (test mAP50=45.3%, best at epoch 24) |
 | `/data/recon/<sequence_id>/reconstruction_e2vid/` | input frames (mounted from host) |
 | `/data/recon/<sequence_id>/detections_e2vid.json` | cached detection output |
 
@@ -141,10 +141,11 @@ docker compose pull e2vid && docker compose up -d e2vid
 
 | Run | Train seqs | Val seq | epp | Train frames | mAP50 | Notes |
 |---|---|---|---|---|---|---|
-| Run 5 | 84, 85, 201, 124 | 127 | 2.0 | ~3,000 | 0.792 | Baseline |
-| Run 6 | 84, 85, 201, 124 | 127 | 0.2 | ~5,000 | 0.856 | Denser frames |
-| Run 7 | 84, 85, 201, 124 | 127 | 0.1 | 6,264 | **0.936** | **Active weights** — best run |
-| Run 8 | 44, 45, 46, 47 | 146 | 0.1 | 736 | 0.022 | Failed: seqs 44–47 event-sparse (13–23M events, 75–128 MB); ≥500 MB events.zip needed for adequate frame count at epp=0.1 |
+| Run 5 | 84, 85, 201, 124 | 127 | 0.01 | ~3,000 | 0.792 | Baseline |
+| Run 6 | 84, 85, 201, 124 | 127 | 0.05 | ~5,000 | 0.856 | Denser frames |
+| Run 7 | 84, 85, 201, 124 | 127 | 0.1 | 6,264 | 0.936 | — |
+| Run 8 | 44, 45, 46, 47 | 146 | 0.1 | 736 | 0.022 | Failed: seqs 44–47 event-sparse (75–128 MB); ≥500 MB needed for adequate frame count |
+| Run 9 | 40 canonical | 10 canonical | 0.1 | 32,893 | **0.453 (test)** | **Active weights** — canonical FRED split (40/10/5 train/val/test); val mAP50=0.431 |
 
 ---
 

@@ -198,7 +198,7 @@ Estimated training frames at epp=0.1: ~10,000–15,000 (vs 6,264 in Run 7).
 |---|---|---|---|---|
 | Run 5–7 | 84, 85, 201, 124 | 127 | 0.936 (R7) | seq_127 worst val choice (rank 201/231); seq_84/85 redundant |
 | Run 8 | 44, 45, 46, 47 | 146 | 0.022 | Failed — seqs 44–47 event-sparse (263–469 MB), only 736 train frames |
-| Run 9 (planned) | 201, 212, 214, 215 | 146 | — | New event-dense sequences; ~10–15k estimated train frames |
+| Run 9 | 40 canonical train seqs | 10 canonical val seqs | 0.453 (test) | Canonical FRED split (40/10/5); YOLOv8n; epp=0.1; 32,893 train frames; best epoch 24; val mAP50=0.431 |
 
 **seq_201** is the only overlap between Run 7 and Run 9 — it remains the top-ranked
 sequence even with the event density filter (2,114 MB).
@@ -232,8 +232,12 @@ scored 0.876 for validation regardless of their original designation.
 
 ## Practical constraints
 
-The recommended sequences (44–47, 146) are on HuggingFace but not yet
-downloaded. Each zip is ~1 GB (dominated by events.hdf5). To prepare them:
+Sequences 44–47 and 146 were downloaded and used in Run 8. They turned out to be
+event-sparse (75–128 MB each), producing only 736 training frames total at epp=0.1
+and failing with mAP50=0.022. Run 9 switched to the canonical FRED 40/10/5 split
+instead.
+
+To download these sequences if needed:
 
 ```bash
 curl -L -o data/raw/zips/44.zip  "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/44.zip"
@@ -243,10 +247,6 @@ curl -L -o data/raw/zips/47.zip  "https://huggingface.co/datasets/GabrieleMagrin
 curl -L -o data/raw/zips/146.zip "https://huggingface.co/datasets/GabrieleMagrini/FRED/resolve/main/train/146.zip"
 bash scripts/prepare_sequences.sh 44 45 46 47 146
 ```
-
-Total download: ~5 GB. Reconstruction on Kaggle T4: ~7 hours for the four
-training sequences combined (~50k frames estimated). Fits within the 9-hour
-limit.
 
 ---
 
