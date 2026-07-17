@@ -49,3 +49,8 @@ Detailed pipeline and setup guides are in [`docs/`](docs/):
 - [`docs/e2vid_service.md`](docs/e2vid_service.md) — Docker service setup
 - [`docs/kpi.md`](docs/kpi.md) — KPI schema and results overview
 - [`docs/fred_sequence_selection.md`](docs/fred_sequence_selection.md) — FRED dataset sequence selection
+
+Installation and usage guides are in the `gui` branch:
+
+- [g1_QUICKSTART.md](https://gitlab.lrz.de/ldv/teaching/ami/ami2026/group01/-/blob/gui/g1_QUICKSTART.md) — installation and first run
+- [docs/gui_user_guide.md](https://gitlab.lrz.de/ldv/teaching/ami/ami2026/group01/-/blob/gui/docs/gui_user_guide.md) — GUI user guide
