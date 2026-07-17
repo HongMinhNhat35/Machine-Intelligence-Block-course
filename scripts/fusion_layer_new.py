@@ -49,6 +49,45 @@ def _fuse_box(event_box, rgb_box, ce, cr, weighted_box):
     return [(ce * e + cr * r) / total for e, r in zip(event_box, rgb_box)]
 
 
+def temporal_smooth(fused_by_frame, window=1, match_iou=0.2, boost=1.1, decay=1.0):
+    """
+    Post-process per-frame fused detections with temporal context.
+
+    For each detection, look at ±window adjacent frames. If a spatially
+    similar box (IoU ≥ match_iou) exists in any of those frames, the
+    detection is considered temporally supported and its confidence is
+    multiplied by boost. Otherwise it is multiplied by decay (set < 1.0
+    to suppress isolated false positives).
+
+    Parameters
+    ----------
+    fused_by_frame : {frame_idx: [{'box', 'confidence', 'source'}, ...]}
+    window         : how many frames to look either side
+    match_iou      : spatial IoU threshold for cross-frame matching
+                     (lower than same-frame iou_t since the drone moves)
+    boost          : confidence multiplier for supported detections  (> 1.0)
+    decay          : confidence multiplier for isolated detections   (< 1.0)
+    """
+    smoothed = {}
+    for f, dets in fused_by_frame.items():
+        new_dets = []
+        for det in dets:
+            supported = False
+            for df in range(f - window, f + window + 1):
+                if df == f or df not in fused_by_frame:
+                    continue
+                for other in fused_by_frame[df]:
+                    if calculate_iou(det["box"], other["box"]) >= match_iou:
+                        supported = True
+                        break
+                if supported:
+                    break
+            factor = boost if supported else decay
+            new_dets.append({**det, "confidence": min(1.0, det["confidence"] * factor)})
+        smoothed[f] = new_dets
+    return smoothed
+
+
 def fuse_detections(
     event_boxes,
     rgb_boxes,
