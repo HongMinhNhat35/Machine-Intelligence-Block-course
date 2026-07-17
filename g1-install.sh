@@ -1,12 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RELEASE_V2="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v2.0"
-RELEASE_V5="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v5.0"
-RAW="https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui"
+GL_PROJECT="https://gitlab.lrz.de/ldv/teaching/ami/ami2026/group01"
+GL_RAW="$GL_PROJECT/-/raw/gui"
+GL_PKG="https://gitlab.lrz.de/api/v4/projects/269843/packages/generic/data/1.0"
+GL_REGISTRY="gitlab.lrz.de:5005"
 DEFAULT_RECON="$HOME/g1-ami-data"
 
 echo "=== AMI Hybrid Vision System — Group 1 Installer ==="
+echo ""
+echo "This installer pulls from the LRZ GitLab project."
+echo "You need an LRZ account and a Personal Access Token with read_registry"
+echo "and read_api scopes. Create one at:"
+echo "  https://gitlab.lrz.de/-/user_settings/personal_access_tokens"
+echo ""
+
+read -rp  "LRZ username (e.g. go49kon): " GL_USER
+read -rsp "Personal Access Token: " GL_TOKEN
+echo ""
+
+# Validate token
+echo "Checking token ..."
+HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+  --header "PRIVATE-TOKEN: $GL_TOKEN" \
+  "https://gitlab.lrz.de/api/v4/projects/269843")
+if [ "$HTTP" != "200" ]; then
+  echo "Error: token validation failed (HTTP $HTTP). Check your username and token."
+  exit 1
+fi
+echo "Token OK."
 echo ""
 
 read -rp "Where should the reconstruction data be stored? [${DEFAULT_RECON}]: " RECON
@@ -29,20 +51,28 @@ if [ ! -w "$RECON" ]; then
   exit 1
 fi
 
+gl_curl() {
+  curl -fsSL --header "PRIVATE-TOKEN: $GL_TOKEN" "$@"
+}
+
+echo ""
+echo "Logging in to GitLab container registry ..."
+echo "$GL_TOKEN" | docker login "$GL_REGISTRY" --username "$GL_USER" --password-stdin
+
 echo ""
 echo "Downloading docker-compose.yml ..."
-curl -fsSL -o "$RECON/docker-compose.yml" "$RAW/docker-compose.deploy.yml"
+gl_curl -o "$RECON/docker-compose.yml" "$GL_RAW/docker-compose.deploy.yml"
 
 echo "Downloading GUI static files ..."
 mkdir -p "$RECON/static"
 for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css gui_user_guide.html fusion_viz.jpeg; do
-  curl -fsSL -o "$RECON/static/$f" "$RAW/services/web/static/$f"
+  gl_curl -o "$RECON/static/$f" "$GL_RAW/services/web/static/$f"
 done
 
 echo "Downloading KPI files ..."
 mkdir -p "$RECON/kpis"
 for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json fusion_run2.json hypere2vid_run1.json hypere2vid_run2.json; do
-  curl -fsSL -o "$RECON/kpis/$f" "$RAW/services/web/kpis/$f"
+  gl_curl -o "$RECON/kpis/$f" "$GL_RAW/services/web/kpis/$f"
 done
 
 echo "Writing .env ..."
@@ -60,91 +90,32 @@ echo ""
 echo "  If you already have the reconstruction data, you can stop here (Ctrl+C)."
 echo "  cd $RECON && docker compose up -d"
 echo ""
-echo "Downloading pre-computed E2VID reconstruction frames to $RECON ..."
-echo "(Run 9 — events_per_pixel=0.1 · test sequences: 8,9,12,20,21 · prototyping: 84,85,124,127,201)"
+echo "Downloading pre-computed reconstruction frames (~1.6 GB, all sequences) ..."
+echo "(E2VID Run 9 + HyperE2VID Run 2)"
 echo ""
 
-download_seq() {
-    local rel=$1; local seq=$2; shift 2
-    local parts=("$@")
-    local n_parts=${#parts[@]}
-    local target="$RECON/$seq/reconstruction_e2vid"
-    if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
-        echo "  [skip] $seq — already exists"
-        echo ""
-        return
-    fi
-    mkdir -p "$RECON/$seq"
-    local tmp_files=()
-    local i=1
-    for part in "${parts[@]}"; do
-        if [ "$n_parts" -eq 1 ]; then
-            echo "  [$seq] Downloading ..."
-        else
-            echo "  [$seq] Downloading part $i/$n_parts ..."
-        fi
-        curl -L --progress-bar -o "/tmp/$part" "$rel/$part"
-        tmp_files+=("/tmp/$part")
-        (( i++ )) || true
-    done
-    echo "  [$seq] Extracting ..."
-    cat "${tmp_files[@]}" | tar x -C "$RECON/$seq/"
-    rm "${tmp_files[@]}"
-    echo "  [$seq] Done"
-    echo ""
-}
+if [ -d "$RECON/sequence_8/reconstruction_e2vid" ] && [ -n "$(ls -A "$RECON/sequence_8/reconstruction_e2vid" 2>/dev/null)" ]; then
+  echo "  [skip] Reconstruction frames already present in $RECON"
+else
+  curl -L --progress-bar \
+    --header "PRIVATE-TOKEN: $GL_TOKEN" \
+    -o /tmp/recon_frames.tar.gz \
+    "$GL_PKG/recon_frames.tar.gz"
+  echo "Extracting ..."
+  tar xzf /tmp/recon_frames.tar.gz -C "$RECON/"
+  rm /tmp/recon_frames.tar.gz
+  echo "Done."
+fi
 
-# e2vid reconstructions — Run 9 (events_per_pixel=0.1)
-# Test sequences
-download_seq "$RELEASE_V5" sequence_8   sequence_8_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_9   sequence_9_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_12  sequence_12_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_20  sequence_20_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_21  sequence_21_e2vid_run9.tar
-# Prototyping sequences (HyperE2VID available for these)
-download_seq "$RELEASE_V5" sequence_84  sequence_84_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_85  sequence_85_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_124 sequence_124_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_127 sequence_127_e2vid_run9.tar
-download_seq "$RELEASE_V5" sequence_201 sequence_201_e2vid_run9.tar
-
-echo "Downloading HyperE2VID reconstruction frames (~290 MB, 5 sequences, Run 2) ..."
-RELEASE_V3="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0"
-for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
-  target="$RECON/$seq/reconstruction_hypere2vid"
-  if [ -d "$target" ] && [ -n "$(ls -A "$target" 2>/dev/null)" ]; then
-    echo "  [skip] $seq hypere2vid — already exists"
-    continue
-  fi
-  echo "  [$seq] Downloading HyperE2VID frames ..."
-  curl -L --progress-bar -o "/tmp/${seq}_hypere2vid.tar" "$RELEASE_V3/${seq}_hypere2vid.tar"
-  echo "  [$seq] Extracting ..."
-  tar xf "/tmp/${seq}_hypere2vid.tar" -C "$RECON/$seq/"
-  rm "/tmp/${seq}_hypere2vid.tar"
-  echo "  [$seq] Done"
-done
 echo ""
-echo "Downloading pre-cached detections — all models, all 10 demo sequences (~5 MB) ..."
-echo "(e2vid · HyperE2VID · Late Fusion event · Late Fusion RGB · Late Fusion combined)"
-curl -L --progress-bar -o /tmp/detections_all.tar.gz "$RELEASE_V5/detections_all.tar.gz"
+echo "Downloading pre-cached detections — all models, all demo sequences (~5 MB) ..."
+curl -L --progress-bar \
+  --header "PRIVATE-TOKEN: $GL_TOKEN" \
+  -o /tmp/detections_all.tar.gz \
+  "$GL_PKG/detections_all_sequences.tar.gz"
 tar xzf /tmp/detections_all.tar.gz -C "$RECON/"
 rm /tmp/detections_all.tar.gz
 echo ""
-
-echo ""
-echo "=== Basic demo setup complete ==="
-echo ""
-read -rp "Download all 55 reconstructed sequences? [y/N]: " DL_ALL
-DL_ALL="${DL_ALL:-N}"
-if [[ "$DL_ALL" =~ ^[Yy] ]]; then
-  echo ""
-  echo "Downloading E2VID Run 9 — all 55 sequences (skipping already-downloaded ones) ..."
-  ALL_SEQS=(0 2 5 8 9 12 14 16 18 20 21 25 28 31 33 38 44 47 49 54 58 62 67 71 75 79 81 84 85 89 95 99 101 104 108 116 120 124 125 127 131 135 140 145 149 150 157 161 168 172 176 182 186 192 199 201 204 211)
-  for n in "${ALL_SEQS[@]}"; do
-    download_seq "$RELEASE_V5" "sequence_${n}" "sequence_${n}_e2vid_run9.tar"
-  done
-  echo ""
-fi
 
 echo ""
 echo "=== Setup complete ==="

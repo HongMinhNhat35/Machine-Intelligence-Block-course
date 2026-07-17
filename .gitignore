@@ -35,3 +35,6 @@ data/logs/
 .DS_Store
 *.Zone.Identifier
 *:Zone.Identifier
+
+# ── Local backups ─────────────────────────────────────────────────────────────
+*.github-backup

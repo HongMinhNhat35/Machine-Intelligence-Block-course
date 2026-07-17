@@ -110,8 +110,8 @@ function lpPopulateTable(){
   const body=document.getElementById('lp-kpi-body');
   const map50El=document.getElementById('lp-map50');
   if(!kpiCache||!body) return;
-  const modelOrder=['e2vid','hypere2vid','fusion'];
-  const modelLabel={'e2vid':'E2VID + YOLO','hypere2vid':'HyperE2VID + YOLO','fusion':'Late Fusion'};
+  const modelOrder=['fusion','e2vid','hypere2vid'];
+  const modelLabel={'fusion':'Late Fusion','e2vid':'E2VID + YOLO','hypere2vid':'HyperE2VID + YOLO'};
   let fusionVal=null;
   const rows=modelOrder.map(m=>{
     const runs=kpiCache.filter(r=>r.model===m);

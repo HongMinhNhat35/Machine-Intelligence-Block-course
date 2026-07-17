@@ -111,7 +111,7 @@ async function loadKpis(){
     const runs = (await fetch('/api/kpis').then(r=>r.json())).filter(r=>r.model);
 
     // ── Summary: prefer featured/deployed run; fall back to highest mAP ────────
-    const modelOrder = ['e2vid','hypere2vid','fusion','fusion_event','fusion_rgb'];
+    const modelOrder = ['fusion','fusion_event','fusion_rgb','e2vid','hypere2vid'];
     const gt = s => `<span style="color:var(--c-muted,#888);font-weight:600">&gt;</span>${s}`;
     const summaryRows = modelOrder.map(model => {
       const modelRuns = runs.filter(r => r.model === model);
@@ -122,7 +122,6 @@ async function loadKpis(){
       const rc = best.reconstruction || {};
       const tr = best.training || {};
       const lbl = modelLabel(best);
-      const valSeqs = kpiSeqs(tr.val_sequences);
       let totalS = (rc.total_runtime_s||0) + (tr.runtime_s||0);
       if (model === 'fusion') {
         const compRuntime = m => {
@@ -136,7 +135,8 @@ async function loadKpis(){
       const isCombined = model === 'fusion';
       const cls = isCombined ? 'best ours' : 'ours';
       const wrap = v => isCombined ? gt(v) : v;
-      return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(best.run_id)}</td><td>${valSeqs}</td>
+      return `<tr class="${cls}"><td>${lbl}</td><td>${kpiRun(best.run_id)}</td>
+        <td>${kpiEvalBadge(best.detection?.eval_source)}</td>
         <td>${wrap(kpiPct(c.map50))}</td><td>${wrap(kpiPct(c.map50_95))}</td>
         <td>${wrap(kpiPct(c.precision))}</td><td>${wrap(kpiPct(c.recall))}</td>
         <td>${runtime}</td></tr>`;
@@ -144,7 +144,7 @@ async function loadKpis(){
     document.getElementById('kpi-summary-body').innerHTML = summaryRows.join('');
 
     // ── Detection detail table ────────────────────────────────────────────────
-    const detOrder = ['e2vid','hypere2vid','fusion','fusion_event','fusion_rgb'];
+    const detOrder = ['fusion','fusion_event','fusion_rgb','e2vid','hypere2vid'];
     const runNum = r => parseInt((r.run_id||'').replace(/\D/g,''))||0;
     const byModelRun = (a,b) => {
       const ai=detOrder.indexOf(a.model), bi=detOrder.indexOf(b.model);

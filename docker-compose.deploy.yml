@@ -10,7 +10,7 @@
 services:
 
   web:
-    image: ghcr.io/gennepy/ami-web:latest
+    image: gitlab.lrz.de:5005/ldv/teaching/ami/ami2026/group01/ami-web:latest
     ports:
       - "8080:8080"
     volumes:
@@ -27,7 +27,7 @@ services:
         condition: service_healthy
 
   e2vid:
-    image: ghcr.io/gennepy/ami-e2vid:latest
+    image: gitlab.lrz.de:5005/ldv/teaching/ami/ami2026/group01/ami-e2vid:latest
     expose:
       - "8001"
     volumes:
@@ -40,7 +40,7 @@ services:
       retries: 5
 
   hypere2vid:
-    image: ghcr.io/gennepy/ami-hypere2vid:latest
+    image: gitlab.lrz.de:5005/ldv/teaching/ami/ami2026/group01/ami-hypere2vid:latest
     expose:
       - "8002"
     volumes:
@@ -53,7 +53,7 @@ services:
       retries: 5
 
   fusion:
-    image: ghcr.io/gennepy/ami-fusion:latest
+    image: gitlab.lrz.de:5005/ldv/teaching/ami/ami2026/group01/ami-fusion:latest
     expose:
       - "8003"
     volumes:

@@ -10,21 +10,23 @@ No Python, no Git, no build step — just Docker.
 
 - [Docker](https://docs.docker.com/get-docker/) with Docker Compose v2
 - ~4 GB free disk space (E2VID + HyperE2VID frames)
+- An LRZ account with a **Personal Access Token** (`read_registry`, `read_api`, `read_repository` scopes)
 
----
+Create a token at: https://gitlab.lrz.de/-/user_settings/personal_access_tokens
 
 ## Quick install (recommended)
 
-Download and run the installer script:
+Download and run the installer script (replace `<your-token>` with the token from the step above):
 
 ```bash
-curl -O https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui/g1-install.sh
+curl --header "PRIVATE-TOKEN: <your-token>" -o g1-install.sh "https://gitlab.lrz.de/api/v4/projects/269843/repository/files/g1-install.sh/raw?ref=gui"
 bash g1-install.sh
 ```
 
-The script will ask two questions:
-1. **Where to store the data** — default: `~/g1-ami-data`
-2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
+The script will ask:
+1. **LRZ username and Personal Access Token** — for GitLab registry access
+2. **Where to store the data** — default: `~/g1-ami-data`
+3. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
 It then downloads ~1.5 GB of pre-computed E2VID frames (Run 9, test set: 8, 9, 12, 20, 21, and prototyping set: 84, 85, 124, 127, 201) and ~290 MB of HyperE2VID frames (Run 2, sequences 84, 85, 124, 127, 201), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
@@ -61,70 +63,43 @@ RECON=~/g1-ami-data      # absolute path — change if needed
 mkdir -p $RECON
 ```
 
-### 2. Download and extract pre-computed E2VID frames (Run 9)
+### 2. Download reconstruction frames and detection caches
 
 ```bash
-BASE="https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v5.0"
+TOKEN=YOUR_TOKEN
+PKG="https://gitlab.lrz.de/api/v4/projects/269843/packages/generic/data/1.0"
 
-# Test sequences
-for seq in 8 9 12 20 21; do
-  curl -L -o /tmp/sequence_${seq}.tar "$BASE/sequence_${seq}_e2vid_run9.tar"
-  mkdir -p $RECON/sequence_${seq} && tar xf /tmp/sequence_${seq}.tar -C $RECON/sequence_${seq}/
-done
+# E2VID (Run 9) + HyperE2VID (Run 2) — all sequences (~1.6 GB)
+curl -L --progress-bar --header "PRIVATE-TOKEN: $TOKEN" \
+  -o /tmp/recon_frames.tar.gz "$PKG/recon_frames.tar.gz"
+tar xzf /tmp/recon_frames.tar.gz -C $RECON/
+rm /tmp/recon_frames.tar.gz
 
-# Prototyping sequences (HyperE2VID available for these)
-for seq in 84 85 124 127 201; do
-  curl -L -o /tmp/sequence_${seq}.tar "$BASE/sequence_${seq}_e2vid_run9.tar"
-  mkdir -p $RECON/sequence_${seq} && tar xf /tmp/sequence_${seq}.tar -C $RECON/sequence_${seq}/
-done
+# Detection caches — all models, all demo sequences (~5 MB)
+curl -L --progress-bar --header "PRIVATE-TOKEN: $TOKEN" \
+  -o /tmp/detections_all.tar.gz "$PKG/detections_all_sequences.tar.gz"
+tar xzf /tmp/detections_all.tar.gz -C $RECON/
+rm /tmp/detections_all.tar.gz
 ```
 
-### 3. Download HyperE2VID frames (Run 2)
-
-```bash
-for seq in sequence_84 sequence_85 sequence_124 sequence_127 sequence_201; do
-  curl -L -o /tmp/${seq}_hypere2vid.tar \
-    https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0/${seq}_hypere2vid.tar
-  tar xf /tmp/${seq}_hypere2vid.tar -C $RECON/$seq/
-done
-```
-
-### 4. Download pre-cached detections
-
-```bash
-# E2VID — all 10 demo sequences
-curl -L -o /tmp/detections_e2vid_demo.tar.gz \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v5.0/detections_e2vid_demo.tar.gz
-tar xzf /tmp/detections_e2vid_demo.tar.gz -C $RECON/
-
-# HyperE2VID (Run 2)
-curl -L -o /tmp/detections_hypere2vid_run2.tar.gz \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v3.0/detections_hypere2vid_run2.tar.gz
-tar xzf /tmp/detections_hypere2vid_run2.tar.gz -C $RECON/
-
-# Late Fusion (Run 1)
-curl -L -o /tmp/detections_fusion_run1.tar.gz \
-  https://github.com/HongMinhNhat35/Machine-Intelligence-Block-course/releases/download/v4.0/detections_fusion_run1.tar.gz
-tar xzf /tmp/detections_fusion_run1.tar.gz -C $RECON/
-```
-
-### 5. Download the compose file, GUI files, and write `.env`
+### 3. Download the compose file, GUI files, and write `.env`
 
 > **Important:** Use an absolute path for `RECON` — Docker Compose does not expand `~` or `$HOME`.
 
 ```bash
-BASE_RAW="https://raw.githubusercontent.com/HongMinhNhat35/Machine-Intelligence-Block-course/gui"
+TOKEN=YOUR_TOKEN
+GL_RAW="https://gitlab.lrz.de/ldv/teaching/ami/ami2026/group01/-/raw/gui"
 
-curl -fsSL -o $RECON/docker-compose.yml "$BASE_RAW/docker-compose.deploy.yml"
+curl -fsSL --header "PRIVATE-TOKEN: $TOKEN" -o $RECON/docker-compose.yml "$GL_RAW/docker-compose.deploy.yml"
 
 mkdir -p $RECON/static
-for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css; do
-  curl -fsSL -o $RECON/static/$f "$BASE_RAW/services/web/static/$f"
+for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css gui_user_guide.html fusion_viz.jpeg; do
+  curl -fsSL --header "PRIVATE-TOKEN: $TOKEN" -o $RECON/static/$f "$GL_RAW/services/web/static/$f"
 done
 
 mkdir -p $RECON/kpis
-for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_run1.json hypere2vid_run1.json hypere2vid_run2.json; do
-  curl -fsSL -o $RECON/kpis/$f "$BASE_RAW/services/web/kpis/$f"
+for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json fusion_run2.json hypere2vid_run1.json hypere2vid_run2.json; do
+  curl -fsSL --header "PRIVATE-TOKEN: $TOKEN" -o $RECON/kpis/$f "$GL_RAW/services/web/kpis/$f"
 done
 
 cat > $RECON/.env <<EOF
@@ -133,9 +108,10 @@ RECON_DATA_PATH=$RECON
 EOF
 ```
 
-### 6. Pull images and start
+### 4. Pull images and start
 
 ```bash
+echo YOUR_TOKEN | docker login gitlab.lrz.de:5005 --username YOUR_LRZ_USERNAME --password-stdin
 cd $RECON
 docker compose pull
 docker compose up -d
