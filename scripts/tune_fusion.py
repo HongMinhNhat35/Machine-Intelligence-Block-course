@@ -174,11 +174,43 @@ def load_sequence(seq_n):
 
 # ── Grid search ────────────────────────────────────────────────────────────────
 
+def _run_combo(sequences, et, rt, it, alpha, weighted_box):
+    all_fused, all_gt = [], {}
+    offset = 0
+    for seq_n, (ev_by_frame, rgb_by_frame, frame_gt) in sequences.items():
+        all_frames = sorted(set(ev_by_frame) | set(rgb_by_frame))
+        n = (max(all_frames) + 1) if all_frames else 0
+        for f in all_frames:
+            fused = fuse_detections(
+                ev_by_frame.get(f, []),
+                rgb_by_frame.get(f, []),
+                event_t=et, rgb_t=rt, iou_t=it,
+                alpha=alpha, weighted_box=weighted_box,
+            )
+            gf = offset + f
+            for det in fused:
+                all_fused.append({
+                    "frame":      gf,
+                    "bbox":       _xyxy_to_xywh(det["box"]),
+                    "confidence": det["confidence"],
+                })
+        for f, box in frame_gt.items():
+            all_gt[offset + f] = box
+        offset += n
+    return compute_map50(all_fused, all_gt)
+
+
 def run_tuning():
     event_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5]
     rgb_thresholds   = [0.1, 0.2, 0.3, 0.4, 0.5]
     iou_thresholds   = [0.3, 0.4, 0.5, 0.6, 0.7]
-    n_total = len(event_thresholds) * len(rgb_thresholds) * len(iou_thresholds)
+    # Idea 1 — confidence blend: None=max(), 0.0=event-only, 0.5=equal, 1.0=rgb-only
+    alpha_values     = [None, 0.1, 0.2, 0.3, 0.5]
+    # Idea 2 — weighted box merge: False=keep event box, True=coord average by conf
+    weighted_box_values = [False, True]
+
+    n_total = (len(event_thresholds) * len(rgb_thresholds) * len(iou_thresholds)
+               * len(alpha_values) * len(weighted_box_values))
 
     print("Loading test sequences …")
     sequences = {}
@@ -193,46 +225,50 @@ def run_tuning():
     for et in event_thresholds:
         for rt in rgb_thresholds:
             for it in iou_thresholds:
-                all_fused, all_gt = [], {}
-                offset = 0
-
-                for seq_n, (ev_by_frame, rgb_by_frame, frame_gt) in sequences.items():
-                    all_frames = sorted(set(ev_by_frame) | set(rgb_by_frame))
-                    n = (max(all_frames) + 1) if all_frames else 0
-
-                    for f in all_frames:
-                        fused = fuse_detections(
-                            ev_by_frame.get(f, []),
-                            rgb_by_frame.get(f, []),
-                            event_t=et, rgb_t=rt, iou_t=it,
-                        )
-                        gf = offset + f
-                        for det in fused:
-                            all_fused.append({
-                                "frame":      gf,
-                                "bbox":       _xyxy_to_xywh(det["box"]),
-                                "confidence": det["confidence"],
-                            })
-
-                    for f, box in frame_gt.items():
-                        all_gt[offset + f] = box
-                    offset += n
-
-                score = compute_map50(all_fused, all_gt)
-                results.append({"event_t": et, "rgb_t": rt, "iou_t": it, "map50": round(score, 4)})
-                print(f"  E={et}  R={rt}  IOU={it}  →  mAP@0.5={score:.4f}")
+                for alpha in alpha_values:
+                    for wb in weighted_box_values:
+                        score = _run_combo(sequences, et, rt, it, alpha, wb)
+                        alpha_str = "max" if alpha is None else str(alpha)
+                        results.append({
+                            "event_t":      et,
+                            "rgb_t":        rt,
+                            "iou_t":        it,
+                            "alpha":        alpha_str,
+                            "weighted_box": wb,
+                            "map50":        round(score, 4),
+                        })
+                        print(f"  E={et}  R={rt}  IOU={it}  α={alpha_str:<4}  box={'W' if wb else '-'}  →  mAP@0.5={score:.4f}")
 
     df = pd.DataFrame(results).sort_values("map50", ascending=False).reset_index(drop=True)
 
-    print("\n── Top 10 configurations ──────────────────────────────────────")
+    print("\n── Top 10 overall ─────────────────────────────────────────────")
     print(df.head(10).to_string(index=False))
-    print("\n── Best configuration ─────────────────────────────────────────")
-    best = df.iloc[0]
-    print(f"  event_t={best.event_t}  rgb_t={best.rgb_t}  iou_t={best.iou_t}  mAP@0.5={best.map50}")
+
+    # Summary: best per strategy
+    print("\n── Best per strategy ──────────────────────────────────────────")
+    for label, mask in [
+        ("max-conf  + original box ", (df.alpha == "max")  & ~df.weighted_box),
+        ("max-conf  + weighted box  ", (df.alpha == "max")  &  df.weighted_box),
+        ("α-blend   + original box ", (df.alpha != "max")  & ~df.weighted_box),
+        ("α-blend   + weighted box  ", (df.alpha != "max")  &  df.weighted_box),
+    ]:
+        sub = df[mask]
+        if sub.empty:
+            continue
+        b = sub.iloc[0]
+        alpha_disp = b.alpha if b.alpha == "max" else f"α={b.alpha}"
+        print(f"  {label}  →  mAP@0.5={b.map50:.4f}  "
+              f"(E={b.event_t} R={b.rgb_t} IOU={b.iou_t} {alpha_disp})")
+
+    print("\n── Overall best ───────────────────────────────────────────────")
+    b = df.iloc[0]
+    alpha_disp = b.alpha if b.alpha == "max" else f"α={b.alpha}"
+    print(f"  event_t={b.event_t}  rgb_t={b.rgb_t}  iou_t={b.iou_t}  "
+          f"{alpha_disp}  weighted_box={b.weighted_box}  mAP@0.5={b.map50}")
 
     out = Path(__file__).parent / "fusion_tuning_results.csv"
     df.to_csv(out, index=False)
-    print(f"\nAll results saved to {out}")
+    print(f"\nAll {n_total} results saved to {out}")
     return df
 
 
