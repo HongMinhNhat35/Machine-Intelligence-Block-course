@@ -10,14 +10,25 @@ DEFAULT_RECON="$HOME/g1-ami-data"
 echo "=== AMI Hybrid Vision System — Group 1 Installer ==="
 echo ""
 echo "This installer pulls from the LRZ GitLab project."
-echo "You need an LRZ account and a Personal Access Token with read_registry"
-echo "and read_api scopes. Create one at:"
+echo "You need an LRZ account and a Personal Access Token with read_registry,"
+echo "read_api, and read_repository scopes. Create one at:"
 echo "  https://gitlab.lrz.de/-/user_settings/personal_access_tokens"
 echo ""
-
-read -rp  "LRZ username (e.g. go49kon): " GL_USER
-read -rsp "Personal Access Token: " GL_TOKEN
+echo "Tip: set GL_USER and GL_TOKEN as environment variables before running"
+echo "this script to skip these prompts."
 echo ""
+
+if [ -z "${GL_USER:-}" ]; then
+  read -rp "LRZ username (e.g. go49kon): " GL_USER
+else
+  echo "LRZ username: $GL_USER"
+fi
+if [ -z "${GL_TOKEN:-}" ]; then
+  read -rsp "Personal Access Token: " GL_TOKEN
+  echo ""
+else
+  echo "Personal Access Token: (from environment)"
+fi
 
 # Validate token
 echo "Checking token ..."

@@ -16,17 +16,18 @@ Create a token at: https://gitlab.lrz.de/-/user_settings/personal_access_tokens
 
 ## Quick install (recommended)
 
-Download and run the installer script (replace `<your-token>` with the token from the step above):
+Set your credentials as environment variables first — the installer will pick them up automatically so you won't be prompted again:
 
 ```bash
-curl --header "PRIVATE-TOKEN: <your-token>" -o g1-install.sh "https://gitlab.lrz.de/api/v4/projects/269843/repository/files/g1-install.sh/raw?ref=gui"
+export GL_USER=<your-lrz-username>
+export GL_TOKEN=<your-token>
+curl --header "PRIVATE-TOKEN: $GL_TOKEN" -o g1-install.sh "https://gitlab.lrz.de/api/v4/projects/269843/repository/files/g1-install.sh/raw?ref=gui"
 bash g1-install.sh
 ```
 
 The script will ask:
-1. **LRZ username and Personal Access Token** — for GitLab registry access
-2. **Where to store the data** — default: `~/g1-ami-data`
-3. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
+1. **Where to store the data** — default: `~/g1-ami-data`
+2. **Path to your FRED raw dataset** — needed for Late Fusion; press Enter to skip for the basic demo
 
 It then downloads ~1.5 GB of pre-computed E2VID frames (Run 9, test set: 8, 9, 12, 20, 21, and prototyping set: 84, 85, 124, 127, 201) and ~290 MB of HyperE2VID frames (Run 2, sequences 84, 85, 124, 127, 201), writes `docker-compose.yml` and `.env`, and pulls the Docker images.
 
