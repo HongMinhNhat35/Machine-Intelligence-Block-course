@@ -1,0 +1,58 @@
+{
+  "params": {
+    "event_t": 0.3,
+    "rgb_t": 0.5,
+    "iou_t": 0.5,
+    "t_window": 2,
+    "t_boost": 1.3,
+    "t_decay": 0.8
+  },
+  "aggregate": {
+    "map50": 0.583,
+    "map50_95": 0.144,
+    "precision": 0.7163,
+    "recall": 0.6981
+  },
+  "per_sequence": {
+    "sequence_8": {
+      "map50": 0.6041,
+      "map50_95": 0.1658,
+      "precision": 0.7856,
+      "recall": 0.7599,
+      "n_gt": 2782,
+      "n_det": 2911
+    },
+    "sequence_9": {
+      "map50": 0.4053,
+      "map50_95": 0.0827,
+      "precision": 0.5735,
+      "recall": 0.5991,
+      "n_gt": 2891,
+      "n_det": 3219
+    },
+    "sequence_12": {
+      "map50": 0.5193,
+      "map50_95": 0.1368,
+      "precision": 0.6425,
+      "recall": 0.6935,
+      "n_gt": 1736,
+      "n_det": 1889
+    },
+    "sequence_20": {
+      "map50": 0.8748,
+      "map50_95": 0.3021,
+      "precision": 0.9274,
+      "recall": 0.9199,
+      "n_gt": 2820,
+      "n_det": 3098
+    },
+    "sequence_21": {
+      "map50": 0.1495,
+      "map50_95": 0.0794,
+      "precision": 0.6265,
+      "recall": 0.1414,
+      "n_gt": 1103,
+      "n_det": 249
+    }
+  }
+}

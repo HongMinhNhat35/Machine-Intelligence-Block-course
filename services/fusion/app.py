@@ -99,11 +99,23 @@ def detect(req: DetectRequest):
             yield _sse("done", json.dumps({"n": 0}))
             return
 
+        from fusion_layer import temporal_smooth
+        fused_by_frame = {}
         detections = []
         try:
             for i in range(req.frame_start, n_total):
                 fused = process_frame(str(rgb_files[i]), str(event_files[i]))
-                for det in fused:
+                if fused:
+                    fused_by_frame[i] = fused
+                if i % 32 == 0 or i == n_total - 1:
+                    yield _sse("progress", json.dumps({
+                        "frame": i + 1,
+                        "total": n_total,
+                        "cached": False,
+                    }))
+            fused_by_frame = temporal_smooth(fused_by_frame)
+            for i, dets in sorted(fused_by_frame.items()):
+                for det in dets:
                     x1, y1, x2, y2 = det["box"]
                     detections.append({
                         "frame": i,
@@ -112,12 +124,6 @@ def detect(req: DetectRequest):
                         "class": "drone",
                         "source": det.get("source", "fusion"),
                     })
-                if i % 32 == 0 or i == n_total - 1:
-                    yield _sse("progress", json.dumps({
-                        "frame": i + 1,
-                        "total": n_total,
-                        "cached": False,
-                    }))
         except Exception as e:
             yield _err(str(e))
             yield _sse("done", json.dumps({"n": len(detections)}))
