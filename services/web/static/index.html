@@ -538,28 +538,63 @@
 
           <!-- Pipeline overview -->
           <div class="tbl-title" style="margin-top:0">Pipeline</div>
-          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-bottom:16px">
-            <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px 0">
-              <div style="display:flex;flex-direction:column;gap:8px">
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">Event frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">RGB frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-bottom:16px;display:flex;gap:20px;align-items:center">
+            <!-- Pipeline diagram -->
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px 0">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">Event frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">RGB frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+                </div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO event<br><span style="font-size:9px;color:#9ca3af">fusion_event.pt</span></div>
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO RGB<br><span style="font-size:9px;color:#9ca3af">fusion_rgb.pt</span></div>
+                </div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
+                </div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="border:1.5px solid #f97316;border-radius:5px;padding:7px 16px;font-size:11px;color:#c2410c;text-align:center;background:#fff7ed;align-self:center">Fusion layer<br><span style="font-size:9px;color:#f97316">WBF · temporal smoothing</span></div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;align-self:center">Final detections<br><span style="font-size:9px;color:#9ca3af">merged output</span></div>
               </div>
-              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-              <div style="display:flex;flex-direction:column;gap:8px">
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO event<br><span style="font-size:9px;color:#9ca3af">fusion_event.pt</span></div>
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO RGB<br><span style="font-size:9px;color:#9ca3af">fusion_rgb.pt</span></div>
-              </div>
-              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-              <div style="display:flex;flex-direction:column;gap:8px">
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
-              </div>
-              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-              <div style="border:1.5px solid #f97316;border-radius:5px;padding:7px 16px;font-size:11px;color:#c2410c;text-align:center;background:#fff7ed;align-self:center">Fusion layer<br><span style="font-size:9px;color:#f97316">WBF · temporal smoothing</span></div>
-              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-              <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;align-self:center">Final detections<br><span style="font-size:9px;color:#9ca3af">merged output</span></div>
+              <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">YOLO weights are fixed — only the fusion layer was tuned.</p>
             </div>
-            <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">YOLO weights are fixed — only the fusion layer was tuned in this evaluation.</p>
+            <!-- Abbreviated results table -->
+            <div style="flex:0 0 auto;border-left:1px solid #e5e7eb;padding-left:20px">
+              <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Results overview</div>
+              <table style="border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap">
+                <thead><tr>
+                  <th style="text-align:left;padding:4px 10px 4px 0;color:#9ca3af;font-weight:600;border-bottom:1px solid #e5e7eb">Run</th>
+                  <th style="text-align:left;padding:4px 10px 4px 0;color:#9ca3af;font-weight:600;border-bottom:1px solid #e5e7eb">Method</th>
+                  <th style="text-align:right;padding:4px 10px 4px 0;color:#9ca3af;font-weight:600;border-bottom:1px solid #e5e7eb">mAP@0.5</th>
+                  <th style="text-align:right;padding:4px 0;color:#9ca3af;font-weight:600;border-bottom:1px solid #e5e7eb">Δ</th>
+                </tr></thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:5px 10px 5px 0;color:#374151">Run 2</td>
+                    <td style="padding:5px 10px 5px 0;color:#6b7280">WBF baseline</td>
+                    <td style="padding:5px 10px 5px 0;text-align:right;color:#374151">50.7%</td>
+                    <td style="padding:5px 0;text-align:right;color:#9ca3af">—</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:5px 10px 5px 0;color:#374151">Ph. 1</td>
+                    <td style="padding:5px 10px 5px 0;color:#6b7280">WBF optimised</td>
+                    <td style="padding:5px 10px 5px 0;text-align:right;color:#374151">57.3%</td>
+                    <td style="padding:5px 0;text-align:right;color:#16a34a;font-weight:600">+6.6 pp</td>
+                  </tr>
+                  <tr style="background:#fffbf7">
+                    <td style="padding:5px 10px 5px 0;color:#374151;font-weight:600">Run 3 ★</td>
+                    <td style="padding:5px 10px 5px 0;color:#6b7280">WBF + smoothing</td>
+                    <td style="padding:5px 10px 5px 0;text-align:right;color:#f97316;font-weight:700">58.3%</td>
+                    <td style="padding:5px 0;text-align:right;color:#16a34a;font-weight:600">+7.6 pp</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <!-- Three evaluation stage cards -->
