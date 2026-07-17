@@ -65,13 +65,13 @@ gl_curl -o "$RECON/docker-compose.yml" "$GL_RAW/docker-compose.deploy.yml"
 
 echo "Downloading GUI static files ..."
 mkdir -p "$RECON/static"
-for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css gui_user_guide.html fusion_viz.jpeg; do
+for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css gui_user_guide.html fusion_viz.jpeg Kevin.jpeg Klaus.jpg Kutay.jpeg Sinan.jpeg Yusuf.jpeg; do
   gl_curl -o "$RECON/static/$f" "$GL_RAW/services/web/static/$f"
 done
 
 echo "Downloading KPI files ..."
 mkdir -p "$RECON/kpis"
-for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json fusion_run2.json hypere2vid_run1.json hypere2vid_run2.json; do
+for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json fusion_run2.json fusion_run3.json hypere2vid_run1.json hypere2vid_run2.json; do
   gl_curl -o "$RECON/kpis/$f" "$GL_RAW/services/web/kpis/$f"
 done
 
