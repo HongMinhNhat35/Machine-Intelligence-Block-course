@@ -72,16 +72,5 @@ Examples: `e2vid_run2.json`, `hypere2vid_run1.json`, `fusion_run1.json`
 
 ## Important notes
 
-- **Val sequence:** always use `sequence_127` so results are comparable across models.
-- **Train sequences:** `sequence_84`, `sequence_85`, `sequence_201`, `sequence_124`.
 - **Challenging split:** leave as `null` if not yet evaluated — the GUI will show `—`.
 - **effective_batch:** report `n_gpus × batch_per_gpu`, not just the per-GPU batch size. This affects comparability since larger effective batch changes training dynamics.
-
-## Existing results
-
-| File | Model | Detector | Run | mAP@0.5 | Notes |
-|---|---|---|---|---|---|
-| `e2vid_run2.json` | e2vid | YOLOv8n | Run 2 | 63.4% | lr0=0.01, 2×T4, stopped at epoch 23 |
-| `e2vid_run3.json` | e2vid | YOLOv8n | Run 3 | 63.4% | lr0=0.001 (accidental); weights lost in cleanup |
-| `e2vid_run4.json` | e2vid | YOLOv8n | Run 4 | 63.4% | lr0=0.001 (accidental); same result as Run 2 |
-| `e2vid_run5.json` | e2vid | YOLOv8s | Run 5 | **79.2%** | lr0=0.01, 2×T4, stopped at epoch 27; **current production** |
