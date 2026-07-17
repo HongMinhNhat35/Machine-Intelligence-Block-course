@@ -1,440 +1,269 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
 <title>GUI User Guide — AMI Hybrid Vision System</title>
 <style>
-  :root {
-    --bg: #ffffff;
-    --bg2: #f8f9fa;
-    --border: #e0e0e0;
-    --text: #1a1a1a;
-    --text2: #555;
-    --accent: #1a3a60;
-    --accent-light: #e8f0f8;
-    --code-bg: #f1f3f5;
-    --link: #1a3a60;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f1117;
-      --bg2: #1a1d27;
-      --border: #2a2d3a;
-      --text: #e8e8e8;
-      --text2: #999;
-      --accent: #4a8fd4;
-      --accent-light: #1a2a3a;
-      --code-bg: #1e2130;
-      --link: #6aabf0;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #ffffff; --bg2: #f8f9fa; --border: #e0e0e0; --text: #1a1a1a;
-    --text2: #555; --accent: #1a3a60; --accent-light: #e8f0f8;
-    --code-bg: #f1f3f5; --link: #1a3a60;
-  }
-  :root[data-theme="dark"] {
-    --bg: #0f1117; --bg2: #1a1d27; --border: #2a2d3a; --text: #e8e8e8;
-    --text2: #999; --accent: #4a8fd4; --accent-light: #1a2a3a;
-    --code-bg: #1e2130; --link: #6aabf0;
-  }
+body{font-family:system-ui,-apple-system,sans-serif;font-size:13px;max-width:860px;margin:30px auto;padding:0 20px;color:#1f2937;line-height:1.6}
+h1{font-size:20px;font-weight:700;margin:0 0 4px}h2{font-size:15px;font-weight:700;margin:28px 0 6px;padding-bottom:4px;border-bottom:1px solid #e5e7eb}h3{font-size:13px;font-weight:600;margin:16px 0 4px;color:#374151}
+p{margin:4px 0 8px}hr{border:none;border-top:1px solid #e5e7eb;margin:24px 0}
+.tbl-wrap{overflow-x:auto;margin:8px 0}table{border-collapse:collapse;width:100%;font-size:12px}th{background:#f9fafb;text-align:left;padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.04em}td{padding:6px 10px;border:1px solid #e5e7eb;vertical-align:top}tr:nth-child(even){background:#fafafa}
+code{background:#f3f4f6;padding:1px 4px;border-radius:3px;font-size:11px;font-family:monospace}pre{background:#f3f4f6;padding:12px;border-radius:5px;overflow-x:auto}pre code{background:none;padding:0}
+strong{font-weight:600}
+</style></head><body>
+<h1>Hybrid Vision System — GUI User Guide</h1>
 
-  *, *::before, *::after { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 14px;
-    line-height: 1.7;
-    color: var(--text);
-    background: var(--bg);
-  }
-  a { color: var(--link); }
+<h2>Overview</h2>
 
-  .layout { display: flex; min-height: 100vh; }
+<p>The GUI provides a browser-based interface to the AMI drone-detection pipeline. Three detection approaches are available:</p>
 
-  /* Sidebar nav */
-  .nav {
-    width: 220px;
-    flex-shrink: 0;
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    padding: 24px 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-  }
-  .nav-logo {
-    padding: 0 18px 20px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 12px;
-  }
-  .nav a {
-    display: block;
-    padding: 5px 18px;
-    color: var(--text2);
-    text-decoration: none;
-    font-size: 12.5px;
-    border-left: 2px solid transparent;
-    transition: color .15s, border-color .15s;
-  }
-  .nav a:hover { color: var(--accent); border-left-color: var(--accent); }
-  .nav-section {
-    padding: 10px 18px 4px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    color: var(--text2);
-  }
-  .back-link {
-    display: block;
-    padding: 6px 18px;
-    font-size: 12px;
-    color: var(--text2);
-    text-decoration: none;
-    margin-bottom: 8px;
-  }
-  .back-link:hover { color: var(--accent); }
+<div class="tbl-wrap"><table>
+<thead><tr><th>Model</th><th>What it does</th></tr></thead><tbody>
+<tr><td>**E2VID + YOLO**</td><td>Converts the event stream to greyscale frames (E2VID), then runs YOLO detection. Reconstruction was run on Kaggle; frames are stored on disk.</td></tr>
+<tr><td>**HyperE2VID + YOLO**</td><td>Same pipeline as E2VID but uses the HyperE2VID reconstructor.</td></tr>
+<tr><td>**Late Fusion**</td><td>Runs two separate YOLO models — one trained on FRED RGB camera frames, one on FRED event frames — and merges their detections. Does **not** use reconstructed frames.</td></tr>
+</tbody></table></div>
 
-  /* Content */
-  .content {
-    flex: 1;
-    max-width: 780px;
-    padding: 40px 48px;
-    min-width: 0;
-  }
+<p>The GUI talks to four backend services running in Docker:</p>
 
-  h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--accent);
-    margin: 0 0 4px;
-  }
-  .subtitle {
-    color: var(--text2);
-    font-size: 13px;
-    margin-bottom: 36px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  h2 {
-    font-size: 16px;
-    font-weight: 700;
-    margin: 36px 0 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text);
-    scroll-margin-top: 20px;
-  }
-  h3 {
-    font-size: 13px;
-    font-weight: 700;
-    margin: 20px 0 8px;
-    color: var(--text);
-    scroll-margin-top: 20px;
-  }
-  p { margin: 0 0 10px; }
-  ul, ol { margin: 0 0 10px; padding-left: 22px; }
-  li { margin-bottom: 3px; }
+<div class="tbl-wrap"><table>
+<thead><tr><th>Service</th><th>Port</th><th>Role</th></tr></thead><tbody>
+<tr><td>`web`</td><td>8080</td><td>Serves the GUI and proxies API calls</td></tr>
+<tr><td>`e2vid`</td><td>8001</td><td>YOLO inference on E2VID reconstructed frames</td></tr>
+<tr><td>`hypere2vid`</td><td>8002</td><td>YOLO inference on HyperE2VID reconstructed frames</td></tr>
+<tr><td>`fusion`</td><td>8003</td><td>Dual-model YOLO inference on raw FRED frames</td></tr>
+</tbody></table></div>
 
-  /* Tables */
-  .tbl-wrap { overflow-x: auto; margin-bottom: 14px; }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 13px;
-  }
-  th {
-    background: var(--accent-light);
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-    padding: 7px 12px;
-    text-align: left;
-    border: 1px solid var(--border);
-  }
-  td {
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    vertical-align: top;
-  }
-  tr:nth-child(even) td { background: var(--bg2); }
+<hr>
 
-  code {
-    background: var(--code-bg);
-    border-radius: 3px;
-    padding: 1px 5px;
-    font-size: 12px;
-    font-family: "SF Mono", "Fira Code", Consolas, monospace;
-  }
-  pre {
-    background: var(--code-bg);
-    border-radius: 6px;
-    padding: 14px 16px;
-    overflow-x: auto;
-    font-size: 12px;
-    line-height: 1.6;
-    margin-bottom: 14px;
-  }
-  pre code { background: none; padding: 0; }
+<h2>Navigation</h2>
 
-  .tip {
-    background: var(--accent-light);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 6px 6px 0;
-    padding: 10px 14px;
-    margin-bottom: 12px;
-    font-size: 13px;
-  }
-  .tip strong { color: var(--accent); }
+<p>The interface has a <strong>tab bar</strong> at the top and a <strong>sidebar</strong> on the left. The sidebar is always visible and shows live sequence info once a dataset is selected. The available screens are: Home, Upload, Reconstruction, Detection, Comparison, KPIs, Fusion Methods, and Admin.</p>
 
-  hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+<hr>
 
-  @media (max-width: 640px) {
-    .nav { display: none; }
-    .content { padding: 24px 18px; }
-  }
-</style>
-</head>
-<body>
-<div class="layout">
+<h2>Sidebar — Sequence Info</h2>
 
-  <nav class="nav">
-    <div class="nav-logo">AMI · Group 1</div>
-    <a class="back-link" href="#" onclick="window.close();return false">← Back to GUI</a>
-    <div class="nav-section">Screens</div>
-    <a href="#overview">Overview</a>
-    <a href="#navigation">Navigation</a>
-    <a href="#sidebar">Sidebar</a>
-    <a href="#upload">Upload</a>
-    <a href="#reconstruction">Reconstruction</a>
-    <a href="#detection">Detection</a>
-    <a href="#comparison">Comparison</a>
-    <a href="#kpis">KPIs</a>
-    <a href="#admin">Admin</a>
-    <a href="#tips">Tips</a>
-  </nav>
+<p>When on the Detection or Comparison screens, a <strong>Confidence</strong> slider appears near the top of the sidebar (above the sequence stats). This keeps it reachable on small displays regardless of how much sequence data is shown below it.</p>
 
-  <div class="content">
-    <h1>GUI User Guide</h1>
-    <p class="subtitle">Hybrid Vision System &nbsp;·&nbsp; Group 1 &nbsp;·&nbsp; Technical University of Munich</p>
+<p>After selecting a sequence the sidebar shows stats for each model:</p>
 
-    <h2 id="overview">Overview</h2>
-    <p>The GUI provides a browser-based interface to the AMI drone-detection pipeline. Three detection approaches are available:</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Model</th><th>What it does</th></tr></thead>
-      <tbody>
-        <tr><td><strong>E2VID + YOLO</strong></td><td>Converts the event stream to greyscale frames (E2VID), then runs YOLO detection. Reconstruction was run on Kaggle; frames are stored on disk.</td></tr>
-        <tr><td><strong>HyperE2VID + YOLO</strong></td><td>Same pipeline as E2VID but uses the HyperE2VID reconstructor.</td></tr>
-        <tr><td><strong>Late Fusion</strong></td><td>Runs two separate YOLO models — one trained on FRED RGB camera frames, one on FRED event frames — and merges their detections. Does <strong>not</strong> use reconstructed frames.</td></tr>
-      </tbody>
-    </table></div>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>**Frames**</td><td>Reconstructed frame count for that model</td></tr>
+<tr><td>**Detections @0.1**</td><td>Total detections in the cache at confidence ≥ 0.1</td></tr>
+<tr><td>**mAP50**</td><td>Canonical test accuracy of the featured model weights</td></tr>
+</tbody></table></div>
 
-    <p>The GUI talks to four backend services running in Docker:</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Service</th><th>Port</th><th>Role</th></tr></thead>
-      <tbody>
-        <tr><td><code>web</code></td><td>8080</td><td>Serves the GUI and proxies API calls</td></tr>
-        <tr><td><code>e2vid</code></td><td>8001</td><td>YOLO inference on E2VID reconstructed frames</td></tr>
-        <tr><td><code>hypere2vid</code></td><td>8002</td><td>YOLO inference on HyperE2VID reconstructed frames</td></tr>
-        <tr><td><code>fusion</code></td><td>8003</td><td>Dual-model YOLO inference on raw FRED frames</td></tr>
-      </tbody>
-    </table></div>
+<hr>
 
-    <hr>
+<h2>Upload</h2>
 
-    <h2 id="navigation">Navigation</h2>
-    <p>The interface has a <strong>tab bar</strong> at the top and a <strong>sidebar</strong> on the left. The sidebar is always visible and shows live sequence info once a dataset is selected.</p>
+<p>Select a sequence from the browser list. Sequences show colour-coded badges:</p>
+<p>- Green <code>e2vid N</code> — E2VID reconstruction available, N frames</p>
+<p>- Green <code>hyper N</code> — HyperE2VID reconstruction available</p>
+<p>- Grey badge — frames not yet available for that model</p>
 
-    <hr>
+<p>An info box below the browser shows the <strong>Proposed datasets</strong> — the sequences selected for the demo:</p>
+<p>- <strong>Test set</strong> (e2vid): 8, 9, 12, 20, 21</p>
+<p>- <strong>Prototyping set</strong> (e2vid + HyperE2VID): 84, 85, <strong>124</strong>, <strong>127</strong>, <strong>201</strong></p>
 
-    <h2 id="sidebar">Sidebar — Sequence Info</h2>
-    <p>After selecting a sequence the sidebar shows stats for each model:</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Frames</strong></td><td>Reconstructed frame count for that model</td></tr>
-        <tr><td><strong>Detections @0.1</strong></td><td>Total detections in the cache at confidence ≥ 0.1</td></tr>
-        <tr><td><strong>mAP50</strong></td><td>Canonical test accuracy of the featured model weights</td></tr>
-      </tbody>
-    </table></div>
+<h3>Detection cache — pre-compute buttons</h3>
 
-    <hr>
+<p>Three buttons allow you to run and cache detections for the selected sequence. This is not strictly required as the detection and comparison screens also run on-the-fly inference, but cached mode is faster and smoother.</p>
+<p>The GUI comes with pre-cached detections for all 10 demo sequences: test set (8, 9, 12, 20, 21) and prototyping set (84, 85, 124, 127, 201).</p>
 
-    <h2 id="upload">Upload</h2>
-    <p>Select a sequence from the browser list. Sequences show colour-coded badges:</p>
-    <ul>
-      <li>Green <code>e2vid N</code> — E2VID reconstruction available, N frames</li>
-      <li>Green <code>hyper N</code> — HyperE2VID reconstruction available</li>
-      <li>Grey badge — frames not yet available for that model</li>
-    </ul>
-    <p>An info box below the browser shows the <strong>Proposed datasets</strong> — the sequences selected for the demo:</p>
-    <ul>
-      <li><strong>Test set</strong> (e2vid): 8, 9, 12, 20, 21</li>
-      <li><strong>Prototyping set</strong> (e2vid + HyperE2VID): 84, 85, <strong>124</strong>, <strong>127</strong>, <strong>201</strong></li>
-    </ul>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Button</th><th>Model</th><th>Prerequisite</th></tr></thead><tbody>
+<tr><td>**E2VID**</td><td>e2vid + YOLO</td><td>E2VID reconstruction frames on disk</td></tr>
+<tr><td>**HyperE2VID**</td><td>HyperE2VID + YOLO</td><td>HyperE2VID reconstruction frames on disk</td></tr>
+<tr><td>**Late Fusion**</td><td>fusion</td><td>FRED raw data mounted at `FRED_DATA_PATH`; model weights `fusion_rgb.pt` and `fusion_event.pt` present in the fusion container</td></tr>
+</tbody></table></div>
 
-    <h3>Detection cache — pre-compute buttons</h3>
-    <p>Three buttons allow you to run and cache detections for the selected sequence. This is not strictly required as the detection and comparison screens also run on-the-fly inference, but cached mode is faster and smoother. The GUI comes with pre-cached detections for all 10 demo sequences.</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Button</th><th>Model</th><th>Prerequisite</th></tr></thead>
-      <tbody>
-        <tr><td><strong>E2VID</strong></td><td>e2vid + YOLO</td><td>E2VID reconstruction frames on disk</td></tr>
-        <tr><td><strong>HyperE2VID</strong></td><td>HyperE2VID + YOLO</td><td>HyperE2VID reconstruction frames on disk</td></tr>
-        <tr><td><strong>Late Fusion</strong></td><td>fusion</td><td>FRED raw data mounted at <code>FRED_DATA_PATH</code>; model weights present in the fusion container</td></tr>
-      </tbody>
-    </table></div>
-    <p>Progress is streamed live. When a run completes the sidebar detection count updates automatically.</p>
+<p>Progress is streamed live. When a run completes the sidebar detection count updates automatically.</p>
 
-    <hr>
+<hr>
 
-    <h2 id="reconstruction">Reconstruction</h2>
-    <p>Side-by-side player showing E2VID (left) and HyperE2VID (right) reconstructed frames for the selected sequence. The HyperE2VID panel shows a "no frames" placeholder for sequences without HyperE2VID data.</p>
+<h2>Reconstruction</h2>
 
-    <h3>Playback controls</h3>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Control</th><th>Action</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Play / Pause</strong></td><td>Continuous playback at ~6 fps</td></tr>
-        <tr><td><strong>Stop</strong></td><td>Pause and return to frame 0</td></tr>
-        <tr><td><strong>‹ ›</strong></td><td>Step one frame backward / forward</td></tr>
-        <tr><td><strong>Number input</strong></td><td>Jump directly to a frame number</td></tr>
-        <tr><td><strong>Slider</strong></td><td>Drag to scrub through the sequence</td></tr>
-      </tbody>
-    </table></div>
+<p>Side-by-side player showing E2VID (left) and HyperE2VID (right) reconstructed frames for the selected sequence. The HyperE2VID panel shows a "no frames" placeholder for sequences without HyperE2VID data.</p>
 
-    <hr>
+<h3>Playback controls</h3>
 
-    <h2 id="detection">Detection</h2>
-    <p>Shows one model's detection overlay at a time. Switch models with the five buttons at the bottom.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Control</th><th>Action</th></tr></thead><tbody>
+<tr><td>**Play / Pause**</td><td>Continuous playback at ~6 fps</td></tr>
+<tr><td>**Stop**</td><td>Pause and return to frame 0</td></tr>
+<tr><td>**‹ ›**</td><td>Step one frame backward / forward</td></tr>
+<tr><td>**Number input**</td><td>Jump directly to a frame number</td></tr>
+<tr><td>**Slider**</td><td>Drag to scrub through the sequence</td></tr>
+</tbody></table></div>
 
-    <h3>Model buttons</h3>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Button</th><th>Source frames</th><th>Detection cache</th><th>Timeline colour</th></tr></thead>
-      <tbody>
-        <tr><td><strong>e2vid</strong></td><td>E2VID reconstruction</td><td><code>detections_e2vid.json</code></td><td>Blue</td></tr>
-        <tr><td><strong>HyperE2VID</strong></td><td>HyperE2VID reconstruction</td><td><code>detections_hypere2vid.json</code></td><td>Purple</td></tr>
-        <tr><td><strong>RGB</strong></td><td>FRED RGB frames</td><td><code>detections_fusion.json</code> (RGB detections only)</td><td>Green</td></tr>
-        <tr><td><strong>Event</strong></td><td>FRED raw event frames</td><td><code>detections_fusion.json</code> (event detections only)</td><td>Teal</td></tr>
-        <tr><td><strong>Late Fusion</strong></td><td>FRED RGB frames</td><td><code>detections_fusion.json</code> (all detections)</td><td>Orange</td></tr>
-      </tbody>
-    </table></div>
+<hr>
 
-    <h3>Playback controls</h3>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Control</th><th>Action</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Play / Pause</strong></td><td>Continuous playback at ~6 fps</td></tr>
-        <tr><td><strong>Stop</strong></td><td>Pause and return to frame 0</td></tr>
-        <tr><td><strong>‹ ›</strong></td><td>Step one frame backward / forward</td></tr>
-        <tr><td><strong>⊹ (crosshair)</strong></td><td>Jump to the next frame that has a detection above the confidence threshold (cached mode only)</td></tr>
-        <tr><td><strong>Trail</strong></td><td>Toggle motion trail — draws the last 30 frames of bbox centre positions as fading dots</td></tr>
-        <tr><td><strong>Number input</strong></td><td>Jump directly to a frame number</td></tr>
-        <tr><td><strong>Slider</strong></td><td>Drag to scrub through the sequence</td></tr>
-      </tbody>
-    </table></div>
+<h2>Detection</h2>
 
-    <h3>Confidence timeline</h3>
-    <p>A strip below the frame panels shows the maximum detection confidence at each frame for the active model. A red vertical line marks the current frame position. The strip updates in real time while scrubbing.</p>
+<p>Shows one model's detection overlay at a time. Switch models with the five buttons at the bottom.</p>
 
-    <h3>Confidence threshold (sidebar)</h3>
-    <p>Filters which cached detections are drawn. Never affects the cache itself — the cache always covers confidence ≥ 0.1.</p>
+<h3>Model buttons</h3>
 
-    <hr>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Button</th><th>Source frames</th><th>Detection cache</th><th>Timeline colour</th></tr></thead><tbody>
+<tr><td>**e2vid**</td><td>E2VID reconstruction</td><td>`detections_e2vid.json`</td><td>Blue</td></tr>
+<tr><td>**HyperE2VID**</td><td>HyperE2VID reconstruction</td><td>`detections_hypere2vid.json`</td><td>Purple</td></tr>
+<tr><td>**RGB**</td><td>FRED RGB frames</td><td>`detections_fusion.json` (RGB detections only)</td><td>Green</td></tr>
+<tr><td>**Event**</td><td>FRED raw event frames</td><td>`detections_fusion.json` (event detections only)</td><td>Teal</td></tr>
+<tr><td>**Late Fusion**</td><td>FRED RGB frames</td><td>`detections_fusion.json` (all detections)</td><td>Orange</td></tr>
+</tbody></table></div>
 
-    <h2 id="comparison">Comparison</h2>
-    <p>Three-column view where the <strong>left column</strong> is the master time axis:</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Column</th><th>Source frames</th><th>Detection source</th></tr></thead>
-      <tbody>
-        <tr><td>Left (e2vid or HyperE2VID)</td><td>Reconstruction frames</td><td>Respective detection cache</td></tr>
-        <tr><td>Middle — RGB</td><td>FRED RGB frames</td><td><code>detections_fusion.json</code></td></tr>
-        <tr><td>Right — Late Fusion</td><td>FRED RGB frames</td><td><code>detections_fusion.json</code></td></tr>
-      </tbody>
-    </table></div>
+<h3>Left panel — source frame</h3>
 
-    <h3>Frame synchronisation</h3>
-    <p>The left column drives the E2VID frame index. The middle and right columns are mapped using the best available method:</p>
-    <ol>
-      <li><strong>Timestamp sync (primary)</strong> — each e2vid frame is mapped to the closest RGB frame by exact timestamp. All 10 demo sequences include <code>timestamps.txt</code> so this method is always active for the demo.</li>
-      <li><strong>Cluster-based calibration (fallback)</strong> — when timestamp data is unavailable, slope and offset are computed from detection caches by matching detection bursts across streams.</li>
-      <li><strong>Ratio fallback</strong> — simple frame-count ratio, used only if calibration also fails.</li>
-    </ol>
+<p>Shows the raw reconstructed frame (or FRED RGB / event frame for fusion modes).</p>
 
-    <h3>Playback controls</h3>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Control</th><th>Action</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Play / Pause</strong></td><td>Continuous playback at ~6 fps</td></tr>
-        <tr><td><strong>Stop</strong></td><td>Pause and return to frame 0</td></tr>
-        <tr><td><strong>‹ ›</strong></td><td>Step one frame backward / forward</td></tr>
-        <tr><td><strong>⊹ (crosshair)</strong></td><td>Jump to the next frame in the left column that has a detection above the confidence threshold</td></tr>
-        <tr><td><strong>Trail</strong></td><td>Toggle motion trail on all three columns — last 30 bbox centres drawn as fading gold dots</td></tr>
-        <tr><td><strong>Number input</strong></td><td>Jump directly to a frame number</td></tr>
-        <tr><td><strong>Slider</strong></td><td>Drag to scrub through the sequence</td></tr>
-      </tbody>
-    </table></div>
+<h3>Right panel — detection overlay</h3>
 
-    <h3>Confidence timeline</h3>
-    <p>Labelled <strong>Detection confidence per frame</strong>, this strip shows the maximum detection confidence at each frame for three models simultaneously. Each line rises when the model detects a drone with high confidence and drops to the bottom when there is no detection.</p>
-    <table>
-      <thead><tr><th>Line</th><th>Colour</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr><td>Left column model (e2vid or HyperE2VID)</td><td>Blue</td><td><code>detections_e2vid.json</code> or <code>detections_hypere2vid.json</code></td></tr>
-        <tr><td>RGB detector</td><td>Green</td><td><code>detections_fusion_rgb.json</code></td></tr>
-        <tr><td>Late Fusion</td><td>Orange</td><td><code>detections_fusion.json</code></td></tr>
-      </tbody>
-    </table>
-    <p>A red vertical marker tracks the current frame. The horizontal gridline at 50% is a visual reference.</p>
+<p>Same frame with YOLO bounding boxes. The pill shows how many boxes are visible at the current confidence threshold.</p>
 
-    <hr>
+<h3>Playback controls</h3>
 
-    <h2 id="kpis">KPIs</h2>
-    <p>Loaded from <code>kpis/*.json</code>. The summary table shows the <strong>featured</strong> run per model (the run marked <code>"featured": true</code>, or the highest mAP@0.5 if none is marked).</p>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Table</th><th>What it shows</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Best results</strong></td><td>One row per model: the featured run. Includes total runtime.</td></tr>
-        <tr><td><strong>Details — Detection accuracy</strong></td><td>All runs: mAP@0.5, mAP@0.5:95, Precision, Recall, total runtime</td></tr>
-        <tr><td><strong>Details — Reconstruction</strong></td><td>All runs: sequences, events_per_pixel, total frames, runtime, fps, GPU</td></tr>
-        <tr><td><strong>Details — Training</strong></td><td>All runs: dataset split, epochs, learning rate, batch size, GPU</td></tr>
-      </tbody>
-    </table></div>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Control</th><th>Action</th></tr></thead><tbody>
+<tr><td>**Play / Pause**</td><td>Continuous playback at ~6 fps</td></tr>
+<tr><td>**Stop**</td><td>Pause and return to frame 0</td></tr>
+<tr><td>**‹ ›**</td><td>Step one frame backward / forward</td></tr>
+<tr><td>**⊹ (crosshair)**</td><td>Jump to the next frame that has a detection above the confidence threshold (cached mode only)</td></tr>
+<tr><td>**Trail**</td><td>Toggle motion trail — draws the last 30 frames of bbox centre positions as fading dots</td></tr>
+<tr><td>**Number input**</td><td>Jump directly to a frame number</td></tr>
+<tr><td>**Slider**</td><td>Drag to scrub through the sequence</td></tr>
+</tbody></table></div>
 
-    <hr>
+<h3>Confidence timeline</h3>
 
-    <h2 id="admin">Admin</h2>
-    <p>Shows live health of all backend services:</p>
-    <ul>
-      <li><strong>Green</strong> — healthy, weights loaded</li>
-      <li><strong>Amber</strong> — service running but weights file not found</li>
-      <li><strong>Red</strong> — service unreachable</li>
-    </ul>
-    <p>Also lists data mount paths and weight file locations baked into each container. Check this tab first if detection is not working.</p>
+<p>A strip below the frame panels shows the maximum detection confidence at each frame for the active model. The colour matches the model button (see table above). A red vertical line marks the current frame position. The strip updates in real time while scrubbing.</p>
 
-    <hr>
+<h3>Confidence threshold (sidebar)</h3>
 
-    <h2 id="tips">Tips</h2>
-    <div class="tip"><strong>Fusion button greyed out or fails:</strong> the fusion service either cannot find the FRED raw frames at <code>FRED_DATA_PATH</code> or the weight files are missing. Check the Admin tab.</div>
-    <div class="tip"><strong>Nothing shows in the overlay:</strong> the confidence slider may be too high. Lower it to 0.10.</div>
-    <div class="tip"><strong>"Run cache first" in Detection (fusion model):</strong> fusion does not support live frame-by-frame mode. Go to Upload, select the sequence, and click <strong>Late Fusion</strong> to build the cache.</div>
-    <div class="tip"><strong>Comparison fusion column blank:</strong> no <code>detections_fusion.json</code> for this sequence yet. Build it from the Upload tab.</div>
-    <div class="tip"><strong>Fusion boxes look temporally offset:</strong> sync uses exact per-frame timestamps when available (all 10 demo sequences include <code>timestamps.txt</code>). Custom sequences without <code>timestamps.txt</code> fall back to cluster-based calibration which may drift slightly.</div>
-    <div class="tip"><strong>"Reconstruction not available":</strong> frames for that model are not on disk. Reconstruction runs on Kaggle, not in this GUI.</div>
-    <div class="tip"><strong>"Could not reach … service":</strong> container is unhealthy. Restart: <code>docker compose down &amp;&amp; docker compose up -d</code></div>
-    <div class="tip"><strong>mAP50 in sidebar shows —:</strong> the KPI fetch failed. Refresh the page.</div>
-    <div class="tip"><strong>Early frames (~first 250 frames per sequence):</strong> YOLO bounding boxes may appear over a visually empty region. The E2VID LSTM needs ~20 s to warm up from a cold start. Detections are geometrically correct; the drone is present but reconstruction quality is low during warm-up.</div>
-  </div>
+<p>Filters which cached detections are drawn. Never affects the cache itself — the cache always covers confidence ≥ 0.1.</p>
 
-</div>
-</body>
-</html>
+<hr>
+
+<h2>Comparison</h2>
+
+<p>Three-column view where the <strong>left column</strong> is the master time axis:</p>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Column</th><th>Source frames</th><th>Detection source</th></tr></thead><tbody>
+<tr><td>Left (e2vid or HyperE2VID)</td><td>Reconstruction frames</td><td>Respective detection cache</td></tr>
+<tr><td>Middle — RGB</td><td>FRED RGB frames</td><td>`detections_fusion.json`</td></tr>
+<tr><td>Right — Late Fusion</td><td>FRED RGB frames</td><td>`detections_fusion.json`</td></tr>
+</tbody></table></div>
+
+<p>Toggle the left column between e2vid and HyperE2VID with the buttons at the bottom. Middle and right columns always show FRED RGB frames with fusion detections.</p>
+
+<h3>Playback controls</h3>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Control</th><th>Action</th></tr></thead><tbody>
+<tr><td>**Play / Pause**</td><td>Continuous playback at ~6 fps</td></tr>
+<tr><td>**Stop**</td><td>Pause and return to frame 0</td></tr>
+<tr><td>**‹ ›**</td><td>Step one frame backward / forward</td></tr>
+<tr><td>**⊹ (crosshair)**</td><td>Jump to the next frame in the left column that has a detection above the confidence threshold</td></tr>
+<tr><td>**Trail**</td><td>Toggle motion trail on all three columns — last 30 bbox centres drawn as fading gold dots with connecting segments</td></tr>
+<tr><td>**Number input**</td><td>Jump directly to a frame number</td></tr>
+<tr><td>**Slider**</td><td>Drag to scrub through the sequence</td></tr>
+</tbody></table></div>
+
+<h3>Detection trail</h3>
+
+<p>While active, the last 30 frames of bbox centre positions are drawn as fading gold dots on each panel, with connecting line segments between consecutive frames (nearest-neighbour match). Turning Trail off clears the buffer. The trail resets automatically on sequence change.</p>
+
+<h3>Confidence timeline</h3>
+
+<p>A strip labelled <strong>Detection confidence per frame</strong> between the image panels and the playback controls shows the maximum detection confidence at each frame for three models simultaneously:</p>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Line</th><th>Colour</th><th>Source</th></tr></thead><tbody>
+<tr><td>Left column model (e2vid or HyperE2VID)</td><td>Blue</td><td>`detections_e2vid.json` or `detections_hypere2vid.json`</td></tr>
+<tr><td>RGB detector</td><td>Green</td><td>`detections_fusion_rgb.json`</td></tr>
+<tr><td>Late Fusion</td><td>Orange</td><td>`detections_fusion.json`</td></tr>
+</tbody></table></div>
+
+<p>Each line rises toward the top when the model detects a drone with high confidence, and drops to the bottom when there is no detection. The model names are shown as a small legend inside the canvas. A red vertical marker tracks the current frame and moves in real time while scrubbing. The horizontal gridline at 50% confidence is a visual reference.</p>
+
+<h3>Frame synchronisation</h3>
+
+<p>The left column drives the E2VID frame index. The slider position maps to middle/right (FRED RGB) frames using the best available method:</p>
+
+<p>1. <strong>Timestamp sync (primary)</strong> — if <code>/api/sync</code> returns exact event timestamps for the sequence, each e2vid frame is mapped to the closest RGB frame by timestamp. This is the most accurate method.</p>
+<p>2. <strong>Cluster-based linear calibration (fallback)</strong> — when timestamp data is unavailable, slope and offset are computed from the detection caches:</p>
+<p>   - <strong>Slope</strong>: ratio of the secondary stream's detection span (first sustained cluster start → last sustained cluster end) to the primary stream's detection span. Sustained clusters require ≥ 5 detections in any 10-frame window and span ≥ 30 frames, which filters out noise blips.</p>
+<p>   - <strong>Offset</strong>: a ±300-frame cross-correlation search around the span anchor picks the offset that maximises the number of primary detection frames that land on a secondary detection frame.</p>
+<p>3. <strong>Ratio fallback</strong> — if calibration also fails (too few detections or no clusters), falls back to a simple frame-count ratio.</p>
+
+<p>The same calibration applies to the HyperE2VID column when left mode is HyperE2VID.</p>
+
+<hr>
+
+<h2>KPIs</h2>
+
+<p>Loaded from <code>kpis/*.json</code>. The summary table shows the <strong>deployed</strong> run per model (the run marked <code>"deployed": true</code>), falling back to the <code>"featured": true</code> run, or the highest mAP@0.5 if neither is set.</p>
+
+<p>Five jump buttons at the top of the screen scroll directly to each section:</p>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Button</th><th>Section</th></tr></thead><tbody>
+<tr><td>**Best results**</td><td>One row per model: the deployed/featured run. Includes total runtime (reconstruction + training).</td></tr>
+<tr><td>**Details**</td><td>All runs sorted by model then run number: mAP@0.5, mAP@0.5:95, Precision, Recall, total runtime</td></tr>
+<tr><td>**Reconstruction**</td><td>All runs sorted by model then run number: sequences, events_per_pixel, total frames, runtime, fps, GPU</td></tr>
+<tr><td>**Training**</td><td>All runs sorted by model then run number: dataset split, epochs, learning rate, batch size, GPU</td></tr>
+<tr><td>**Dataset analysis**</td><td>FRED sequences used for training and validation: duration, event count, frame count, first annotation offset, and per-sequence notes</td></tr>
+</tbody></table></div>
+
+<hr>
+
+<h2>Fusion Methods</h2>
+
+<p>Documents the late fusion evaluation — how the deployed fusion layer was developed and selected.</p>
+
+<h3>Pipeline</h3>
+
+<p>Shows the two-branch architecture: event frames and RGB frames each pass through their own YOLO model, producing independent detections. The fusion layer merges these into a single output. YOLO weights are fixed; only the fusion layer parameters were tuned.</p>
+
+<h3>Evaluation stages</h3>
+
+<p>Three cards document the progression from baseline to deployed:</p>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Stage</th><th>What it is</th></tr></thead><tbody>
+<tr><td>**Stage 1 — Run 2 (WBF baseline)**</td><td>Weighted Box Fusion (WBF) with hand-picked confidence thresholds. The starting point.</td></tr>
+<tr><td>**Stage 2 — Phase 1 grid search**</td><td>Systematic search over 1,250 WBF configurations (event_t, rgb_t, iou_t, alpha, weighted_box). Best config lifted mAP@0.5 from 50.7% to 57.3%.</td></tr>
+<tr><td>**Stage 3 — Run 3 (deployed)**</td><td>486 additional configurations adding temporal smoothing on top of the phase 1 best. Detections consistent across adjacent frames (IoU ≥ 0.2) receive a confidence boost (×1.3); isolated single-frame detections are decayed (×0.8). Final mAP@0.5: 58.3%.</td></tr>
+</tbody></table></div>
+
+<h3>Results overview</h3>
+
+<p>A compact table beside the pipeline diagram shows the three-step progression (Run 2 → Phase 1 best → Run 3) with mAP@0.5 and the gain over the baseline at a glance. The full comparison table with all metrics is shown below the stage cards.</p>
+
+<hr>
+
+<h2>Admin</h2>
+
+<p>Shows live health of all backend services:</p>
+<p>- <strong>Green</strong> — healthy, weights loaded</p>
+<p>- <strong>Amber</strong> — service running but weights file not found</p>
+<p>- <strong>Red</strong> — service unreachable</p>
+
+<p>Also lists data mount paths and weight file locations baked into each container. Check this tab first if detection is not working.</p>
+
+<hr>
+
+<h2>Tips</h2>
+
+<p>- <strong>Fusion button is greyed out or fails:</strong> the fusion service either cannot find the FRED raw frames at <code>FRED_DATA_PATH</code> or the weight files are missing. Check the Admin tab.</p>
+<p>- <strong>Nothing shows in the overlay:</strong> the confidence slider may be too high. Lower it to 0.10.</p>
+<p>- <strong>"Run cache first" in Detection (fusion model):</strong> fusion does not support live frame-by-frame mode. Go to Upload, select the sequence, and click <strong>Late Fusion</strong> to build the cache.</p>
+<p>- <strong>Comparison fusion column blank:</strong> no <code>detections_fusion.json</code> for this sequence yet. Build it from the Upload tab.</p>
+<p>- <strong>Fusion boxes look temporally offset:</strong> sync uses exact per-frame timestamps when available (all 10 demo sequences include <code>timestamps.txt</code>). If you add a custom sequence without <code>timestamps.txt</code>, sync falls back to cluster-based calibration which may drift slightly.</p>
+<p>- <strong>"Reconstruction not available":</strong> frames for that model are not on disk. Reconstruction runs on Kaggle, not in this GUI.</p>
+<p>- <strong>"Could not reach … service":</strong> container is unhealthy. Restart: <code>docker compose down && docker compose up -d</code>.</p>
+<p>- <strong>mAP50 in sidebar shows —:</strong> the KPI fetch failed. Refresh the page.</p>
+
+</body></html>

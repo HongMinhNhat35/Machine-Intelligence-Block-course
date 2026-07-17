@@ -23,11 +23,13 @@ The GUI talks to four backend services running in Docker:
 
 ## Navigation
 
-The interface has a **tab bar** at the top and a **sidebar** on the left. The sidebar is always visible and shows live sequence info once a dataset is selected.
+The interface has a **tab bar** at the top and a **sidebar** on the left. The sidebar is always visible and shows live sequence info once a dataset is selected. The available screens are: Home, Upload, Reconstruction, Detection, Comparison, KPIs, Fusion Methods, and Admin.
 
 ---
 
 ## Sidebar — Sequence Info
+
+When on the Detection or Comparison screens, a **Confidence** slider appears near the top of the sidebar (above the sequence stats). This keeps it reachable on small displays regardless of how much sequence data is shown below it.
 
 After selecting a sequence the sidebar shows stats for each model:
 
@@ -181,14 +183,41 @@ The same calibration applies to the HyperE2VID column when left mode is HyperE2V
 
 ## KPIs
 
-Loaded from `kpis/*.json`. The summary table shows the **featured** run per model (the run marked `"featured": true` in its JSON file, or the highest mAP@0.5 if none is marked).
+Loaded from `kpis/*.json`. The summary table shows the **deployed** run per model (the run marked `"deployed": true`), falling back to the `"featured": true` run, or the highest mAP@0.5 if neither is set.
 
-| Table | What it shows |
-|-------|---------------|
-| **Best results** | One row per model: the featured run. Includes total runtime (reconstruction + training). |
-| **Details — Detection accuracy** | All runs sorted by model then run number: mAP@0.5, mAP@0.5:95, Precision, Recall, total runtime |
-| **Details — Reconstruction** | All runs sorted by model then run number: sequences, events_per_pixel, total frames, runtime, fps, GPU |
-| **Details — Training** | All runs sorted by model then run number: dataset split, epochs, learning rate, batch size, GPU |
+Five jump buttons at the top of the screen scroll directly to each section:
+
+| Button | Section |
+|--------|---------|
+| **Best results** | One row per model: the deployed/featured run. Includes total runtime (reconstruction + training). |
+| **Details** | All runs sorted by model then run number: mAP@0.5, mAP@0.5:95, Precision, Recall, total runtime |
+| **Reconstruction** | All runs sorted by model then run number: sequences, events_per_pixel, total frames, runtime, fps, GPU |
+| **Training** | All runs sorted by model then run number: dataset split, epochs, learning rate, batch size, GPU |
+| **Dataset analysis** | FRED sequences used for training and validation: duration, event count, frame count, first annotation offset, and per-sequence notes |
+
+---
+
+## Fusion Methods
+
+Documents the late fusion evaluation — how the deployed fusion layer was developed and selected.
+
+### Pipeline
+
+Shows the two-branch architecture: event frames and RGB frames each pass through their own YOLO model, producing independent detections. The fusion layer merges these into a single output. YOLO weights are fixed; only the fusion layer parameters were tuned.
+
+### Evaluation stages
+
+Three cards document the progression from baseline to deployed:
+
+| Stage | What it is |
+|-------|-----------|
+| **Stage 1 — Run 2 (WBF baseline)** | Weighted Box Fusion (WBF) with hand-picked confidence thresholds. The starting point. |
+| **Stage 2 — Phase 1 grid search** | Systematic search over 1,250 WBF configurations (event_t, rgb_t, iou_t, alpha, weighted_box). Best config lifted mAP@0.5 from 50.7% to 57.3%. |
+| **Stage 3 — Run 3 (deployed)** | 486 additional configurations adding temporal smoothing on top of the phase 1 best. Detections consistent across adjacent frames (IoU ≥ 0.2) receive a confidence boost (×1.3); isolated single-frame detections are decayed (×0.8). Final mAP@0.5: 58.3%. |
+
+### Results overview
+
+A compact table beside the pipeline diagram shows the three-step progression (Run 2 → Phase 1 best → Run 3) with mAP@0.5 and the gain over the baseline at a glance. The full comparison table with all metrics is shown below the stage cards.
 
 ---
 
