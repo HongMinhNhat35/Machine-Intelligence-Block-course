@@ -10,7 +10,7 @@ const cfg={
   detect:{title:'Detection',badge:'e2vid + YOLO',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl"></div>`},
   compare2:{title:'Comparison',badge:'',extra:`<div class="sb-lbl">Confidence</div><div class="conf-wrap"><div class="conf-top"><span>Threshold</span><span id="cval3">0.20</span></div><input type="range" style="width:100%;accent-color:#1a3a60" min="0" max="100" value="20" id="csl3"></div>`},
   kpis:{title:'KPIs',badge:'',extra:''},
-  dataset:{title:'Dataset',badge:'5 sequences · FRED',extra:''},
+  fusion:{title:'Fusion Methods',badge:'1,736 configs · 2 search phases',extra:''},
   admin:{title:'Admin',badge:'',extra:''}
 };
 function go(k){

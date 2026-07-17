@@ -37,7 +37,7 @@
     <div class="tab" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
     <div class="tab" data-s="compare2"><i class="ti ti-layout-columns"></i> Comparison</div>
     <div class="tab" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
-    <div class="tab" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
+    <div class="tab" data-s="fusion"><i class="ti ti-git-merge"></i> Fusion Methods</div>
     <div class="tab" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
   </div>
 
@@ -54,7 +54,7 @@
       <div class="nav-item" data-s="detect"><i class="ti ti-scan"></i> Detection</div>
       <div class="nav-item" data-s="compare2"><i class="ti ti-layout-columns"></i> Comparison</div>
       <div class="nav-item" data-s="kpis"><i class="ti ti-chart-bar"></i> KPIs</div>
-      <div class="nav-item" data-s="dataset"><i class="ti ti-database"></i> Dataset</div>
+      <div class="nav-item" data-s="fusion"><i class="ti ti-git-merge"></i> Fusion Methods</div>
       <div class="nav-item" data-s="admin"><i class="ti ti-settings"></i> Admin</div>
       <div class="sb-divider"></div>
 
@@ -149,6 +149,7 @@
               </table>
             </div>
             <p style="font-size:11px;color:#888;margin-top:6px">† HyperE2VID was trained on prototyping sequences only and was not evaluated on the canonical test split — its results are not directly comparable.</p>
+            <p style="margin-top:10px;font-size:12px"><a href="#" onclick="go('fusion');return false" style="color:#1a3a60;text-decoration:none;font-weight:500">Learn more about the fusion architecture and evaluation method →</a></p>
           </div>
 
           <!-- Proposed datasets -->
@@ -485,12 +486,8 @@
             <thead><tr><th>Model</th><th>Run</th><th>Eval</th><th>Dataset</th><th>Train images</th><th>Runtime</th><th>Epochs</th><th>Best epoch</th><th>LR</th><th>Eff. batch</th><th>GPU</th></tr></thead>
             <tbody id="kpi-tr-body"><tr><td colspan="11" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
           </table></div>
-        </div><!-- /s-kpis -->
-
-        <!-- ── DATASET ──────────────────────────────────────────────────────── -->
-        <div class="screen" id="s-dataset">
-          <div class="tbl-wrap">
-          <table>
+          <div class="tbl-title">Dataset — FRED sequences</div>
+          <div class="tbl-wrap"><table>
             <thead><tr><th>Sequence</th><th>Split</th><th>Duration</th><th>Events (post-burst)</th><th>Frames (Run 6)</th><th>First annotation</th><th>Notes</th></tr></thead>
             <tbody>
               <tr>
@@ -505,37 +502,167 @@
                 <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
                 <td>108 s</td><td>62.5 M</td><td>1,357</td>
                 <td>0.4 s <span style="font-size:10px;color:#888">(inside burst)</span></td>
-                <td style="font-size:11px;color:#555">Drone in upper-right at t=5 s, moves to centre-bottom by t=79 s. First ~250 frames (t&lt;25 s) show the drone in the reconstruction but visually faint — LSTM still warming up. YOLO detections remain geometrically accurate (centre error &lt;5 px, IoU&nbsp;0.73–0.92). Burst ratio 15%.</td>
+                <td style="font-size:11px;color:#555">Drone in upper-right at t=5 s, moves to centre-bottom by t=79 s. First ~250 frames (t&lt;25 s) show the drone in the reconstruction but visually faint — LSTM still warming up. YOLO detections remain geometrically accurate (centre error &lt;5 px, IoU 0.73–0.92). Burst ratio 15%.</td>
               </tr>
               <tr>
                 <td><strong>sequence_124</strong></td>
                 <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
                 <td>109 s</td><td>304.6 M</td><td>6,611</td>
                 <td>19.6 s</td>
-                <td style="font-size:11px;color:#555">Drone appears 14.6 s after the 5 s noise skip → background frames fill that gap. <strong>DJI Tello EDU</strong> — different drone type from all other sequences (which use a DarwinFPV cineape20). Adds appearance diversity but may increase label noise. Highest event count by far (304.6 M). Burst ratio 37%.</td>
+                <td style="font-size:11px;color:#555">Drone appears 14.6 s after the 5 s noise skip. <strong>DJI Tello EDU</strong> — different drone type from all other sequences (DarwinFPV cineape20). Highest event count (304.6 M). Burst ratio 37%.</td>
               </tr>
               <tr>
                 <td><strong>sequence_201</strong></td>
                 <td><span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">train</span></td>
                 <td>117 s</td><td>100.1 M</td><td>2,174</td>
                 <td>26.9 s</td>
-                <td style="font-size:11px;color:#555">Drone appears 21.9 s after the noise skip. Longest pre-drone gap of all train sequences → most background frames. Burst ratio 19%.</td>
+                <td style="font-size:11px;color:#555">Drone appears 21.9 s after the noise skip. Longest pre-drone gap of all train sequences. Burst ratio 19%.</td>
               </tr>
               <tr>
                 <td><strong>sequence_127</strong></td>
                 <td><span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">val</span></td>
                 <td>47.5 s</td><td>99.5 M</td><td>2,160</td>
                 <td>12.6 s</td>
-                <td style="font-size:11px;color:#555">Validation only — never used for training. Shortest usable duration (47.5 s vs ~108–117 s for train sequences). Very high burst ratio (59%) — most events in this sequence are camera noise. Drone appears 7.6 s after the noise skip.</td>
+                <td style="font-size:11px;color:#555">Validation only. Shortest usable duration (47.5 s). Very high burst ratio (59%). Drone appears 7.6 s after the noise skip.</td>
               </tr>
             </tbody>
-          </table>
-          </div>
+          </table></div>
           <div style="margin-top:12px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:11px;color:#78350f;line-height:1.6">
-            <strong>Camera noise burst</strong> — when a Prophesee event camera powers on, unsettled sensor pixels fire continuously for several seconds. All sequences skip the first 5 s (start_s = 5.0) to discard this burst; sequence_124 uses start_s = 7.0 due to a residual burst at 5–7 s. Events before start_s are excluded from reconstruction and training.<br>
-            <strong>E2VID LSTM warmup</strong> — after the burst skip, the reconstruction network starts from a zero hidden state and takes ~20 s to converge. During this period reconstructed frames appear visually degraded, but YOLO detections remain accurate (verified on sequence_85: centre error &lt;5 px throughout).
+            <strong>Camera noise burst</strong> — when a Prophesee event camera powers on, unsettled sensor pixels fire continuously for several seconds. All sequences skip the first 5 s to discard this burst; sequence_124 uses start_s = 7.0 due to a residual burst at 5–7 s.<br>
+            <strong>E2VID LSTM warmup</strong> — after the burst skip, the reconstruction network takes ~20 s to converge. During this period frames appear degraded, but YOLO detections remain accurate (verified on sequence_85: centre error &lt;5 px throughout).
           </div>
-        </div><!-- /s-dataset -->
+        </div><!-- /s-kpis -->
+
+        <!-- ── FUSION METHODS ───────────────────────────────────────────────── -->
+        <div class="screen" id="s-fusion">
+
+          <!-- Pipeline overview -->
+          <div class="tbl-title" style="margin-top:0">Pipeline</div>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px 0">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">Event frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">RGB frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+              </div>
+              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO event<br><span style="font-size:9px;color:#9ca3af">fusion_event.pt</span></div>
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO RGB<br><span style="font-size:9px;color:#9ca3af">fusion_rgb.pt</span></div>
+              </div>
+              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
+              </div>
+              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+              <div style="border:1.5px solid #f97316;border-radius:5px;padding:7px 16px;font-size:11px;color:#c2410c;text-align:center;background:#fff7ed;align-self:center">Fusion layer<br><span style="font-size:9px;color:#f97316">WBF · temporal smoothing</span></div>
+              <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+              <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;align-self:center">Final detections<br><span style="font-size:9px;color:#9ca3af">merged output</span></div>
+            </div>
+            <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">YOLO weights are fixed — only the fusion layer was tuned in this evaluation.</p>
+          </div>
+
+          <!-- Three evaluation stage cards -->
+          <div class="tbl-title">Evaluation stages</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+
+            <!-- Stage 1 -->
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af">Stage 1 · Run 2 · Baseline</div>
+              <div style="font-size:13px;font-weight:600;color:#111827">Weighted Box Fusion (WBF)</div>
+              <p style="font-size:11px;color:#6b7280;line-height:1.6">Hand-picked confidence thresholds. Boxes from both models merged by IoU overlap; confidence weighted by alpha.</p>
+              <table style="width:100%;border-collapse:collapse;font-size:11px">
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6;width:50%">event_t</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.3</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6">rgb_t</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.5</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6">iou_t</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.5</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6">alpha</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.5</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0">weighted_box</td><td style="font-family:monospace;color:#374151">False</td></tr>
+              </table>
+              <div style="display:flex;gap:6px;margin-top:2px">
+                <div style="flex:1;background:#f3f4f6;border-radius:4px;padding:6px;text-align:center"><div style="font-size:15px;font-weight:700;color:#111827">50.7%</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">mAP@0.5</div></div>
+                <div style="flex:1;background:#f3f4f6;border-radius:4px;padding:6px;text-align:center"><div style="font-size:15px;font-weight:700;color:#111827">13.0%</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">mAP@0.5:95</div></div>
+              </div>
+            </div>
+
+            <!-- Stage 2 -->
+            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px;position:relative">
+              <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af">Stage 2 · Phase 1 grid search</div>
+              <div style="font-size:13px;font-weight:600;color:#111827">WBF — optimised params</div>
+              <span style="position:absolute;top:12px;right:12px;font-size:10px;color:#16a34a;font-weight:600">+6.6 pp ↑</span>
+              <p style="font-size:11px;color:#6b7280;line-height:1.6">Grid search over 1,250 configurations varying 5 WBF parameters. Best config selected by mAP@0.5 on validation sequences.</p>
+              <table style="width:100%;border-collapse:collapse;font-size:11px">
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6;width:50%">event_t</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.1–0.5 (×5)</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6">rgb_t</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.1–0.5 (×5)</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6">iou_t</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.3–0.7 (×5)</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #f3f4f6">alpha</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #f3f4f6">0.1–0.5, max (×5)</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0">weighted_box</td><td style="font-family:monospace;color:#374151">True / False</td></tr>
+              </table>
+              <div style="display:flex;gap:6px;margin-top:2px">
+                <div style="flex:1;background:#f3f4f6;border-radius:4px;padding:6px;text-align:center"><div style="font-size:15px;font-weight:700;color:#111827">57.3%</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">mAP@0.5</div></div>
+                <div style="flex:1;background:#f3f4f6;border-radius:4px;padding:6px;text-align:center"><div style="font-size:15px;font-weight:700;color:#9ca3af">—</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">mAP@0.5:95</div></div>
+              </div>
+            </div>
+
+            <!-- Stage 3 -->
+            <div style="background:#fffbf7;border:1px solid #fed7aa;border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:8px;position:relative">
+              <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af">Stage 3 · Run 3 · <span style="color:#f97316">Deployed</span></div>
+              <div style="font-size:13px;font-weight:600;color:#111827">WBF + Temporal Smoothing</div>
+              <span style="position:absolute;top:12px;right:12px;font-size:10px;color:#16a34a;font-weight:600">+7.6 pp vs run 2 ↑</span>
+              <p style="font-size:11px;color:#6b7280;line-height:1.6">486 additional configs adding temporal smoothing on top of the phase 1 best. Detections consistent across adjacent frames (IoU ≥ 0.2) receive a confidence boost; isolated single-frame detections are decayed.</p>
+              <table style="width:100%;border-collapse:collapse;font-size:11px">
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #fef3c7;width:50%">t_window</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #fef3c7">1, 2</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #fef3c7">t_boost</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #fef3c7">1.1, 1.2, 1.3</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #fef3c7">t_decay</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #fef3c7">0.8, 0.9, 1.0</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0;border-bottom:1px solid #fef3c7">Best: window</td><td style="font-family:monospace;color:#374151;border-bottom:1px solid #fef3c7">2</td></tr>
+                <tr><td style="color:#9ca3af;padding:3px 0">Best: boost / decay</td><td style="font-family:monospace;color:#374151">1.3 / 0.8</td></tr>
+              </table>
+              <div style="display:flex;gap:6px;margin-top:2px">
+                <div style="flex:1;background:#fff7ed;border-radius:4px;padding:6px;text-align:center"><div style="font-size:15px;font-weight:700;color:#f97316">58.3%</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">mAP@0.5</div></div>
+                <div style="flex:1;background:#fff7ed;border-radius:4px;padding:6px;text-align:center"><div style="font-size:15px;font-weight:700;color:#f97316">14.4%</div><div style="font-size:9px;color:#9ca3af;margin-top:1px">mAP@0.5:95</div></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Summary comparison table -->
+          <div class="tbl-title">Summary comparison</div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Run</th><th>Method</th><th>mAP@0.5</th><th>Δ vs Run 2</th><th>mAP@0.5:95</th><th>Precision</th><th>Recall</th><th>Eval</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Run 2</td>
+                <td>WBF baseline</td>
+                <td>50.7%</td>
+                <td style="color:#9ca3af">—</td>
+                <td>13.0%</td>
+                <td>79.8%</td>
+                <td>58.7%</td>
+                <td><span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">val</span></td>
+              </tr>
+              <tr>
+                <td>Phase 1 best</td>
+                <td>WBF — optimised</td>
+                <td>57.3%</td>
+                <td style="color:#16a34a;font-weight:600">+6.6 pp</td>
+                <td style="color:#9ca3af">—</td>
+                <td style="color:#9ca3af">—</td>
+                <td style="color:#9ca3af">—</td>
+                <td><span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">val</span></td>
+              </tr>
+              <tr style="background:#fffbf7">
+                <td><strong>Run 3</strong> <span style="background:#fff7ed;color:#f97316;border:1px solid #fed7aa;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.04em;margin-left:4px">DEPLOYED</span></td>
+                <td>WBF + temporal smoothing</td>
+                <td><strong>58.3%</strong></td>
+                <td style="color:#16a34a;font-weight:600">+7.6 pp</td>
+                <td>14.4%</td>
+                <td>71.6%</td>
+                <td>69.8%</td>
+                <td><span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600">test</span></td>
+              </tr>
+            </tbody>
+          </table></div>
+
+        </div><!-- /s-fusion -->
 
         <!-- ── ADMIN ────────────────────────────────────────────────────────── -->
         <!-- Live service health + data path info fetched from /api/admin       -->
