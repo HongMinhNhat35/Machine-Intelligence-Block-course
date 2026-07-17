@@ -455,7 +455,15 @@
         <!-- Tables populated from /api/kpis (JSON files in /app/kpis/)         -->
         <!-- Paper baseline rows are static HTML; our runs are injected by JS   -->
         <div class="screen" id="s-kpis">
-          <div class="tbl-title" style="margin-top:0">Best results — AMI vs. FRED paper</div>
+          <!-- Section jump buttons -->
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+            <button onclick="document.getElementById('kpi-best').scrollIntoView({behavior:'smooth'})"     style="font-size:11px;padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;color:#374151;cursor:pointer">Best results</button>
+            <button onclick="document.getElementById('kpi-details').scrollIntoView({behavior:'smooth'})"  style="font-size:11px;padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;color:#374151;cursor:pointer">Details</button>
+            <button onclick="document.getElementById('kpi-recon').scrollIntoView({behavior:'smooth'})"    style="font-size:11px;padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;color:#374151;cursor:pointer">Reconstruction</button>
+            <button onclick="document.getElementById('kpi-training').scrollIntoView({behavior:'smooth'})" style="font-size:11px;padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;color:#374151;cursor:pointer">Training</button>
+            <button onclick="document.getElementById('kpi-dataset').scrollIntoView({behavior:'smooth'})"  style="font-size:11px;padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;color:#374151;cursor:pointer">Dataset</button>
+          </div>
+          <div id="kpi-best" class="tbl-title" style="margin-top:0">Best results — AMI vs. FRED paper</div>
           <div class="tbl-wrap"><table>
             <thead><tr><th>Model</th><th>Run</th><th>Eval</th><th>mAP@0.5</th><th>mAP@0.5:95</th><th>Precision</th><th>Recall</th><th>Total runtime</th></tr></thead>
             <tbody id="kpi-summary-body"><tr><td colspan="8" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
@@ -471,22 +479,22 @@
             <div class="kpi-note-chip" style="flex:0 1 auto">Accuracy will scale with the number of datasets</div>
           </div>
           <p style="font-size:11px;color:#888;margin-top:6px">† HyperE2VID was trained on prototyping sequences only and was not evaluated on the canonical test split — its results are not directly comparable.</p>
-          <div class="tbl-title">Details</div>
+          <div id="kpi-details" class="tbl-title">Details</div>
           <div class="tbl-wrap"><table>
             <thead><tr><th>Model</th><th>Run</th><th>Val set</th><th>Eval</th><th>mAP@0.5</th><th>mAP@0.5:95</th><th>Precision</th><th>Recall</th><th>Total runtime</th></tr></thead>
             <tbody id="kpi-det-body"><tr><td colspan="9" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
           </table></div>
-          <div class="tbl-title">Reconstruction</div>
+          <div id="kpi-recon" class="tbl-title">Reconstruction</div>
           <div class="tbl-wrap"><table>
             <thead><tr><th>Model</th><th>Run</th><th>Dataset</th><th>events/px</th><th>Total Frames</th><th>Runtime</th><th>Avg FPS</th><th>GPU</th></tr></thead>
             <tbody id="kpi-rec-body"><tr><td colspan="7" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
           </table></div>
-          <div class="tbl-title">Training</div>
+          <div id="kpi-training" class="tbl-title">Training</div>
           <div class="tbl-wrap"><table>
             <thead><tr><th>Model</th><th>Run</th><th>Eval</th><th>Dataset</th><th>Train images</th><th>Runtime</th><th>Epochs</th><th>Best epoch</th><th>LR</th><th>Eff. batch</th><th>GPU</th></tr></thead>
             <tbody id="kpi-tr-body"><tr><td colspan="11" style="color:#aaa;padding:10px">Loading…</td></tr></tbody>
           </table></div>
-          <div class="tbl-title">Dataset — FRED sequences</div>
+          <div id="kpi-dataset" class="tbl-title">Dataset — FRED sequences</div>
           <div class="tbl-wrap"><table>
             <thead><tr><th>Sequence</th><th>Split</th><th>Duration</th><th>Events (post-burst)</th><th>Frames (Run 6)</th><th>First annotation</th><th>Notes</th></tr></thead>
             <tbody>
@@ -539,32 +547,8 @@
           <!-- Pipeline overview -->
           <div class="tbl-title" style="margin-top:0">Pipeline</div>
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin-bottom:16px;display:flex;gap:20px;align-items:center">
-            <!-- Pipeline diagram -->
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px 0">
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">Event frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
-                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">RGB frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
-                </div>
-                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO event<br><span style="font-size:9px;color:#9ca3af">fusion_event.pt</span></div>
-                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO RGB<br><span style="font-size:9px;color:#9ca3af">fusion_rgb.pt</span></div>
-                </div>
-                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
-                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
-                </div>
-                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-                <div style="border:1.5px solid #f97316;border-radius:5px;padding:7px 16px;font-size:11px;color:#c2410c;text-align:center;background:#fff7ed;align-self:center">Fusion layer<br><span style="font-size:9px;color:#f97316">WBF · temporal smoothing</span></div>
-                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
-                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;align-self:center">Final detections<br><span style="font-size:9px;color:#9ca3af">merged output</span></div>
-              </div>
-              <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">YOLO weights are fixed — only the fusion layer was tuned.</p>
-            </div>
             <!-- Abbreviated results table -->
-            <div style="flex:0 0 auto;border-left:1px solid #e5e7eb;padding-left:20px">
+            <div style="flex:0 0 auto;border-right:1px solid #e5e7eb;padding-right:20px">
               <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Results overview</div>
               <table style="border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap">
                 <thead><tr>
@@ -594,6 +578,30 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+            <!-- Pipeline diagram -->
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;padding:4px 0">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">Event frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:88px">RGB frames<br><span style="font-size:9px;color:#9ca3af">FRED raw</span></div>
+                </div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO event<br><span style="font-size:9px;color:#9ca3af">fusion_event.pt</span></div>
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;min-width:100px">YOLO RGB<br><span style="font-size:9px;color:#9ca3af">fusion_rgb.pt</span></div>
+                </div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
+                  <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center">Detections<br><span style="font-size:9px;color:#9ca3af">boxes + conf</span></div>
+                </div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="border:1.5px solid #f97316;border-radius:5px;padding:7px 16px;font-size:11px;color:#c2410c;text-align:center;background:#fff7ed;align-self:center">Fusion layer<br><span style="font-size:9px;color:#f97316">WBF · temporal smoothing</span></div>
+                <div style="font-size:16px;color:#9ca3af;padding:0 4px;align-self:center">→</div>
+                <div style="border:1.5px solid #d1d5db;border-radius:5px;padding:7px 14px;font-size:11px;color:#6b7280;text-align:center;align-self:center">Final detections<br><span style="font-size:9px;color:#9ca3af">merged output</span></div>
+              </div>
+              <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px">YOLO weights are fixed — only the fusion layer was tuned.</p>
             </div>
           </div>
 
