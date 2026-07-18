@@ -16,10 +16,15 @@ Create a token at: https://gitlab.lrz.de/-/user_settings/personal_access_tokens
 
 ## Quick install (recommended)
 
-Set your token as an environment variable first — the installer will pick it up automatically so you won't be prompted again:
+**Step 1 — export your token** (replace `<your-token>` with the token you just created):
 
 ```bash
 export GL_TOKEN=<your-token>
+```
+
+**Step 2 — download and run the installer** (the token is picked up automatically — no further prompts):
+
+```bash
 curl --header "PRIVATE-TOKEN: $GL_TOKEN" -o g1-install.sh "https://gitlab.lrz.de/api/v4/projects/269843/repository/files/g1-install.sh/raw?ref=gui"
 bash g1-install.sh
 ```
