@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-GL_PROJECT="https://gitlab.lrz.de/ldv/teaching/ami/ami2026/group01"
-GL_RAW="$GL_PROJECT/-/raw/gui"
-GL_PKG="https://gitlab.lrz.de/api/v4/projects/269843/packages/generic/data/1.0"
+GL_API="https://gitlab.lrz.de/api/v4/projects/269843"
+GL_PKG="$GL_API/packages/generic/data/1.0"
 GL_REGISTRY="gitlab.lrz.de:5005"
 DEFAULT_RECON="$HOME/g1-ami-data"
 
@@ -58,24 +57,31 @@ gl_curl() {
   curl -fsSL --header "PRIVATE-TOKEN: $GL_TOKEN" "$@"
 }
 
+# Download a file from the repo via the API endpoint (no redirects, auth header preserved)
+gl_raw() {
+  local path="${1//\//%2F}"
+  shift
+  gl_curl "$GL_API/repository/files/${path}/raw?ref=gui" "$@"
+}
+
 echo ""
 echo "Logging in to GitLab container registry ..."
 echo "$GL_TOKEN" | docker login "$GL_REGISTRY" --username "$GL_USER" --password-stdin
 
 echo ""
 echo "Downloading docker-compose.yml ..."
-gl_curl -o "$RECON/docker-compose.yml" "$GL_RAW/docker-compose.deploy.yml"
+gl_raw "docker-compose.deploy.yml" -o "$RECON/docker-compose.yml"
 
 echo "Downloading GUI static files ..."
 mkdir -p "$RECON/static"
 for f in app-admin.js app-compare.js app-core.js app-detect.js app-recon.js app-upload.js app-utils.js index.html style.css gui_user_guide.html fusion_viz.jpeg Kevin.jpeg Klaus.jpg Kutay.jpeg Sinan.jpeg Yusuf.jpeg; do
-  gl_curl -o "$RECON/static/$f" "$GL_RAW/services/web/static/$f"
+  gl_raw "services/web/static/$f" -o "$RECON/static/$f"
 done
 
 echo "Downloading KPI files ..."
 mkdir -p "$RECON/kpis"
 for f in e2vid_run2.json e2vid_run3.json e2vid_run4.json e2vid_run5.json e2vid_run6.json e2vid_run7.json e2vid_run8.json e2vid_run9.json e2vid_run10.json fusion_event_run1.json fusion_event_run2.json fusion_rgb_run1.json fusion_rgb_run2.json fusion_run1.json fusion_run2.json fusion_run3.json hypere2vid_run1.json hypere2vid_run2.json; do
-  gl_curl -o "$RECON/kpis/$f" "$GL_RAW/services/web/kpis/$f"
+  gl_raw "services/web/kpis/$f" -o "$RECON/kpis/$f"
 done
 
 echo "Writing .env ..."
